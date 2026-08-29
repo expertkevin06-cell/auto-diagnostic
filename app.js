@@ -78,7 +78,8 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   try { await checkAutoUpdates(); } catch (e) { console.warn(e); }
 
-  await checkUserStatus();
+    await checkUserStatus();
+  await applyCustomBackground();
 
   window.addEventListener('beforeinstallprompt', (e) => {
     e.preventDefault();
