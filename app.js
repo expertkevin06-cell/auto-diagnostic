@@ -9,7 +9,14 @@ function srcName(s){const m={NHTSA:'NHTSA',SAFETY_GATE:'Safety Gate',RAPPEL_CONS
 function srcClass(s){const m={NHTSA:'nhtsa',SAFETY_GATE:'safetygate',RAPPEL_CONSO:'rappelconso',SPECIALISTES:'specialistes'};return m[s]||'specialistes';}
 function capitalize(s){return s.charAt(0).toUpperCase()+s.slice(1);}
 
+// ===== CSS injecté : fiche visible + tiroirs sans coupe + fond lumineux =====
+function injectUICSS(){ if(document.getElementById('uicss'))return;
+  const st=document.createElement('style');st.id='uicss';
+  st.textContent='.modal{position:fixed;inset:0;background:rgba(0,0,0,.7);display:flex;align-items:center;justify-content:center;z-index:3000;padding:16px;}.modal.hidden{display:none!important;}.modal-content{background:#273449;border-radius:12px;padding:20px;max-width:560px;width:100%;max-height:85vh;overflow-y:auto;position:relative;border:1px solid #334155;}.modal-close{position:absolute;top:10px;right:10px;background:none;border:none;color:#94a3b8;font-size:20px;cursor:pointer;}.drawer.open .drawer-content{max-height:none!important;}body.custom-bg::before{background:rgba(15,23,42,.45)!important;}';
+  document.head.appendChild(st);}
+
 function ensureDOM(){
+  injectUICSS();
   if(!document.getElementById('toastContainer')){const t=document.createElement('div');t.id='toastContainer';t.className='toast-container';document.body.appendChild(t);}
   if(!document.getElementById('detailModal')){
     const m=document.createElement('div');m.id='detailModal';m.className='modal hidden';
@@ -21,7 +28,6 @@ function ensureDOM(){
     const md=document.getElementById('detailModal'); if(md)md.addEventListener('click',(e)=>{if(e.target===md)md.classList.add('hidden');}); }
 }
 
-// ===== FOND D'ÉCRAN : style inline + CSS injecté (marche toujours) =====
 function injectBgCSS(){ if(document.getElementById('bgcss'))return;
   const st=document.createElement('style');st.id='bgcss';
   st.textContent='body.custom-bg{background-size:cover;background-position:center;background-attachment:scroll;}';
@@ -63,7 +69,6 @@ async function checkAutoUpdates() {
   else { const l = localStorage.getItem('lastDbUpdate'); if (l && el) el.textContent = 'Dernière MAJ: ' + new Date(parseInt(l)).toLocaleDateString('fr-FR'); }
 }
 
-// ===== CORRÉLATION AUTONOME =====
 function FI(engine){const out=[];const code=((engine.engineCode||'')+' '+(engine.power||''));const t=engine.fuelType||'';
   const P=(title,sev,dtc,rep,src,desc)=>out.push({title,severity:sev,dtc,dtcRelated:dtc,repair:rep,repairAction:rep,source:src,description:desc,fam:true});
   if(/PureTech/i.test(code)){P("Courroie distribution immergée PureTech","Élevée",["P0016","P0340","P0335"],"Kit distribution + crépine","RAPPEL_CONSO","Usure courroie.");P("GPF encrassé","Élevée",["P2002","P242F","P2453","P2463","P200E"],"Nettoyage GPF + MAJ","SPECIALISTES","Voyant.");P("Turbo fuite huile","Moyenne",["P0299","P2262","P0234"],"Turbo + durites","SPECIALISTES","Perte puissance.");}
@@ -91,10 +96,11 @@ async function buildVehicleIssues(brand,model,year,engine){
     specific=all.filter(r=>r.brand===brand&&r.model===model&&(!year||(r.years||[]).includes(year))&&(!r.ef||new RegExp(r.ef,'i').test(code)));}catch(e){}
   return {specific,fam:FI(engine),com:CI(),dtc:dtcForEngine(engine)};}
 
-// ===== FICHE DÉTAILLÉE D'UN DÉFAUT =====
+function openModal(html){ const m=document.getElementById('detailModal'),b=document.getElementById('modalBody'); if(!m||!b)return;
+  b.innerHTML=html; b.scrollTop=0; m.classList.remove('hidden'); m.scrollTop=0; bindChips(b); }
+
 async function showFaultDetail(i, ctx) {
-  const m=document.getElementById('detailModal'),b=document.getElementById('modalBody');if(!m||!b)return;
-  b.innerHTML='<div class="loading">Chargement...</div>';m.classList.remove('hidden');
+  openModal('<div class="loading">Chargement...</div>');
   const dtcs=i.dtc||i.dtcRelated||[];
   let cat='',sys='';
   if(dtcs.length){const d=await DTC_DB.getByCode(dtcs[0]);if(d){cat=d.category;sys=d.system;}}
@@ -109,21 +115,21 @@ async function showFaultDetail(i, ctx) {
     '<p style="font-size:12px;color:var(--success);margin-top:10px">🔧 <strong>Réparation :</strong> '+(i.repair||i.repairAction||'')+'</p>';
   if(rel.length){h+='<h3 style="margin:12px 0 6px">📋 Rappels officiels liés ('+rel.length+')</h3>';
     rel.forEach(r=>{h+='<div class="result-card"><strong>'+r.brand+' '+r.model+'</strong> — '+r.title+' <span class="severity-badge '+sevClass(r.severity)+'">'+r.severity+'</span></div>';});}
-  b.innerHTML=h;bindChips(b);
+  openModal(h);
 }
 
-async function showDTCModal(d){const m=document.getElementById('detailModal'),b=document.getElementById('modalBody');if(!m||!b)return;
+async function showDTCModal(d){
   const rec=await RECALLS_DB.getByDTC(d.code);
   let h='<h2 style="font-family:monospace;color:var(--accent)">'+d.code+'</h2><p style="margin:8px 0"><span class="severity-badge '+sevClass(d.severity)+'">'+d.severity+'</span> 📂 '+d.category+'</p><p><strong>'+d.system+'</strong></p>'+
     '<p style="margin-top:8px;font-size:13px">🚗 Marques: '+d.brands.join(', ')+'</p>';
   if(rec.length){h+='<h3 style="margin:10px 0 6px">📋 Rappels liés</h3>';rec.forEach(r=>{h+='<div class="result-card"><strong>'+r.brand+' '+r.model+'</strong> — '+r.title+'</div>';});}
-  b.innerHTML=h;m.classList.remove('hidden');}
+  openModal(h);}
 
 function card(i,idx){const dtcs=i.dtc||i.dtcRelated||[];
   return '<div class="result-card" style="margin-bottom:8px;cursor:pointer" data-fi="'+idx+'"><div class="dtc-list" style="margin-bottom:6px">'+dtcs.map(cd=>'<span class="dtc-chip" data-code="'+cd+'">'+cd+'</span>').join('')+'</div><div style="display:flex;justify-content:space-between;align-items:start;margin-bottom:4px"><h3 style="font-size:13px">'+i.title+'</h3><span class="severity-badge '+sevClass(i.severity)+'">'+i.severity+'</span></div><span class="source-badge '+srcClass(i.source)+'">'+srcName(i.source)+'</span>'+(i.description?'<p class="description" style="margin-top:4px">'+i.description+'</p>':'')+'<p style="font-size:11px;color:var(--success);margin-top:4px">🔧 '+(i.repair||i.repairAction||'')+'</p></div>';}
 function bindChips(root){root.querySelectorAll('.dtc-chip').forEach(ch=>{ch.addEventListener('click',async(e)=>{e.stopPropagation();const d=await DTC_DB.getByCode(ch.dataset.code);if(d)showDTCModal(d);});});}
 function bindFaultCards(root,all,ctx){root.querySelectorAll('[data-fi]').forEach(el=>{el.addEventListener('click',(e)=>{if(e.target.classList.contains('dtc-chip'))return;showFaultDetail(all[+el.dataset.fi],ctx);});});}
-function renderSheet(en,r,ctx){const all=r.specific.concat(r.fam,r.com);
+function renderSheet(en,r){const all=r.specific.concat(r.fam,r.com);
   return {html:'<div style="padding:10px;border-left:3px solid var(--accent);margin:6px 0 10px;background:var(--bg-primary);border-radius:8px">'+
    '<p style="font-size:12px;color:var(--text-secondary);margin-bottom:8px">'+en.year+' • '+en.fuelType+' • '+en.power+' • '+en.engineCode+' — cliquez sur une panne pour la fiche détaillée</p>'+
    '<div class="dtc-list" style="margin-bottom:8px">'+r.dtc.map(cd=>'<span class="dtc-chip" data-code="'+cd+'">'+cd+'</span>').join('')+'</div>'+
@@ -210,17 +216,17 @@ function loadEngines(c,brand,model,engines){c.innerHTML='';
         it.after(sh);
         const r=await buildVehicleIssues(brand,model,en.year,en);
         const ctx={brand,model,en};
-        const o=renderSheet(en,r,ctx);
+        const o=renderSheet(en,r);
         sh.innerHTML=o.html;bindChips(sh);bindFaultCards(sh,o.all,ctx);
       });
       c.appendChild(it);});});}
 
-async function showModelIssues(brand,model){const modal=document.getElementById('detailModal'),body=document.getElementById('modalBody');if(!modal||!body)return;
-  body.innerHTML='<div class="loading">Chargement...</div>';modal.classList.remove('hidden');
+async function showModelIssues(brand,model){
+  openModal('<div class="loading">Chargement...</div>');
   let all=[];try{all=await DB.getAll('recalls');}catch(e){}
   const spec=all.filter(r=>r.brand===brand&&r.model===model);
-  body.innerHTML='<h2>'+brand+' '+model+' — toutes motorisations</h2>'+(spec.length?spec.map((i,k)=>card(i,k)).join(''):'<p style="color:var(--text-muted)">Ouvrez une motorisation pour la corrélation complète.</p>');
-  bindChips(body);bindFaultCards(body,spec,{brand,model,en:{year:'-',fuelType:'-',engineCode:'-'}});}
+  openModal('<h2>'+brand+' '+model+' — toutes motorisations</h2>'+(spec.length?spec.map((i,k)=>card(i,k)).join(''):'<p style="color:var(--text-muted)">Ouvrez une motorisation pour la corrélation complète.</p>'));
+  bindFaultCards(document.getElementById('modalBody'),spec,{brand,model,en:{year:'-',fuelType:'-',engineCode:'-'}});}
 
 async function searchDTC(){const i=document.getElementById('dtcSearch'),q=i?i.value.trim():'',c=document.getElementById('dtcResults');if(!c)return;
   if(!q){c.innerHTML='<div class="loading">Code ?</div>';return;}
