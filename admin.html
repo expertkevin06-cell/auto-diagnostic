@@ -2,21 +2,44 @@
 <html lang="fr">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
   <meta name="theme-color" content="#1e293b">
   <title>Admin - Auto Diagnostic Pro</title>
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
 
-<!-- Vérification session admin -->
-<script>
-  if (!sessionStorage.getItem('adminLogged')) {
-    window.location.href = 'index.html';
-  }
-</script>
+<!-- ============================================================
+     ÉCRAN 1 : CONNEXION ADMIN (intégré, autonome)
+     ============================================================ -->
+<div id="adminLoginScreen" class="screen active">
+  <div class="container">
+    <div class="admin-login">
+      <div class="logo">🛡️</div>
+      <h1>Espace Admin</h1>
+      <p class="subtitle">Accès réservé à l'administrateur</p>
 
-<div class="screen active">
+      <div class="card">
+        <form id="adminLoginForm">
+          <div class="form-group">
+            <label for="adminPassword">Mot de passe administrateur</label>
+            <input type="password" id="adminPassword" required placeholder="••••••••" autocomplete="current-password">
+          </div>
+          <button type="submit" class="btn btn-primary">🔓 Se connecter</button>
+        </form>
+        <div id="adminLoginError" class="status-box denied hidden" style="margin-top:12px"></div>
+      </div>
+
+      <button id="btnBackToApp" class="btn-link">← Retour à l'application</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================
+     ÉCRAN 2 : PANNEAU ADMIN
+     ============================================================ -->
+<div id="adminPanelScreen" class="screen">
+
   <header class="app-header">
     <div class="header-left">
       <span class="logo-mini">🛡️</span>
@@ -30,7 +53,7 @@
     </div>
   </header>
 
-  <!-- Onglets admin -->
+  <!-- Onglets -->
   <div class="tabs">
     <div class="tab active" data-tab="requests">📨 Demandes</div>
     <div class="tab" data-tab="users">👥 Utilisateurs</div>
@@ -38,7 +61,7 @@
     <div class="tab" data-tab="settings">⚙️ Réglages</div>
   </div>
 
-  <!-- ===== ONGLET DEMANDES D'ACCÈS ===== -->
+  <!-- ===== ONGLET DEMANDES ===== -->
   <div id="tabRequests" class="tab-content active">
     <div class="admin-panel">
       <h2 style="margin-bottom:16px">📨 Demandes d'accès en attente</h2>
@@ -57,11 +80,11 @@
     </div>
   </div>
 
-  <!-- ===== ONGLET BASE DE DONNÉES ===== -->
+  <!-- ===== ONGLET BASE ===== -->
   <div id="tabDatabase" class="tab-content">
     <div class="admin-panel">
       <h2 style="margin-bottom:16px">🗄️ Gestion de la base</h2>
-      
+
       <div class="card">
         <h3 style="margin-bottom:12px">📦 État de la base</h3>
         <div id="dbStats"></div>
@@ -99,7 +122,8 @@
       <div class="card">
         <h3 style="margin-bottom:12px">🤖 Clé API Gemini</h3>
         <p class="info-text">
-          Obtenez une clé gratuite sur <a href="https://aistudio.google.com/apikey" target="_blank" style="color:var(--accent)">Google AI Studio</a>.
+          Obtenez une clé gratuite sur
+          <a href="https://aistudio.google.com/apikey" target="_blank" style="color:var(--accent)">Google AI Studio</a>.
           Cette clé sera utilisée pour les recherches IA spécifiques dans l'APK.
         </p>
         <div class="form-group">
@@ -129,7 +153,7 @@
 
       <div class="card">
         <h3 style="margin-bottom:12px">🔐 Sécurité</h3>
-        <p class="info-text">Mot de passe admin actuel: <strong>Kevin83600</strong></p>
+        <p class="info-text">Mot de passe admin par défaut : <strong>Kevin83600</strong></p>
         <button id="btnChangePassword" class="btn btn-warning">🔑 Changer le mot de passe admin</button>
       </div>
     </div>
@@ -144,12 +168,66 @@
   </div>
 </div>
 
+<!-- Toasts -->
 <div id="toastContainer" class="toast-container"></div>
 
+<!-- ============================================================
+     SCRIPTS (toutes les bases incluses)
+     ============================================================ -->
 <script src="db.js"></script>
 <script src="vehicles-db.js"></script>
 <script src="dtc-db.js"></script>
 <script src="recalls-db.js"></script>
 <script src="admin.js"></script>
+
+<!-- ============================================================
+     PASSERELLE DE CONNEXION (autonome, sans dépendance)
+     ============================================================ -->
+<script>
+(function () {
+  function getAdminPassword() {
+    return localStorage.getItem('ADMIN_PASSWORD') || 'Kevin83600';
+  }
+
+  function showPanel() {
+    document.getElementById('adminLoginScreen').classList.remove('active');
+    document.getElementById('adminPanelScreen').classList.add('active');
+    sessionStorage.setItem('adminLogged', 'true');
+  }
+
+  document.addEventListener('DOMContentLoaded', function () {
+    // Déjà connecté -> afficher directement le panneau
+    if (sessionStorage.getItem('adminLogged') === 'true') {
+      showPanel();
+    }
+
+    // Formulaire de connexion
+    var form = document.getElementById('adminLoginForm');
+    if (form) {
+      form.addEventListener('submit', function (e) {
+        e.preventDefault();
+        var pass = document.getElementById('adminPassword').value;
+        var err = document.getElementById('adminLoginError');
+
+        if (pass === getAdminPassword()) {
+          err.classList.add('hidden');
+          showPanel();
+        } else {
+          err.classList.remove('hidden');
+          err.textContent = '❌ Mot de passe incorrect';
+        }
+      });
+    }
+
+    // Retour application
+    var btnBack = document.getElementById('btnBackToApp');
+    if (btnBack) {
+      btnBack.addEventListener('click', function () {
+        window.location.href = 'index.html';
+      });
+    }
+  });
+})();
+</script>
 </body>
 </html>
