@@ -129,7 +129,14 @@ document.addEventListener('DOMContentLoaded', async () => {
     await ensureAdminUser();
   await loadAll();
   bindEvents();
-});
+  // ----- Ouvrir l'application en mode admin -----
+  const btnOpenApp = document.getElementById('btnOpenApp');
+  if (btnOpenApp) {
+    btnOpenApp.addEventListener('click', async () => {
+      await ensureAdminUser();
+      window.location.href = 'index.html';
+    });
+  }});
 
 async function loadAll() {
   await loadPendingRequests();
