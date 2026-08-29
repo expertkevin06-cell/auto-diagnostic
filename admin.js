@@ -49,7 +49,37 @@ function formatDate(timestamp) {
   return new Date(timestamp).toLocaleDateString('fr-FR', {
     day: '2-digit', month: '2-digit', year: 'numeric',
     hour: '2-digit', minute: '2-digit'
-  });
+  }// ============================================================
+// ADMIN = UTILISATEUR AUTORISÉ (accès direct aux tiroirs)
+// ============================================================
+async function ensureAdminUser() {
+  try {
+    const list = await DB.query('users', u => u.firstName === 'Admin');
+    let adminUser;
+
+    if (list.length > 0) {
+      adminUser = list[0];
+      if (adminUser.status !== 'approved') {
+        adminUser.status = 'approved';
+        await DB.update('users', adminUser);
+      }
+    } else {
+      const id = await DB.add('users', {
+        firstName: 'Admin',
+        status: 'approved',
+        requestDate: Date.now(),
+        lastAccess: null,
+        isAdmin: true
+      });
+      adminUser = { id: id, firstName: 'Admin', status: 'approved', isAdmin: true };
+    }
+
+    // Session utilisateur approuvée pour index.html
+    localStorage.setItem('currentUser', JSON.stringify(adminUser));
+  } catch (e) {
+    console.warn('ensureAdminUser:', e);
+  }
+});
 }
 
 // ============================================================
