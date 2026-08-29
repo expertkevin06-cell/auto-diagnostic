@@ -105,7 +105,17 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   bindEvents();
 });
-
+async function applyCustomBackground() {
+  try {
+    let saved = null;
+    try { const m = await DB.get('meta', 'customBgImage'); saved = m ? m.value : null; } catch (e) {}
+    if (!saved) saved = localStorage.getItem('customBgImage');
+    if (saved) {
+      document.body.style.setProperty('--custom-bg-image', 'url(' + saved + ')');
+      document.body.classList.add('custom-bg');
+    }
+  } catch (e) {}
+}
 async function checkAutoUpdates() {
   const vUpd = await VEHICLES_DB.checkAndUpdate();
   const rUpd = await RECALLS_DB.checkAndUpdate();
