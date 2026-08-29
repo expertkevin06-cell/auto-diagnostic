@@ -1,7 +1,16 @@
+// ============================================================
+// AUTO-DIAGNOSTIC PRO - BASE VÉHICULES 2017-2026
+// Version corrigée : peuplement RAPIDE (bulkAdd, 1 transaction)
+// ============================================================
+
 const VEHICLES_DB = {
   lastUpdated: null,
 
+  // ==========================================================
+  // DONNÉES : RÉGIONS -> MARQUES -> MODÈLES -> MOTORISATIONS
+  // ==========================================================
   data: {
+
     FRANCE: {
       label: "🇫🇷 France",
       color: "#0055A4",
@@ -249,7 +258,7 @@ const VEHICLES_DB = {
     },
 
     EUROPE: {
-      label: "🇪 Europe",
+      label: "🇪🇺 Europe",
       color: "#FFD700",
       brands: {
         "Volkswagen": {
@@ -1164,115 +1173,111 @@ const VEHICLES_DB = {
     }
   },
 
+  // ==========================================================
+  // MÉTHODES CORRIGÉES (peuplement rapide + migration auto)
+  // ==========================================================
+
   async init() {
     const meta = await DB.get('meta', 'lastVehicleUpdate');
     this.lastUpdated = meta ? meta.value : null;
+
     const vehicles = await DB.getAll('vehicles');
-    if (vehicles.length === 0) await this.populate();
+    // Base vide OU ancien format (sans tableau "engines") -> repeupler
+    if (vehicles.length === 0 || !vehicles[0].engines) {
+      await DB.clear('vehicles');
+      await this.populate();
+    }
   },
 
-  async populate() {
-    console.log("🔄 Peuplement base véhicules...");
-    let count = 0;
-
+  // Construit tous les enregistrements en mémoire (1 par modèle)
+  buildRecords() {
+    const records = [];
     for (const regionKey in this.data) {
       const region = this.data[regionKey];
-      
-      if (regionKey === 'FRANCE') {
-        for (const brandName in region.brands) {
-          const brand = region.brands[brandName];
-          for (const modelName in brand.models) {
-            const model = brand.models[modelName];
-            for (const engine of model.engines) {
-              for (const year of brand.years) {
-                await DB.add('vehicles', {
-                  region: regionKey,
-                  regionLabel: region.label,
-                  country: 'France',
-                  brand: brandName,
-                  model: modelName,
-                  year: year,
-                  fuelType: engine.type,
-                  power: engine.power,
-                  engineCode: engine.code,
-                  addedAt: Date.now()
-                });
-                count++;
-              }
-            }
-          }
-        }
-      } else {
-        for (const brandName in region.brands) {
-          const brand = region.brands[brandName];
-          for (const modelName in brand.models) {
-            const model = brand.models[modelName];
-            for (const engine of model.engines) {
-              for (const year of brand.years) {
-                await DB.add('vehicles', {
-                  region: regionKey,
-                  regionLabel: region.label,
-                  country: regionKey,
-                  brand: brandName,
-                  model: modelName,
-                  year: year,
-                  fuelType: engine.type,
-                  power: engine.power,
-                  engineCode: engine.code,
-                  addedAt: Date.now()
-                });
-                count++;
-              }
-            }
-          }
+      for (const brandName in region.brands) {
+        const brand = region.brands[brandName];
+        for (const modelName in brand.models) {
+          const model = brand.models[modelName];
+          records.push({
+            region: regionKey,
+            regionLabel: region.label,
+            country: regionKey === 'FRANCE' ? 'France' : regionKey,
+            brand: brandName,
+            model: modelName,
+            years: brand.years,
+            engines: model.engines,
+            addedAt: Date.now()
+          });
         }
       }
     }
-
-    await DB.update('meta', { key: 'lastVehicleUpdate', value: Date.now() });
-    console.log(`✅ ${count} véhicules ajoutés`);
+    return records;
   },
 
+  // PEUPLEMENT RAPIDE : une seule transaction pour toute la base
+  async populate() {
+    console.log("🔄 Peuplement base véhicules (mode rapide)...");
+    const records = this.buildRecords();
+    await DB.bulkAdd('vehicles', records);
+    this.lastUpdated = Date.now();
+    await DB.update('meta', { key: 'lastVehicleUpdate', value: this.lastUpdated });
+    console.log(`✅ ${records.length} modèles ajoutés`);
+  },
+
+  // Mise à jour automatique tous les 15 jours
   async checkAndUpdate() {
     const now = Date.now();
     const fifteenDays = 15 * 24 * 60 * 60 * 1000;
-    if (!this.lastUpdated || (now - this.lastUpdated) >= fifteenDays) {
-      console.log("🔄 MAJ base véhicules");
+    const meta = await DB.get('meta', 'lastVehicleUpdate');
+    const last = meta ? meta.value : 0;
+
+    if (!last || (now - last) >= fifteenDays) {
+      console.log("🔄 MAJ base véhicules (15 jours)");
       await DB.clear('vehicles');
       await this.populate();
-      this.lastUpdated = now;
       return true;
     }
     return false;
   },
 
+  // Liste des marques (filtrée par région)
   async getBrands(region) {
-    const query = region === 'ALL' ? () => true : (v) => v.region === region;
-    const vehicles = await DB.query('vehicles', query);
-    return [...new Set(vehicles.map(v => v.brand))].sort();
+    const all = await DB.getAll('vehicles');
+    const filtered = (region === 'ALL') ? all : all.filter(v => v.region === region);
+    return [...new Set(filtered.map(v => v.brand))].sort();
   },
 
+  // Liste des modèles d'une marque
   async getModels(region, brand) {
-    const query = region === 'ALL' 
-      ? (v) => v.brand === brand
-      : (v) => v.region === region && v.brand === brand;
-    const vehicles = await DB.query('vehicles', query);
-    return [...new Set(vehicles.map(v => v.model))].sort();
+    const all = await DB.getAll('vehicles');
+    const filtered = all.filter(v => v.brand === brand && (region === 'ALL' || v.region === region));
+    return [...new Set(filtered.map(v => v.model))].sort();
   },
 
+  // Motorisations détaillées (année × moteur)
   async getEngines(region, brand, model) {
-    const query = region === 'ALL'
-      ? (v) => v.brand === brand && v.model === model
-      : (v) => v.region === region && v.brand === brand && v.model === model;
-    const vehicles = await DB.query('vehicles', query);
-    return vehicles.map(v => ({
-      year: v.year,
-      fuelType: v.fuelType,
-      power: v.power,
-      engineCode: v.engineCode
-    }));
+    const all = await DB.getAll('vehicles');
+    const rec = all.find(v => v.brand === brand && v.model === model && (region === 'ALL' || v.region === region));
+    if (!rec) return [];
+
+    const list = [];
+    for (const year of rec.years) {
+      for (const e of rec.engines) {
+        list.push({ year: year, fuelType: e.type, power: e.power, engineCode: e.code });
+      }
+    }
+    return list;
   },
 
+  // Statistiques par région
+  async getStats() {
+    const all = await DB.getAll('vehicles');
+    const stats = { FRANCE: 0, EUROPE: 0, AMERIQUE: 0, ASIE: 0 };
+    all.forEach(v => { if (stats[v.region] !== undefined) stats[v.region]++; });
+    return { total: all.length, ...stats };
+  },
+
+  // Recherche globale (marque, modèle, code moteur)
   async search(query) {
     const all = await DB.getAll('vehicles');
     const q = query.toLowerCase().trim();
@@ -1280,7 +1285,7 @@ const VEHICLES_DB = {
     return all.filter(v =>
       v.brand.toLowerCase().includes(q) ||
       v.model.toLowerCase().includes(q) ||
-      v.engineCode.toLowerCase().includes(q)
+      (v.engines || []).some(e => e.code.toLowerCase().includes(q))
     );
   }
 };
