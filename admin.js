@@ -126,6 +126,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     showToast('Erreur initialisation: ' + e.message, 'error');
   }
 
+    await ensureAdminUser();
   await loadAll();
   bindEvents();
 });
