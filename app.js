@@ -1,4 +1,5 @@
 const APP = { currentUser: null, currentRegion: 'ALL', deferredPrompt: null, ADMIN_PASSWORD: "Kevin83600" };
+let LAST_SHEET = null;
 
 function normalizeStr(s){return (s||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');}
 function showToast(m,t){t=t||'info';const c=document.getElementById('toastContainer');if(!c)return;const d=document.createElement('div');d.className='toast '+t;d.textContent=m;c.appendChild(d);setTimeout(()=>d.remove(),4000);}
@@ -9,10 +10,10 @@ function srcName(s){const m={NHTSA:'NHTSA',SAFETY_GATE:'Safety Gate',RAPPEL_CONS
 function srcClass(s){const m={NHTSA:'nhtsa',SAFETY_GATE:'safetygate',RAPPEL_CONSO:'rappelconso',SPECIALISTES:'specialistes'};return m[s]||'specialistes';}
 function capitalize(s){return s.charAt(0).toUpperCase()+s.slice(1);}
 
-// ===== CSS injecté : fiche visible + tiroirs sans coupe + fond lumineux =====
+// CSS injecté : fenêtre visible, tiroirs sans coupe, photo à 80%
 function injectUICSS(){ if(document.getElementById('uicss'))return;
   const st=document.createElement('style');st.id='uicss';
-  st.textContent='.modal{position:fixed;inset:0;background:rgba(0,0,0,.7);display:flex;align-items:center;justify-content:center;z-index:3000;padding:16px;}.modal.hidden{display:none!important;}.modal-content{background:#273449;border-radius:12px;padding:20px;max-width:560px;width:100%;max-height:85vh;overflow-y:auto;position:relative;border:1px solid #334155;}.modal-close{position:absolute;top:10px;right:10px;background:none;border:none;color:#94a3b8;font-size:20px;cursor:pointer;}.drawer.open .drawer-content{max-height:none!important;}body.custom-bg::before{background:rgba(15,23,42,.45)!important;}';
+  st.textContent='.modal{position:fixed;inset:0;background:rgba(0,0,0,.7);display:flex;align-items:center;justify-content:center;z-index:3000;padding:16px;}.modal.hidden{display:none!important;}.modal-content{background:#273449;border-radius:12px;padding:20px;max-width:600px;width:100%;max-height:88vh;overflow-y:auto;position:relative;border:1px solid #334155;}.modal-close{position:absolute;top:10px;right:10px;background:none;border:none;color:#94a3b8;font-size:20px;cursor:pointer;}.drawer.open .drawer-content{max-height:none!important;}.sub-drawer.open .sub-drawer-content{max-height:none!important;}body.custom-bg::before{background:rgba(15,23,42,.2)!important;}';
   document.head.appendChild(st);}
 
 function ensureDOM(){
@@ -99,6 +100,26 @@ async function buildVehicleIssues(brand,model,year,engine){
 function openModal(html){ const m=document.getElementById('detailModal'),b=document.getElementById('modalBody'); if(!m||!b)return;
   b.innerHTML=html; b.scrollTop=0; m.classList.remove('hidden'); m.scrollTop=0; bindChips(b); }
 
+// Fiche motorisation COMPLÈTE en fenêtre (toujours visible)
+async function openEngineSheet(brand,model,en){
+  const r=await buildVehicleIssues(brand,model,en.year,en);
+  const ctx={brand,model,en};
+  const all=r.specific.concat(r.fam,r.com);
+  const html='<button id="btnBackSheet" class="btn-link" style="display:none">←</button>'+
+    '<div style="padding:4px 0">'+
+    '<h2 style="margin-bottom:4px">'+brand+' '+model+'</h2>'+
+    '<p style="font-size:12px;color:var(--text-secondary);margin-bottom:8px">'+en.year+' • '+en.fuelType+' • '+en.power+' • '+en.engineCode+' — cliquez sur une panne pour le détail</p>'+
+    '<div class="dtc-list" style="margin-bottom:8px">'+r.dtc.map(cd=>'<span class="dtc-chip" data-code="'+cd+'">'+cd+'</span>').join('')+'</div>'+
+    '<h4 style="color:var(--danger);margin:8px 0 6px">🔴 Spécifique ('+r.specific.length+')</h4>'+(r.specific.length?r.specific.map((i,k)=>card(i,k)).join(''):'<p style="font-size:11px;color:var(--text-muted)">Aucun.</p>')+
+    '<h4 style="color:var(--warning);margin:8px 0 6px">🟠 Famille moteur ('+r.fam.length+')</h4>'+r.fam.map((i,k)=>card(i,r.specific.length+k)).join('')+
+    '<h4 style="color:var(--text-secondary);margin:8px 0 6px">🔵 Généraux ('+r.com.length+')</h4>'+r.com.map((i,k)=>card(i,r.specific.length+r.fam.length+k)).join('')+'</div>';
+  LAST_SHEET={all,ctx,html};
+  openModal(html);
+  bindSheet();
+}
+function bindSheet(){ const b=document.getElementById('modalBody'); if(!b||!LAST_SHEET)return;
+  bindChips(b); bindFaultCards(b,LAST_SHEET.all,LAST_SHEET.ctx); }
+
 async function showFaultDetail(i, ctx) {
   openModal('<div class="loading">Chargement...</div>');
   const dtcs=i.dtc||i.dtcRelated||[];
@@ -106,7 +127,8 @@ async function showFaultDetail(i, ctx) {
   if(dtcs.length){const d=await DTC_DB.getByCode(dtcs[0]);if(d){cat=d.category;sys=d.system;}}
   let rel=[];
   for(const c of dtcs){const rs=await RECALLS_DB.getByDTC(c);rs.forEach(r=>{if(!rel.some(x=>x.id===r.id))rel.push(r);});}
-  let h='<div style="display:flex;justify-content:space-between;align-items:start;margin-bottom:6px"><h2 style="font-size:17px">'+i.title+'</h2><span class="severity-badge '+sevClass(i.severity)+'">'+i.severity+'</span></div>'+
+  let h='<button id="btnBackSheet" class="btn-link">← Retour à la fiche</button>'+
+    '<div style="display:flex;justify-content:space-between;align-items:start;margin-bottom:6px"><h2 style="font-size:17px">'+i.title+'</h2><span class="severity-badge '+sevClass(i.severity)+'">'+i.severity+'</span></div>'+
     '<span class="source-badge '+srcClass(i.source)+'">'+srcName(i.source)+'</span>'+
     '<p style="margin:10px 0;font-size:13px;color:var(--text-secondary)">'+(i.description||'')+'</p>'+
     '<p style="font-size:13px;margin-bottom:6px">🚗 <strong>Véhicule :</strong> '+ctx.brand+' '+ctx.model+' • '+ctx.en.year+' • '+ctx.en.fuelType+' • '+ctx.en.engineCode+'</p>'+
@@ -116,26 +138,23 @@ async function showFaultDetail(i, ctx) {
   if(rel.length){h+='<h3 style="margin:12px 0 6px">📋 Rappels officiels liés ('+rel.length+')</h3>';
     rel.forEach(r=>{h+='<div class="result-card"><strong>'+r.brand+' '+r.model+'</strong> — '+r.title+' <span class="severity-badge '+sevClass(r.severity)+'">'+r.severity+'</span></div>';});}
   openModal(h);
+  const bb=document.getElementById('btnBackSheet');
+  if(bb)bb.addEventListener('click',()=>{ if(LAST_SHEET){openModal(LAST_SHEET.html);bindSheet();} });
 }
 
 async function showDTCModal(d){
   const rec=await RECALLS_DB.getByDTC(d.code);
-  let h='<h2 style="font-family:monospace;color:var(--accent)">'+d.code+'</h2><p style="margin:8px 0"><span class="severity-badge '+sevClass(d.severity)+'">'+d.severity+'</span> 📂 '+d.category+'</p><p><strong>'+d.system+'</strong></p>'+
+  let h='<button id="btnBackSheet" class="btn-link">← Retour</button><h2 style="font-family:monospace;color:var(--accent)">'+d.code+'</h2><p style="margin:8px 0"><span class="severity-badge '+sevClass(d.severity)+'">'+d.severity+'</span> 📂 '+d.category+'</p><p><strong>'+d.system+'</strong></p>'+
     '<p style="margin-top:8px;font-size:13px">🚗 Marques: '+d.brands.join(', ')+'</p>';
   if(rec.length){h+='<h3 style="margin:10px 0 6px">📋 Rappels liés</h3>';rec.forEach(r=>{h+='<div class="result-card"><strong>'+r.brand+' '+r.model+'</strong> — '+r.title+'</div>';});}
-  openModal(h);}
+  openModal(h);
+  const bb=document.getElementById('btnBackSheet');
+  if(bb)bb.addEventListener('click',()=>{ if(LAST_SHEET){openModal(LAST_SHEET.html);bindSheet();} });}
 
 function card(i,idx){const dtcs=i.dtc||i.dtcRelated||[];
   return '<div class="result-card" style="margin-bottom:8px;cursor:pointer" data-fi="'+idx+'"><div class="dtc-list" style="margin-bottom:6px">'+dtcs.map(cd=>'<span class="dtc-chip" data-code="'+cd+'">'+cd+'</span>').join('')+'</div><div style="display:flex;justify-content:space-between;align-items:start;margin-bottom:4px"><h3 style="font-size:13px">'+i.title+'</h3><span class="severity-badge '+sevClass(i.severity)+'">'+i.severity+'</span></div><span class="source-badge '+srcClass(i.source)+'">'+srcName(i.source)+'</span>'+(i.description?'<p class="description" style="margin-top:4px">'+i.description+'</p>':'')+'<p style="font-size:11px;color:var(--success);margin-top:4px">🔧 '+(i.repair||i.repairAction||'')+'</p></div>';}
 function bindChips(root){root.querySelectorAll('.dtc-chip').forEach(ch=>{ch.addEventListener('click',async(e)=>{e.stopPropagation();const d=await DTC_DB.getByCode(ch.dataset.code);if(d)showDTCModal(d);});});}
 function bindFaultCards(root,all,ctx){root.querySelectorAll('[data-fi]').forEach(el=>{el.addEventListener('click',(e)=>{if(e.target.classList.contains('dtc-chip'))return;showFaultDetail(all[+el.dataset.fi],ctx);});});}
-function renderSheet(en,r){const all=r.specific.concat(r.fam,r.com);
-  return {html:'<div style="padding:10px;border-left:3px solid var(--accent);margin:6px 0 10px;background:var(--bg-primary);border-radius:8px">'+
-   '<p style="font-size:12px;color:var(--text-secondary);margin-bottom:8px">'+en.year+' • '+en.fuelType+' • '+en.power+' • '+en.engineCode+' — cliquez sur une panne pour la fiche détaillée</p>'+
-   '<div class="dtc-list" style="margin-bottom:8px">'+r.dtc.map(cd=>'<span class="dtc-chip" data-code="'+cd+'">'+cd+'</span>').join('')+'</div>'+
-   '<h4 style="color:var(--danger);margin:8px 0 6px">🔴 Spécifique ('+r.specific.length+')</h4>'+(r.specific.length?r.specific.map((i,k)=>card(i,k)).join(''):'<p style="font-size:11px;color:var(--text-muted)">Aucun.</p>')+
-   '<h4 style="color:var(--warning);margin:8px 0 6px">🟠 Famille moteur ('+r.fam.length+')</h4>'+r.fam.map((i,k)=>card(i,r.specific.length+k)).join('')+
-   '<h4 style="color:var(--text-secondary);margin:8px 0 6px">🔵 Généraux ('+r.com.length+')</h4>'+r.com.map((i,k)=>card(i,r.specific.length+r.fam.length+k)).join('')+'</div>',all};}
 
 async function runSelfTest(){const out=[];const ok=(c,m)=>out.push((c?'✅ ':'❌ ')+m);
   try{ok((await VEHICLES_DB.getBrands('FRANCE')).includes('Peugeot'),'1 France');
@@ -208,17 +227,7 @@ function loadEngines(c,brand,model,engines){c.innerHTML='';
   Object.keys(by).sort().forEach(y=>{const l=document.createElement('div');l.style.cssText='font-size:12px;color:var(--text-muted);margin:8px 0 4px;font-weight:600';l.textContent='📅 '+y;c.appendChild(l);
     by[y].forEach(en=>{const it=document.createElement('div');it.className='engine-item';
       it.innerHTML='<div><span class="fuel-badge '+en.fuelType.toLowerCase().replace(/\s/g,'')+'">'+en.fuelType+'</span><span style="margin-left:8px">'+en.engineCode+'</span></div><span class="engine-power">'+en.power+'</span>';
-      it.addEventListener('click',async()=>{
-        const next=it.nextElementSibling;
-        if(next&&next.classList.contains('fault-sheet')){next.remove();return;}
-        document.querySelectorAll('.fault-sheet').forEach(s=>s.remove());
-        const sh=document.createElement('div');sh.className='fault-sheet';sh.innerHTML='<div class="loading">Chargement...</div>';
-        it.after(sh);
-        const r=await buildVehicleIssues(brand,model,en.year,en);
-        const ctx={brand,model,en};
-        const o=renderSheet(en,r);
-        sh.innerHTML=o.html;bindChips(sh);bindFaultCards(sh,o.all,ctx);
-      });
+      it.addEventListener('click',()=>openEngineSheet(brand,model,en));
       c.appendChild(it);});});}
 
 async function showModelIssues(brand,model){
