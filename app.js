@@ -75,14 +75,23 @@ document.addEventListener('DOMContentLoaded', async () => {
     document.getElementById('btnInstallPWA').classList.remove('hidden');
   });
 
-  // Service Worker messages
-  navigator.serviceWorker.addEventListener('message', async (event) => {
-    if (event.data?.action === 'DB_UPDATE_REQUIRED') {
-      showToast('🔄 Mise à jour base en cours...', 'info');
-      await checkAutoUpdates();
-      showToast('✅ Base mise à jour', 'success');
-    }
-  });
+    // Service Worker messages (protégé : évite le crash en file:// ou sans HTTPS)
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.addEventListener('message', async (event) => {
+      if (event.data && event.data.action === 'DB_UPDATE_REQUIRED') {
+        showToast('🔄 Mise à jour base en cours...', 'info');
+        await checkAutoUpdates();
+        showToast('✅ Base mise à jour', 'success');
+      }
+    });
+
+    // Enregistrement du Service Worker (indispensable PWA/APK)
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('sw.js').catch(err => {
+        console.warn('⚠️ Service Worker non disponible:', err);
+      });
+    });
+  }
 
   bindEvents();
 });
