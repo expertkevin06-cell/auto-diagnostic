@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#1e293b">
+  <title>Admin - Auto Diagnostic Pro</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<!-- Vérification session admin -->
+<script>
+  if (!sessionStorage.getItem('adminLogged')) {
+    window.location.href = 'index.html';
+  }
+</script>
+
+<div class="screen active">
+  <header class="app-header">
+    <div class="header-left">
+      <span class="logo-mini">🛡️</span>
+      <span class="app-title">Panneau Admin</span>
+    </div>
+    <div class="header-right">
+      <button id="btnRefresh" class="btn-icon" title="Actualiser">🔄</button>
+      <button id="btnShareAPK" class="btn-icon" title="Partager l'APK">📤</button>
+      <button id="btnSettings" class="btn-icon" title="Paramètres">⚙️</button>
+      <button id="btnAdminLogout" class="btn-icon" title="Déconnexion">🚪</button>
+    </div>
+  </header>
+
+  <!-- Onglets admin -->
+  <div class="tabs">
+    <div class="tab active" data-tab="requests">📨 Demandes</div>
+    <div class="tab" data-tab="users">👥 Utilisateurs</div>
+    <div class="tab" data-tab="database">🗄️ Base</div>
+    <div class="tab" data-tab="settings">⚙️ Réglages</div>
+  </div>
+
+  <!-- ===== ONGLET DEMANDES D'ACCÈS ===== -->
+  <div id="tabRequests" class="tab-content active">
+    <div class="admin-panel">
+      <h2 style="margin-bottom:16px">📨 Demandes d'accès en attente</h2>
+      <div id="pendingRequests" style="margin-bottom:24px"></div>
+
+      <h2 style="margin-bottom:16px">📊 Tableau récapitulatif</h2>
+      <div id="summaryTable"></div>
+    </div>
+  </div>
+
+  <!-- ===== ONGLET UTILISATEURS ===== -->
+  <div id="tabUsers" class="tab-content">
+    <div class="admin-panel">
+      <h2 style="margin-bottom:16px">👥 Tous les utilisateurs</h2>
+      <div id="usersTable"></div>
+    </div>
+  </div>
+
+  <!-- ===== ONGLET BASE DE DONNÉES ===== -->
+  <div id="tabDatabase" class="tab-content">
+    <div class="admin-panel">
+      <h2 style="margin-bottom:16px">🗄️ Gestion de la base</h2>
+      
+      <div class="card">
+        <h3 style="margin-bottom:12px">📦 État de la base</h3>
+        <div id="dbStats"></div>
+      </div>
+
+      <div class="card">
+        <h3 style="margin-bottom:12px">🔄 Mise à jour manuelle</h3>
+        <p class="info-text">Force la mise à jour des véhicules, DTC et rappels (comme tous les 15 jours).</p>
+        <button id="btnForceUpdate" class="btn btn-primary">🔄 Forcer la mise à jour maintenant</button>
+        <div id="updateStatus" class="status-box hidden" style="margin-top:12px"></div>
+      </div>
+
+      <div class="card">
+        <h3 style="margin-bottom:12px">🖼️ Fond d'écran personnalisé</h3>
+        <p class="info-text">Sélectionnez votre image JPEG pour le fond d'écran de l'application. Elle sera appliquée à tous les appareils autorisés.</p>
+        <input type="file" id="bgImageInput" accept="image/jpeg,image/jpg,image/png" style="display:none">
+        <button id="btnUploadBg" class="btn btn-outline">📁 Choisir une image JPEG</button>
+        <div id="bgPreview" style="margin-top:12px"></div>
+        <button id="btnApplyBg" class="btn btn-primary hidden" style="margin-top:8px">✅ Appliquer à tous les appareils</button>
+        <button id="btnResetBg" class="btn btn-danger hidden" style="margin-top:8px">🗑️ Réinitialiser le fond</button>
+      </div>
+
+      <div class="card">
+        <h3 style="margin-bottom:12px">🚨 Réinitialisation complète</h3>
+        <button id="btnResetDB" class="btn btn-danger">⚠️ Effacer toutes les données</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== ONGLET RÉGLAGES ===== -->
+  <div id="tabSettings" class="tab-content">
+    <div class="admin-panel">
+      <h2 style="margin-bottom:16px">⚙️ Réglages</h2>
+
+      <div class="card">
+        <h3 style="margin-bottom:12px">🤖 Clé API Gemini</h3>
+        <p class="info-text">
+          Obtenez une clé gratuite sur <a href="https://aistudio.google.com/apikey" target="_blank" style="color:var(--accent)">Google AI Studio</a>.
+          Cette clé sera utilisée pour les recherches IA spécifiques dans l'APK.
+        </p>
+        <div class="form-group">
+          <label for="geminiKey">Clé API Gemini</label>
+          <input type="password" id="geminiKey" placeholder="AIzaSy...">
+        </div>
+        <button id="btnSaveGeminiKey" class="btn btn-primary">💾 Enregistrer la clé</button>
+        <div id="geminiStatus" class="status-box hidden" style="margin-top:8px"></div>
+      </div>
+
+      <div class="card">
+        <h3 style="margin-bottom:12px">🔔 Notifications</h3>
+        <button id="btnNotifPermission" class="btn btn-outline">🔔 Activer les notifications push</button>
+      </div>
+
+      <div class="card">
+        <h3 style="margin-bottom:12px">📱 Partage de l'APK</h3>
+        <p class="info-text">Seul l'administrateur peut partager l'application. Générez un lien de téléchargement.</p>
+        <button id="btnGenerateShareLink" class="btn btn-primary">🔗 Générer un lien de partage</button>
+        <div id="shareLinkContainer" class="hidden" style="margin-top:12px">
+          <div class="form-group">
+            <input type="text" id="shareLink" readonly>
+          </div>
+          <button id="btnCopyLink" class="btn btn-outline">📋 Copier le lien</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3 style="margin-bottom:12px">🔐 Sécurité</h3>
+        <p class="info-text">Mot de passe admin actuel: <strong>Kevin83600</strong></p>
+        <button id="btnChangePassword" class="btn btn-warning">🔑 Changer le mot de passe admin</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal -->
+<div id="detailModal" class="modal hidden">
+  <div class="modal-content">
+    <button class="modal-close" id="modalClose">✕</button>
+    <div id="modalBody"></div>
+  </div>
+</div>
+
+<div id="toastContainer" class="toast-container"></div>
+
+<script src="db.js"></script>
+<script src="admin.js"></script>
+</body>
+</html>
