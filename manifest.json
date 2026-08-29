@@ -1,0 +1,27 @@
+{
+  "name": "Auto Diagnostic Pro",
+  "short_name": "AutoDiag",
+  "description": "Diagnostic automobile complet - DTC, Rappels, Pannes par région",
+  "start_url": "/index.html",
+  "display": "standalone",
+  "background_color": "#0f172a",
+  "theme_color": "#1e293b",
+  "orientation": "portrait",
+  "categories": ["automotive", "utilities", "productivity"],
+  "lang": "fr-FR",
+  "icons": [
+    {
+      "src": "icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "permissions": ["notifications", "storage"]
+}
