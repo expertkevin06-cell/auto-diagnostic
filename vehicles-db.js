@@ -334,7 +334,7 @@ const VEHICLES_DB = {
 function normalizeStr(s) {
   return (s || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
 }
-// ===== MARQUES CHINOISES (ajout automatique, sans HTML) =====
+// ===== MARQUES CHINOISES (Jaecoo = 100% électrifié, aucun diesel) =====
 (function () {
   const Y = [2022, 2023, 2024, 2025, 2026];
   const B = VEHICLES_DB.data.AUTRES.brands;
@@ -347,8 +347,8 @@ function normalizeStr(s) {
   }};
 
   B["Jaecoo"] = { country: "Chine", flag: "🇨🇳", years: [2024,2025,2026], models: {
-    "J7": { engines: [ { type: "Essence", power: "186ch", code: "1.6 TGDI 186" }, { type: "Hybride", power: "347ch", code: "J7 PHEV 347" } ] },
-    "J8": { engines: [ { type: "Essence", power: "249ch", code: "2.0 TGDI 249" }, { type: "Hybride", power: "420ch", code: "J8 PHEV 420" } ] }
+    "J7": { engines: [ { type: "Hybride", power: "347ch", code: "J7 PHEV 347" }, { type: "Electrique", power: "218ch", code: "J7 EV 218" } ] },
+    "J8": { engines: [ { type: "Hybride", power: "420ch", code: "J8 PHEV 420" }, { type: "Electrique", power: "428ch", code: "J8 EV 428" } ] }
   }};
 
   B["Zeekr"] = { country: "Chine", flag: "🇨🇳", years: [2023,2024,2025,2026], models: {
@@ -357,7 +357,7 @@ function normalizeStr(s) {
     "X": { engines: [ { type: "Electrique", power: "428ch", code: "EV 428 AWD" } ] }
   }};
 
-  B["Leapmotor"] = { country: "Chine", flag: "🇨🇳", years: [2024,2025,2026], models: {
+  B["Leapmotor"] = { country: "Chine", flag: "🇨", years: [2024,2025,2026], models: {
     "C10": { engines: [ { type: "Electrique", power: "218ch", code: "EV 218" }, { type: "Hybride", power: "218ch", code: "REEV 218" } ] },
     "T03": { engines: [ { type: "Electrique", power: "109ch", code: "EV 109" } ] }
   }};
