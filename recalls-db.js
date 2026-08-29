@@ -100,11 +100,12 @@ const RECALLS_DB = {
     if (list.length === 0) await this.populate();
   },
 
-  async populate() {
+    async populate() {
     console.log("🔄 Peuplement base rappels...");
-    for (const recall of this.recalls) {
-      await DB.add('recalls', recall);
-    }
+    await DB.bulkAdd('recalls', this.recalls);
+    await DB.update('meta', { key: 'lastRecallUpdate', value: Date.now() });
+    console.log(`✅ ${this.recalls.length} rappels ajoutés`);
+  },
     await DB.update('meta', { key: 'lastRecallUpdate', value: Date.now() });
     console.log(`✅ ${this.recalls.length} rappels ajoutés`);
   },
