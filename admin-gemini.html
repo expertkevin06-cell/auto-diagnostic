@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>🤖 Recherche Gemini - Admin</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div class="screen active">
+  <div class="container" style="max-width:700px">
+    <h1>🤖 Recherche Gemini (Admin)</h1>
+    <p class="subtitle">Recherches diverses réservées à l'administrateur</p>
+
+    <div id="gateBox" class="card">
+      <div class="form-group">
+        <label for="pass">Mot de passe admin</label>
+        <input type="password" id="pass" placeholder="••••••••">
+      </div>
+      <button id="btnGate" class="btn btn-primary">🔓 Entrer</button>
+      <div id="gateErr" class="status-box denied hidden" style="margin-top:8px"></div>
+    </div>
+
+    <div id="searchBox" class="card hidden">
+      <div class="form-group">
+        <label for="q">Votre question (panne, code, symptôme, campagne…)</label>
+        <textarea id="q" rows="4" placeholder="Ex: quelles pannes connues sur Dacia Duster 1.5 dCi 2019 ?"></textarea>
+      </div>
+      <div style="display:flex;gap:8px">
+        <button id="btnGo" class="btn btn-primary" style="flex:2">🔍 Rechercher avec Gemini</button>
+        <button id="btnFree" class="btn btn-outline" style="flex:1">IA gratuite</button>
+      </div>
+      <div id="out" class="ai-response hidden" style="margin-top:12px"></div>
+      <div id="src" class="ai-source"></div>
+      <p style="font-size:12px;color:var(--text-muted);margin-top:12px">Clé Gemini à configurer dans Admin → Réglages.</p>
+      <a href="admin.html" class="btn-link">← Retour Panneau Admin</a>
+    </div>
+  </div>
+</div>
+<div id="toastContainer" class="toast-container"></div>
+
+<script src="db.js"></script>
+<script src="ai-search.js"></script>
+<script>
+(function(){
+  var OK = sessionStorage.getItem('adminLogged') === 'true';
+  function show(){ document.getElementById('gateBox').classList.add('hidden'); document.getElementById('searchBox').classList.remove('hidden'); }
+  if (OK) show();
+  document.getElementById('btnGate').addEventListener('click', function(){
+    var p = document.getElementById('pass').value;
+    var stored = localStorage.getItem('ADMIN_PASSWORD') || 'Kevin83600';
+    if (p === stored) { sessionStorage.setItem('adminLogged','true'); show(); }
+    else { var e = document.getElementById('gateErr'); e.classList.remove('hidden'); e.textContent = '❌ Mot de passe incorrect'; }
+  });
+  async function run(useFree){
+    var q = document.getElementById('q').value.trim();
+    if (!q) return;
+    var out = document.getElementById('out'), src = document.getElementById('src');
+    out.classList.remove('hidden'); out.textContent = '🔄 Recherche...'; src.textContent = '';
+    var res = useFree ? await AI_SEARCH.freeAISearch(q) : await AI_SEARCH.geminiSearch(q);
+    if (res.success) { out.textContent = res.response; src.textContent = 'Source: ' + res.source; }
+    else { out.textContent = '❌ ' + res.error; }
+  }
+  document.getElementById('btnGo').addEventListener('click', function(){ run(false); });
+  document.getElementById('btnFree').addEventListener('click', function(){ run(true); });
+})();
+</script>
+</body>
+</html>
