@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="theme-color" content="#1e293b">
+  <meta name="description" content="Diagnostic automobile complet - DTC, rappels, pannes par région">
+  <title>Auto Diagnostic Pro</title>
+  <link rel="manifest" href="manifest.json">
+  <link rel="stylesheet" href="styles.css">
+  <link rel="apple-touch-icon" href="icons/icon-192.png">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+</head>
+<body>
+
+<!-- ===== ÉCRAN 1: DEMANDE D'ACCÈS ===== -->
+<div id="accessScreen" class="screen active">
+  <div class="container">
+    <div class="logo">🔧</div>
+    <h1>Auto Diagnostic Pro</h1>
+    <p class="subtitle">Diagnostic automobile • DTC • Rappels • Pannes connues</p>
+
+    <div class="card">
+      <h2>🔐 Demande d'accès</h2>
+      <p class="info-text">
+        Pour utiliser l'application, vous devez envoyer une demande d'accès à l'administrateur.
+        Vous serez identifié par votre prénom.
+      </p>
+
+      <form id="accessForm">
+        <div class="form-group">
+          <label for="firstName">Votre prénom *</label>
+          <input type="text" id="firstName" required minlength="2" maxlength="30" placeholder="Ex: Jean, Marie..." autocomplete="given-name">
+        </div>
+        <button type="submit" class="btn btn-primary">📨 Envoyer la demande à l'administrateur</button>
+      </form>
+
+      <div id="accessStatus" class="status-box hidden"></div>
+    </div>
+
+    <div class="footer-links">
+      <button id="btnAdminAccess" class="btn-link">🔑 Espace Administrateur</button>
+      <button id="btnInstallPWA" class="btn-link hidden">📱 Installer sur le téléphone</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== ÉCRAN 2: ADMIN LOGIN ===== -->
+<div id="adminLoginScreen" class="screen">
+  <div class="container">
+    <div class="admin-login">
+      <div class="logo">🛡️</div>
+      <h1>Espace Admin</h1>
+      <p class="subtitle">Accès réservé à l'administrateur</p>
+
+      <div class="card">
+        <form id="adminLoginForm">
+          <div class="form-group">
+            <label for="adminPassword">Mot de passe administrateur</label>
+            <input type="password" id="adminPassword" required placeholder="••••••••" autocomplete="current-password">
+          </div>
+          <button type="submit" class="btn btn-primary">🔓 Se connecter</button>
+        </form>
+        <div id="adminLoginError" class="status-box denied hidden" style="margin-top:12px"></div>
+      </div>
+
+      <button id="btnBackFromAdmin" class="btn-link">← Retour</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== ÉCRAN 3: INTERFACE PRINCIPALE (TIERS AUTORISÉ) ===== -->
+<div id="mainScreen" class="screen">
+  <header class="app-header">
+    <div class="header-left">
+      <span class="logo-mini">🔧</span>
+      <span class="app-title">Auto Diagnostic Pro</span>
+    </div>
+    <div class="header-right">
+      <span id="userWelcome" class="welcome-text"></span>
+      <button id="btnLogout" class="btn-icon" title="Déconnexion">🚪</button>
+    </div>
+  </header>
+
+  <!-- Recherche -->
+  <div class="search-container">
+    <input type="text" id="globalSearch" placeholder="🔍 Marque, modèle, code DTC (ex: P200E)..." autocomplete="off">
+    <button id="btnValidateSearch" class="search-icon-btn" title="Rechercher">✓</button>
+  </div>
+
+  <!-- Onglets -->
+  <div class="tabs">
+    <div class="tab active" data-tab="vehicles">🚗 Véhicules</div>
+    <div class="tab" data-tab="dtc">⚠️ Codes DTC</div>
+    <div class="tab" data-tab="recalls">📋 Rappels</div>
+    <div class="tab" data-tab="ai">🤖 IA</div>
+  </div>
+
+  <!-- ===== ONGLET VÉHICULES ===== -->
+  <div id="tabVehicles" class="tab-content active">
+    <!-- Filtres région -->
+    <div class="region-filters">
+      <button class="region-btn active" data-region="ALL">
+        <span class="region-icon">🌍</span>
+        <span class="region-name">Toutes</span>
+      </button>
+      <button class="region-btn" data-region="FRANCE">
+        <span class="region-icon">🇫🇷</span>
+        <span class="region-name">France</span>
+      </button>
+      <button class="region-btn" data-region="EUROPE">
+        <span class="region-icon">🇪🇺</span>
+        <span class="region-name">Europe</span>
+      </button>
+      <button class="region-btn" data-region="AMERIQUE">
+        <span class="region-icon">🌎</span>
+        <span class="region-name">Amérique</span>
+      </button>
+      <button class="region-btn" data-region="ASIE">
+        <span class="region-icon">🌏</span>
+        <span class="region-name">Asie</span>
+      </button>
+    </div>
+
+    <!-- Stats -->
+    <div id="statsBar" class="stats-bar"></div>
+
+    <!-- Tiroirs marques -->
+    <div id="brandsContainer" class="drawer-container">
+      <div class="loading">Chargement des marques<span class="loading-dots"></span></div>
+    </div>
+  </div>
+
+  <!-- ===== ONGLET DTC ===== -->
+  <div id="tabDTC" class="tab-content">
+    <div class="search-container">
+      <input type="text" id="dtcSearch" placeholder="🔍 Code DTC (P0xxx, C0xxx, B0xxx, U0xxx)..." autocomplete="off">
+      <button id="btnDtcSearch" class="search-icon-btn">✓</button>
+    </div>
+
+    <!-- Filtres catégorie -->
+    <div class="region-filters" id="dtcCategoryFilters">
+      <button class="region-btn active" data-category="ALL">
+        <span class="region-icon">📋</span>
+        <span class="region-name">Tous</span>
+      </button>
+      <button class="region-btn" data-category="Moteur">
+        <span class="region-icon">⚙️</span>
+        <span class="region-name">Moteur</span>
+      </button>
+      <button class="region-btn" data-category="Boîte">
+        <span class="region-icon">🔩</span>
+        <span class="region-name">Boîte</span>
+      </button>
+      <button class="region-btn" data-category="Freinage/ABS">
+        <span class="region-icon">🛑</span>
+        <span class="region-name">Freinage</span>
+      </button>
+      <button class="region-btn" data-category="ADAS/Caméra">
+        <span class="region-icon">📷</span>
+        <span class="region-name">ADAS</span>
+      </button>
+      <button class="region-btn" data-category="Électronique/Ceinture">
+        <span class="region-icon">🔌</span>
+        <span class="region-name">Électronique</span>
+      </button>
+    </div>
+
+    <div id="dtcResults" class="results-container">
+      <div class="loading">Sélectionnez une catégorie ou recherchez un code<span class="loading-dots"></span></div>
+    </div>
+  </div>
+
+  <!-- ===== ONGLET RAPPELS ===== -->
+  <div id="tabRecalls" class="tab-content">
+    <div class="search-container">
+      <input type="text" id="recallSearch" placeholder="🔍 Marque, modèle, année..." autocomplete="off">
+      <button id="btnRecallSearch" class="search-icon-btn">✓</button>
+    </div>
+
+    <div class="region-filters" id="recallSeverityFilters">
+      <button class="region-btn active" data-severity="ALL">
+        <span class="region-icon">📋</span>
+        <span class="region-name">Tous</span>
+      </button>
+      <button class="region-btn" data-severity="Élevée">
+        <span class="region-icon">🔴</span>
+        <span class="region-name">Élevée</span>
+      </button>
+      <button class="region-btn" data-severity="Moyenne">
+        <span class="region-icon">🟡</span>
+        <span class="region-name">Moyenne</span>
+      </button>
+      <button class="region-btn" data-severity="Faible">
+        <span class="region-icon">🟢</span>
+        <span class="region-name">Faible</span>
+      </button>
+    </div>
+
+    <div id="recallResults" class="results-container">
+      <div class="loading">Recherchez une marque ou un modèle<span class="loading-dots"></span></div>
+    </div>
+  </div>
+
+  <!-- ===== ONGLET IA ===== -->
+  <div id="tabAI" class="tab-content">
+    <div class="card ai-search-section">
+      <h2>🤖 Recherche Assistée par IA</h2>
+      <p class="info-text">
+        Posez une question sur une panne, un code défaut, un symptôme.
+        L'IA analysera et proposera un diagnostic avec les codes DTC associés.
+      </p>
+
+      <div class="form-group">
+        <label for="aiQuery">Votre question diagnostic</label>
+        <textarea id="aiQuery" rows="3" placeholder="Ex: Ma Peugeot 3008 1.2 PureTech a un voyant moteur allumé et le code P200E apparaît. Que faire ?"></textarea>
+      </div>
+
+      <div style="display:flex;gap:8px">
+        <button id="btnAiSearch" class="btn btn-primary" style="flex:2">🔍 Rechercher avec IA</button>
+        <button id="btnAiClear" class="btn btn-outline" style="flex:1">Effacer</button>
+      </div>
+
+      <div id="aiResponseContainer" class="hidden">
+        <div class="ai-response" id="aiResponseText"></div>
+        <div class="ai-source" id="aiResponseSource"></div>
+      </div>
+    </div>
+
+    <!-- Résultats locaux -->
+    <div id="aiLocalResults" class="results-container"></div>
+  </div>
+
+  <footer style="text-align:center;padding:12px;font-size:11px;color:var(--text-muted)">
+    <span id="lastUpdateText">Dernière MAJ: --</span> • Sources: NHTSA, Safety Gate, Rappel Conso
+  </footer>
+</div>
+
+<!-- MODAL DÉTAIL -->
+<div id="detailModal" class="modal hidden">
+  <div class="modal-content">
+    <button class="modal-close" id="modalClose">✕</button>
+    <div id="modalBody"></div>
+  </div>
+</div>
+
+<!-- TOASTS -->
+<div id="toastContainer" class="toast-container"></div>
+
+<script src="db.js"></script>
+<script src="vehicles-db.js"></script>
+<script src="dtc-db.js"></script>
+<script src="recalls-db.js"></script>
+<script src="ai-search.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
