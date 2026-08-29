@@ -16,8 +16,6 @@ const DB = {
           store.createIndex('country', 'country', { unique: false });
           store.createIndex('brand', 'brand', { unique: false });
           store.createIndex('model', 'model', { unique: false });
-          store.createIndex('year', 'year', { unique: false });
-          store.createIndex('fuelType', 'fuelType', { unique: false });
         }
 
         if (!db.objectStoreNames.contains('dtcCodes')) {
@@ -25,14 +23,12 @@ const DB = {
           store.createIndex('category', 'category', { unique: false });
           store.createIndex('severity', 'severity', { unique: false });
           store.createIndex('brand', 'brand', { unique: false });
-          store.createIndex('system', 'system', { unique: false });
         }
 
         if (!db.objectStoreNames.contains('recalls')) {
-          const store = db.createObjectStore('recalls', { keyPath: 'id', autoIncrement: true });
+          const store = db.createObjectStore('recalls', { keyPath: 'id', autoIncrement: false });
           store.createIndex('brand', 'brand', { unique: false });
           store.createIndex('model', 'model', { unique: false });
-          store.createIndex('year', 'year', { unique: false });
           store.createIndex('source', 'source', { unique: false });
         }
 
@@ -40,6 +36,12 @@ const DB = {
           const store = db.createObjectStore('users', { keyPath: 'id', autoIncrement: true });
           store.createIndex('firstName', 'firstName', { unique: false });
           store.createIndex('status', 'status', { unique: false });
+        }
+
+        if (!db.objectStoreNames.contains('accessRequests')) {
+          const store = db.createObjectStore('accessRequests', { keyPath: 'id', autoIncrement: true });
+          store.createIndex('status', 'status', { unique: false });
+          store.createIndex('firstName', 'firstName', { unique: false });
         }
 
         if (!db.objectStoreNames.contains('meta')) {
@@ -53,6 +55,18 @@ const DB = {
       };
 
       request.onerror = (event) => reject(event.target.error);
+    });
+  },
+
+  // ===== NOUVEAU : INSERTION MASSIVE EN 1 TRANSACTION (INSTANTANÉ) =====
+  async bulkAdd(storeName, items) {
+    return new Promise((resolve, reject) => {
+      const tx = this.db.transaction(storeName, 'readwrite');
+      const store = tx.objectStore(storeName);
+      items.forEach(item => store.add(item));
+      tx.oncomplete = () => resolve(items.length);
+      tx.onerror = () => reject(tx.error);
+      tx.onabort = () => reject(tx.error);
     });
   },
 
