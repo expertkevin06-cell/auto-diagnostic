@@ -641,13 +641,12 @@ const DTC_DB = {
     }
   },
 
-  async populate() {
+    async populate() {
     console.log("🔄 Peuplement base DTC...");
-    let count = 0;
-
+    const items = [];
     for (const code in this.codes) {
       const dtc = this.codes[code];
-      await DB.add('dtcCodes', {
+      items.push({
         code: code,
         category: dtc.category,
         system: dtc.system,
@@ -656,6 +655,10 @@ const DTC_DB = {
         description: dtc.description || null,
         addedAt: Date.now()
       });
+    }
+    await DB.bulkAdd('dtcCodes', items);
+    console.log(`✅ ${items.length} codes DTC ajoutés`);
+  },);
       count++;
     }
 
