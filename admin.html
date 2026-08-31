@@ -2,169 +2,82 @@
 <html lang="fr">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
-  <meta name="theme-color" content="#1e293b">
-  <title>Admin - Auto Diagnostic Pro</title>
-  <link rel="stylesheet" href="styles.css?v=20260830">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#0f3460">
+  <title>Admin - Auto Diagnostic</title>
+  <link rel="manifest" href="./manifest.json">
+  <link rel="icon" type="image/png" href="./icon-192.png">
+  <link rel="stylesheet" href="./styles.css">
 </head>
 <body>
-
-<!-- ÉCRAN CONNEXION -->
-<div id="adminLoginScreen" class="screen active">
   <div class="container">
-    <div class="admin-login">
-      <div class="logo">🛡️</div>
-      <h1>Espace Admin</h1>
-      <p class="subtitle">Accès réservé à l'administrateur</p>
-      <div class="card">
-        <form id="adminLoginForm">
-          <div class="form-group">
-            <label for="adminPassword">Mot de passe administrateur</label>
-            <input type="password" id="adminPassword" required placeholder="••••••••" autocomplete="current-password">
-          </div>
-          <button type="submit" class="btn btn-primary">🔓 Se connecter</button>
-        </form>
-        <div id="adminLoginError" class="status-box denied hidden" style="margin-top:12px"></div>
-      </div>
-      <button id="btnBackToApp" class="btn-link">← Retour à l'application</button>
-    </div>
-  </div>
-</div>
+    <header class="app-header"><h1>🔐 Espace Administrateur</h1></header>
 
-<!-- PANNEAU -->
-<div id="adminPanelScreen" class="screen">
-  <header class="app-header">
-    <div class="header-left">
-      <span class="logo-mini">🛡️</span>
-      <span class="app-title">Panneau Admin</span>
-    </div>
-    <div class="header-right">
-      <button id="btnOpenApp" class="btn-icon" title="Utiliser l'application (mode admin)">🚗</button>
-      <button id="btnRefresh" class="btn-icon" title="Actualiser">🔄</button>
-      <button id="btnShareAPK" class="btn-icon" title="Partager l'APK">📤</button>
-      <button id="btnSettings" class="btn-icon" title="Paramètres">⚙️</button>
-      <button id="btnAdminLogout" class="btn-icon" title="Déconnexion">🚪</button>
-    </div>
-  </header>
-
-  <div class="tabs">
-    <div class="tab active" data-tab="requests">📨 Demandes</div>
-    <div class="tab" data-tab="users">👥 Utilisateurs</div>
-    <div class="tab" data-tab="database">🗄️ Base</div>
-    <div class="tab" data-tab="settings">⚙️ Réglages</div>
-  </div>
-
-  <div id="tabRequests" class="tab-content active">
-    <div class="admin-panel">
-      <h2 style="margin-bottom:16px">📨 Demandes d'accès en attente</h2>
-      <div id="pendingRequests" style="margin-bottom:24px"></div>
-      <h2 style="margin-bottom:16px">📊 Tableau récapitulatif</h2>
-      <div id="summaryTable"></div>
-    </div>
-  </div>
-
-  <div id="tabUsers" class="tab-content">
-    <div class="admin-panel">
-      <h2 style="margin-bottom:16px">👥 Tous les utilisateurs</h2>
-      <div id="usersTable"></div>
-    </div>
-  </div>
-
-  <div id="tabDatabase" class="tab-content">
-    <div class="admin-panel">
-      <h2 style="margin-bottom:16px">🗄️ Gestion de la base</h2>
-      <div class="card"><h3 style="margin-bottom:12px">📦 État de la base</h3><div id="dbStats"></div></div>
+    <!-- CONNEXION -->
+    <section id="admin-login" class="screen">
       <div class="card">
-        <h3 style="margin-bottom:12px">🔄 Mise à jour manuelle</h3>
-        <p class="info-text">Force la mise à jour des véhicules, DTC et rappels (comme tous les 15 jours).</p>
-        <button id="btnForceUpdate" class="btn btn-primary">🔄 Forcer la mise à jour maintenant</button>
-        <div id="updateStatus" class="status-box hidden" style="margin-top:12px"></div>
+        <h2>Connexion</h2>
+        <input type="password" id="admin-pwd" placeholder="Mot de passe admin">
+        <button class="btn btn-primary" id="btn-login">Se connecter</button>
+        <button class="btn btn-secondary" id="btn-back">← Retour application</button>
       </div>
-      <div class="card">
-        <h3 style="margin-bottom:12px">🖼️ Fond d'écran personnalisé</h3>
-        <p class="info-text">Sélectionnez votre image JPEG pour le fond d'écran de l'application.</p>
-        <input type="file" id="bgImageInput" accept="image/jpeg,image/jpg,image/png" style="display:none">
-        <button id="btnUploadBg" class="btn btn-outline">📁 Choisir une image JPEG</button>
-        <div id="bgPreview" style="margin-top:12px"></div>
-        <button id="btnApplyBg" class="btn btn-primary hidden" style="margin-top:8px">✅ Appliquer à tous les appareils</button>
-        <button id="btnResetBg" class="btn btn-danger hidden" style="margin-top:8px">🗑️ Réinitialiser le fond</button>
-      </div>
-      <div class="card">
-        <h3 style="margin-bottom:12px">🚨 Réinitialisation complète</h3>
-        <button id="btnResetDB" class="btn btn-danger">⚠️ Effacer toutes les données</button>
-      </div>
-    </div>
-  </div>
+    </section>
 
-  <div id="tabSettings" class="tab-content">
-    <div class="admin-panel">
-      <h2 style="margin-bottom:16px">⚙️ Réglages</h2>
+    <!-- TABLEAU DE BORD -->
+    <section id="admin-panel" class="screen">
       <div class="card">
-        <h3 style="margin-bottom:12px">🤖 Clé API Gemini</h3>
-        <p class="info-text">Clé gratuite sur <a href="https://aistudio.google.com/apikey" target="_blank" style="color:var(--accent)">Google AI Studio</a>.</p>
-        <div class="form-group"><label for="geminiKey">Clé API Gemini</label><input type="password" id="geminiKey" placeholder="AIzaSy..."></div>
-        <button id="btnSaveGeminiKey" class="btn btn-primary">💾 Enregistrer la clé</button>
-        <div id="geminiStatus" class="status-box hidden" style="margin-top:8px"></div>
-      </div>
-      <div class="card">
-        <h3 style="margin-bottom:12px">🔔 Notifications</h3>
-        <button id="btnNotifPermission" class="btn btn-outline">🔔 Activer les notifications push</button>
-      </div>
-      <div class="card">
-        <h3 style="margin-bottom:12px">📱 Partage de l'APK</h3>
-        <p class="info-text">Seul l'administrateur peut partager l'application.</p>
-        <button id="btnGenerateShareLink" class="btn btn-primary">🔗 Générer un lien de partage</button>
-        <div id="shareLinkContainer" class="hidden" style="margin-top:12px">
-          <div class="form-group"><input type="text" id="shareLink" readonly></div>
-          <button id="btnCopyLink" class="btn btn-outline">📋 Copier le lien</button>
+        <h2>📊 Tableau récapitulatif des accès</h2>
+        <p class="subtitle">Autorisations, refus et révocations des tiers</p>
+
+        <div class="add-row">
+          <input type="text" id="add-prenom" placeholder="Prénom du tiers" maxlength="20">
+          <button class="btn btn-success" id="btn-add">➕ Ajouter</button>
         </div>
+
+        <div class="table-wrapper">
+          <table>
+            <thead>
+              <tr><th>Prénom</th><th>Statut</th><th>Date</th><th>Actions</th></tr>
+            </thead>
+            <tbody id="users-body"></tbody>
+          </table>
+        </div>
+        <p id="dirty-badge" class="dirty hidden">⚠️ Modifications non publiées</p>
       </div>
+
       <div class="card">
-        <h3 style="margin-bottom:12px">🔐 Sécurité</h3>
-        <p class="info-text">Mot de passe admin par défaut : <strong>Kevin83600</strong></p>
-        <button id="btnChangePassword" class="btn btn-warning">🔑 Changer le mot de passe admin</button>
+        <h2>🚀 Publier les modifications (temps réel APK)</h2>
+        <ol class="small">
+          <li>Cliquez sur « Générer » : le fichier est préparé et copié.</li>
+          <li>Ouvrez GitHub, remplacez le contenu de <code>access.json</code> et validez (Commit).</li>
+          <li>Tous les APK installés reçoivent la modification au prochain lancement.</li>
+        </ol>
+        <button class="btn btn-primary" id="btn-generate">📋 Générer + copier access.json</button>
+        <a class="btn btn-secondary" target="_blank" rel="noopener"
+           href="https://github.com/expertkevin06-cell/auto-diagnostic/edit/main/access.json">✏️ Ouvrir access.json sur GitHub</a>
+        <textarea id="publish-json" rows="6" readonly placeholder="Le JSON généré apparaîtra ici"></textarea>
       </div>
-    </div>
+
+      <div class="card">
+        <h2>📤 Partager l'APK (admin uniquement)</h2>
+        <p class="small">Seul l'administrateur peut diffuser l'application.</p>
+        <button class="btn btn-success" id="btn-share-apk">📤 Partager l'application</button>
+      </div>
+
+      <div class="card">
+        <h2>🔄 Mise à jour de la base (15 jours)</h2>
+        <p class="small" id="version-info">Chargement…</p>
+        <ol class="small">
+          <li>Modifiez vos fichiers (base DTC, véhicules, etc.) sur GitHub.</li>
+          <li>Montez <code>appVersion</code> dans <code>version.json</code> pour publier.</li>
+          <li>Montez <code>minAppVersion</code> pour <strong>forcer</strong> tous les APK à se mettre à jour (accord admin).</li>
+        </ol>
+        <a class="btn btn-secondary" target="_blank" rel="noopener"
+           href="https://github.com/expertkevin06-cell/auto-diagnostic/edit/main/version.json">✏️ Ouvrir version.json sur GitHub</a>
+        <button class="btn btn-danger" id="btn-logout">Déconnexion</button>
+      </div>
+    </section>
   </div>
-</div>
-
-<div id="detailModal" class="modal hidden">
-  <div class="modal-content">
-    <button class="modal-close" id="modalClose">✕</button>
-    <div id="modalBody"></div>
-  </div>
-</div>
-<div id="toastContainer" class="toast-container"></div>
-
-<!-- SCRIPTS AVEC ANTI-CACHE -->
-<script src="db.js?v=20260830"></script>
-<script src="vehicles-db.js?v=20260830"></script>
-<script src="dtc-db.js?v=20260830"></script>
-<script src="recalls-db.js?v=20260830"></script>
-<script src="admin.js?v=20260830"></script>
-
-<script>
-(function () {
-  function getAdminPassword() { return localStorage.getItem('ADMIN_PASSWORD') || 'Kevin83600'; }
-  function showPanel() {
-    document.getElementById('adminLoginScreen').classList.remove('active');
-    document.getElementById('adminPanelScreen').classList.add('active');
-    sessionStorage.setItem('adminLogged', 'true');
-  }
-  document.addEventListener('DOMContentLoaded', function () {
-    if (sessionStorage.getItem('adminLogged') === 'true') showPanel();
-    var form = document.getElementById('adminLoginForm');
-    if (form) form.addEventListener('submit', function (e) {
-      e.preventDefault();
-      var pass = document.getElementById('adminPassword').value;
-      var err = document.getElementById('adminLoginError');
-      if (pass === getAdminPassword()) { err.classList.add('hidden'); showPanel(); }
-      else { err.classList.remove('hidden'); err.textContent = '❌ Mot de passe incorrect'; }
-    });
-    var back = document.getElementById('btnBackToApp');
-    if (back) back.addEventListener('click', function () { window.location.href = 'index.html'; });
-  });
-})();
-</script>
+  <script src="./admin.js"></script>
 </body>
 </html>
