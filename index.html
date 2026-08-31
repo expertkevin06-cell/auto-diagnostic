@@ -12,7 +12,7 @@
 </head>
 <body>
 <div class="container">
-  <header><h1>🚗 Auto Diagnostic Pro</h1><p>Marques 2017-2026 • Pannes • Rappels • DTC</p></header>
+  <header><h1>🚗 Auto Diagnostic Pro</h1><p>Marques 2017-2026 • Motorisations • Pannes • Rappels • DTC</p></header>
 
   <section id="screen-home" class="screen active"><div class="card">
     <h2>👋 Bienvenue</h2>
@@ -60,64 +60,62 @@
   <section id="screen-admin" class="screen"><div class="card">
     <h2>🛠️ Administration</h2>
     <div class="tabs">
-      <button class="btn btn-primary" onclick="adminTab('tab-access')">👥 Accès tiers</button>
-      <button class="btn btn-secondary" onclick="adminTab('tab-data')">🗄️ Base données</button>
+      <button class="btn btn-primary" onclick="adminTab('tab-access')">👥 Accès</button>
+      <button class="btn btn-secondary" onclick="adminTab('tab-data')">🗄️ Base</button>
+      <button class="btn btn-success" onclick="enterApp()">🚗 App</button>
     </div>
-
     <div id="tab-access">
-      <h3>➕ Ajouter / autoriser un tiers</h3>
-      <div class="grid-2">
-        <input type="text" id="new-prenom" placeholder="Prénom">
-        <button class="btn btn-success" onclick="addUser()">Ajouter</button>
-      </div>
+      <div class="grid-2"><input type="text" id="new-prenom" placeholder="Prénom"><button class="btn btn-success" onclick="addUser()">Ajouter</button></div>
       <h3>📊 Tableau récapitulatif (temps réel)</h3>
       <div id="users-table-container"><div class="loader">Chargement…</div></div>
-            <button class="btn btn-primary" onclick="enterApp()">🚗 Entrer dans l'application (recherche)</button>
-      <button class="btn btn-success" onclick="shareAPK()">📤 Partager / télécharger l'APK (admin)</button>
-      <button class="btn btn-secondary" onclick="updateBase()">🔄 Diffuser MAJ base (toutes APK, cycle 15 j)</button>
+      <button class="btn btn-success" onclick="shareAPK()">📤 Partager / télécharger l'APK</button>
+      <button class="btn btn-secondary" onclick="updateBase()">🔄 Diffuser MAJ (toutes APK, 15 j)</button>
       <button class="btn btn-danger" onclick="logoutAdmin()">Déconnexion</button>
     </div>
-
     <div id="tab-data" class="hidden">
-      <h3>🏷️ Ajouter une marque</h3>
-      <input id="nb-name" placeholder="Nom (ex: Dacia)"><select id="nb-region"><option value="francaises">Française</option><option value="europeennes">Européenne</option><option value="asiatiques">Asiatique</option><option value="chinoises">Chinoise</option><option value="americaines">Américaine</option></select>
-      <button class="btn btn-success" onclick="addBrand()">Ajouter la marque</button>
-      <h3>🚘 Ajouter un modèle</h3>
-      <select id="nm-brand"></select><input id="nm-name" placeholder="Modèle (ex: Clio V)"><input id="nm-years" placeholder="Années (ex: 2019-2026)">
-      <button class="btn btn-success" onclick="addModel()">Ajouter le modèle</button>
-      <h3>⚙️ Ajouter une motorisation</h3>
-      <select id="mo-brand"></select><input id="mo-name" placeholder="Motorisation (ex: 1.5 dCi 115)">
+      <h3>🏷️ Marque</h3>
+      <input id="nb-name" placeholder="Nom"><select id="nb-region"><option value="francaises">Française</option><option value="europeennes">Européenne</option><option value="asiatiques">Asiatique</option><option value="chinoises">Chinoise</option><option value="americaines">Américaine</option></select>
+      <button class="btn btn-success" onclick="addBrand()">Ajouter</button>
+      <h3>🚘 Modèle</h3>
+      <select id="nm-brand"></select><input id="nm-name" placeholder="Modèle"><input id="nm-years" placeholder="Années">
+      <button class="btn btn-success" onclick="addModel()">Ajouter</button>
+      <h3>⚙️ Motorisation</h3>
+      <select id="mo-model"></select><input id="mo-name" placeholder="Ex: 1.5 dCi 115"><select id="mo-fuel"><option value="essence">Essence</option><option value="diesel">Diesel</option><option value="hybride">Hybride</option><option value="electrique">Électrique</option></select><input id="mo-power" placeholder="Puissance (ex: 115 ch)">
       <button class="btn btn-success" onclick="addMotor()">Ajouter</button>
-      <h3>⚠️ Ajouter panne / campagne rappel</h3>
+      <h3>⚠️ Panne / rappel</h3>
       <select id="is-brand" onchange="fillModelSelect()"></select><select id="is-model"></select>
-      <input id="is-title" placeholder="Titre (ex: Courroie distribution 1.2 PureTech)">
-      <textarea id="is-detail" rows="2" placeholder="Détail de la panne / campagne"></textarea>
+      <input id="is-title" placeholder="Titre"><textarea id="is-detail" rows="2" placeholder="Détail"></textarea>
       <select id="is-source"><option>Rappel Conso</option><option>Safety Gate</option><option>NHTSA</option><option>Campagne constructeur</option></select>
+      <input id="is-dtc" placeholder="Codes DTC liés (ex: P0401,P2002)">
       <button class="btn btn-success" onclick="addIssue()">Ajouter</button>
-      <h3>🔧 Ajouter un code DTC</h3>
-      <input id="dt-code" placeholder="Code (ex: P0420)"><input id="dt-desc" placeholder="Description"><input id="dt-cause" placeholder="Cause"><input id="dt-sol" placeholder="Solution">
+      <h3>🔧 Code DTC</h3>
+      <input id="dt-code" placeholder="Code"><input id="dt-desc" placeholder="Description"><input id="dt-cause" placeholder="Cause"><input id="dt-sol" placeholder="Solution">
       <button class="btn btn-success" onclick="addDTC()">Ajouter</button>
+      <h3>📥 IMPORT MASSIF (JSON)</h3>
+      <p style="font-size:12px;color:#94a3b8">Collez un tableau JSON pour charger des centaines de fiches d'un coup :</p>
+      <textarea id="import-json" rows="5" placeholder='[{"type":"issue","brand":"renault","model":"Clio V","title":"EGR","detail":"...","source":"Rappel Conso","dtc":"P0401"},{"type":"motor","brand":"renault","model":"Clio V","name":"1.5 dCi 115","fuel":"diesel","power":"115 ch"},{"type":"dtc","code":"P0401","description":"EGR","cause":"...","solution":"..."}]'></textarea>
+      <button class="btn btn-success" onclick="importJSON()">📥 Importer</button>
     </div>
   </div></section>
 
   <section id="screen-app" class="screen"><div class="card">
     <h2>🚗 Diagnostic</h2>
     <p>Bienvenue <strong id="app-user"></strong> • Base du : <span id="app-version">--</span></p>
-    <h3>🔍 Véhicule (tiroirs par région)</h3>
-    <select id="sel-marque" onchange="loadModels()"></select>
-    <select id="sel-model" onchange="loadMotorisations()"></select>
-    <h3>⚙️ Motorisations</h3><div id="motor-list"><p style="color:#94a3b8">—</p></div>
-    <h3>⚠️ Pannes connues & campagnes de rappel</h3><div id="known-issues"><p style="color:#94a3b8">Sélectionnez un véhicule…</p></div>
-    <h3>🌐 Vérifier sur les sites officiels</h3>
+    <h3>1️⃣ Marque</h3><select id="sel-marque" onchange="loadModels()"></select>
+    <h3>2️⃣ Modèle</h3><select id="sel-model" onchange="loadMotors()"></select>
+    <h3>3️⃣ Motorisation</h3><select id="sel-motor" onchange="correlate()"></select>
+    <h3>⚠️ Pannes connues & campagnes (corrélées)</h3><div id="issues-box"><p style="color:#94a3b8">Sélectionnez un véhicule…</p></div>
+    <h3>🔧 Codes défaut DTC corrélés</h3><div id="dtc-box"><p style="color:#94a3b8">—</p></div>
+    <h3>🔎 Recherche DTC libre</h3>
+    <input type="text" id="dtc-search" placeholder="Ex: P0300, turbo…" oninput="searchDTC()">
+    <div id="dtc-results"></div>
+    <h3>🌐 Sites officiels</h3>
     <div class="links-row">
-      <a target="_blank" rel="noopener" href="https://www.rappel.conso.gouv.fr/">Rappel Conso 🇫</a>
+      <a target="_blank" rel="noopener" href="https://www.rappel.conso.gouv.fr/">Rappel Conso 🇫🇷</a>
       <a target="_blank" rel="noopener" href="https://ec.europa.eu/safety-gate-alerts/screen/webReport">Safety Gate 🇪🇺</a>
-      <a target="_blank" rel="noopener" href="https://www.nhtsa.gov/recalls">NHTSA 🇺🇸</a>
+      <a target="_blank" rel="noopener" href="https://www.nhtsa.gov/recalls">NHTSA 🇺</a>
       <a target="_blank" rel="noopener" href="https://www.service-public.fr/particuliers/vosdroits/F37013">Rappels constructeurs</a>
     </div>
-    <h3>🔧 Codes défaut DTC</h3>
-    <input type="text" id="dtc-search" placeholder="Ex: P0300, P0420, turbo…" oninput="searchDTC()">
-    <div id="dtc-results"></div>
     <button class="btn btn-secondary" onclick="logoutApp()">🚪 Retour</button>
   </div></section>
 </div>
