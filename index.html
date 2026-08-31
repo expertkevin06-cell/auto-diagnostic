@@ -3,9 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="theme-color" content="#0f3460">
-  <meta name="description" content="Auto Diagnostic - Application sécurisée">
-  <title>Auto Diagnostic</title>
+  <meta name="theme-color" content="#0a0e27">
+  <title>Auto Diagnostic Pro</title>
   <link rel="manifest" href="./manifest.json">
   <link rel="icon" type="image/png" href="./icon-192.png">
   <link rel="apple-touch-icon" href="./icon-192.png">
@@ -13,80 +12,93 @@
 </head>
 <body>
   <div class="container">
-    <header class="app-header"><h1>🚗 Auto Diagnostic</h1></header>
+    <header>
+      <h1>🚗 Auto Diagnostic Pro</h1>
+      <p>Marques • Modèles • Motorisations • DTC • Pannes</p>
+    </header>
 
-    <!-- ACCUEIL : demande d'accès -->
-    <section id="screen-home" class="screen">
+    <section id="screen-home" class="screen active">
       <div class="card">
-        <h2>Bienvenue</h2>
-        <p class="subtitle">Identifiez-vous par votre prénom pour demander un accès</p>
-        <input type="text" id="input-prenom" placeholder="Votre prénom" autocomplete="off" maxlength="20">
-        <button class="btn btn-primary" id="btn-request">Demander l'accès</button>
-        <button class="btn btn-secondary" id="btn-admin">🔑 Espace Admin</button>
+        <h2>👋 Bienvenue</h2>
+        <p>Entrez votre prénom pour demander un accès :</p>
+        <input type="text" id="input-prenom" placeholder="Votre prénom" maxlength="20" autocomplete="off">
+        <button class="btn btn-primary" onclick="requestAccess()">📨 Demander l'accès</button>
+        <button class="btn btn-admin" onclick="showScreen('screen-admin-login')">🔑 Espace Admin</button>
       </div>
     </section>
 
-    <!-- DEMANDE EN ATTENTE -->
     <section id="screen-pending" class="screen">
       <div class="card">
-        <h2>⏳ Demande en attente</h2>
-        <div class="status-icon">📨</div>
-        <p>Votre demande a été enregistrée.<br>
-        <strong>Envoyez-la maintenant à l'administrateur</strong> via un des canaux ci-dessous :</p>
-        <div class="share-row">
+        <div class="status-icon">⏳</div>
+        <h2>Demande envoyée</h2>
+        <p><strong>Bonjour <span id="pending-name"></span></strong>, votre demande attend la validation de l'administrateur.</p>
+        <p>Envoyez-lui un rappel :</p>
+        <div class="share-buttons">
           <a id="share-wa" class="btn btn-success" target="_blank" rel="noopener">📱 WhatsApp</a>
           <a id="share-sms" class="btn btn-primary" target="_blank" rel="noopener">💬 SMS</a>
-          <a id="share-mail" class="btn btn-secondary" target="_blank" rel="noopener">✉️ Email</a>
+          <a id="share-mail" class="btn btn-admin" target="_blank" rel="noopener">✉️ Email</a>
         </div>
-        <p class="small">L'administrateur doit autoriser votre prénom. Votre accès sera activé automatiquement au prochain lancement.</p>
-        <button class="btn btn-secondary" id="btn-refresh-pending">🔄 Vérifier mon statut</button>
+        <p style="margin-top:14px;font-size:.85em;color:#94a3b8">L'accès s'active automatiquement dès validation.</p>
+        <button class="btn btn-secondary" onclick="checkStatus()">🔄 Vérifier mon statut</button>
+        <button class="btn btn-secondary" onclick="resetSession()">↩️ Annuler</button>
       </div>
     </section>
 
-    <!-- ACCÈS ACCORDÉ -->
-    <section id="screen-granted" class="screen">
+    <section id="screen-accepted" class="screen">
       <div class="card">
-        <h2>✅ Accès autorisé</h2>
-        <div class="status-icon">🎉</div>
-        <p>Bienvenue <strong id="user-name"></strong> !</p>
-        <button class="btn btn-success" id="btn-enter-app">🚗 Entrer dans l'application</button>
-        <button class="btn btn-secondary" id="btn-home-granted">Accueil</button>
+        <div class="status-icon">✅</div>
+        <h2>Accès autorisé</h2>
+        <p>Bienvenue <strong id="accepted-name"></strong> !</p>
+        <button class="btn btn-success" onclick="enterApp()">🚗 Entrer dans l'application</button>
       </div>
     </section>
 
-    <!-- ACCÈS REFUSÉ -->
     <section id="screen-refused" class="screen">
       <div class="card">
-        <h2>❌ Accès refusé</h2>
-        <div class="status-icon">🚫</div>
+        <div class="status-icon">❌</div>
+        <h2>Accès refusé</h2>
         <p>L'administrateur a refusé votre demande.</p>
-        <button class="btn btn-primary" id="btn-retry-refused">Faire une nouvelle demande</button>
+        <button class="btn btn-primary" onclick="resetSession()">Faire une nouvelle demande</button>
       </div>
     </section>
 
-    <!-- ACCÈS RÉVOQUÉ -->
     <section id="screen-revoked" class="screen">
       <div class="card">
-        <h2>🔒 Accès révoqué</h2>
-        <div class="status-icon">⚠️</div>
+        <div class="status-icon">🔒</div>
+        <h2>Accès révoqué</h2>
         <p>Votre accès a été révoqué par l'administrateur.</p>
-        <button class="btn btn-primary" id="btn-retry-revoked">Faire une nouvelle demande</button>
+        <button class="btn btn-primary" onclick="resetSession()">Faire une nouvelle demande</button>
       </div>
     </section>
 
-    <!-- MISE À JOUR OBLIGATOIRE -->
-    <section id="screen-update" class="screen">
+    <section id="screen-admin-login" class="screen">
       <div class="card">
-        <h2>🔄 Mise à jour requise</h2>
-        <div class="status-icon">📦</div>
-        <p id="update-message">Une nouvelle version est disponible.<br>Contactez l'administrateur pour obtenir l'installation.</p>
-        <button class="btn btn-primary" id="btn-reload-update">🔄 Rechercher la mise à jour</button>
+        <h2>🔐 Connexion Admin</h2>
+        <input type="password" id="admin-pwd" placeholder="Mot de passe admin">
+        <button class="btn btn-admin" onclick="loginAdmin()">Se connecter</button>
+        <button class="btn btn-secondary" onclick="showScreen('screen-home')">← Retour</button>
       </div>
     </section>
 
-    <!-- BOUTON INSTALLER (mode APK / PWABuilder) -->
-    <button id="install-btn" class="install-btn hidden">📲 Installer l'application</button>
-  </div>
-  <script src="./app.js"></script>
-</body>
-</html>
+    <section id="screen-admin" class="screen">
+      <div class="card">
+        <h2>📊 Tableau récapitulatif des accès</h2>
+        <p style="font-size:.85em;color:#94a3b8;margin-bottom:12px">Temps réel Firebase : chaque modification est appliquée immédiatement sur toutes les APK.</p>
+        <h3>➕ Ajouter un tiers</h3>
+        <div class="grid-2">
+          <input type="text" id="new-prenom" placeholder="Prénom">
+          <button class="btn btn-success" onclick="addUser()">Ajouter</button>
+        </div>
+        <h3>👥 Tiers enregistrés</h3>
+        <div id="users-table-container"><div class="loader">Chargement</div></div>
+        <button class="btn btn-success" onclick="shareAPK()" style="margin-top:16px">📤 Partager l'APK (admin)</button>
+        <button class="btn btn-secondary" onclick="updateBase()">🔄 Diffuser mise à jour base</button>
+        <button class="btn btn-danger" onclick="logoutAdmin()">Déconnexion</button>
+      </div>
+    </section>
+
+    <section id="screen-app" class="screen">
+      <div class="card">
+        <h2>🚗 Diagnostic Automobile</h2>
+        <p>Bienvenue <strong id="app-user"></strong> — Base du : <span id="app-version">--</span></p>
+        <h3>🔍 Vé
