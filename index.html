@@ -2,115 +2,91 @@
 <html lang="fr">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="theme-color" content="#0f3460">
-  <meta name="description" content="Application sécurisée avec contrôle d'accès">
-  <title>App Sécurisée</title>
+  <meta name="description" content="Auto Diagnostic - Application sécurisée">
+  <title>Auto Diagnostic</title>
   <link rel="manifest" href="./manifest.json">
   <link rel="icon" type="image/png" href="./icon-192.png">
   <link rel="apple-touch-icon" href="./icon-192.png">
-  <link rel="stylesheet" href="./style.css">
+  <link rel="stylesheet" href="./styles.css">
 </head>
 <body>
   <div class="container">
-    <header class="app-header">
-      <h1>🔐 App Sécurisée</h1>
-    </header>
+    <header class="app-header"><h1>🚗 Auto Diagnostic</h1></header>
 
-    <!-- ÉCRAN 1 : Accueil tiers -->
-    <section id="screen-home" class="screen active">
+    <!-- ACCUEIL : demande d'accès -->
+    <section id="screen-home" class="screen">
       <div class="card">
         <h2>Bienvenue</h2>
-        <p class="subtitle">Identifiez-vous pour demander un accès</p>
-        <input type="text" id="input-prenom" placeholder="Votre prénom" autocomplete="off">
-        <button class="btn btn-primary" onclick="requestAccess()">Demander l'accès</button>
-        <button class="btn btn-secondary" onclick="showScreen('screen-admin-login')">🔑 Espace Admin</button>
+        <p class="subtitle">Identifiez-vous par votre prénom pour demander un accès</p>
+        <input type="text" id="input-prenom" placeholder="Votre prénom" autocomplete="off" maxlength="20">
+        <button class="btn btn-primary" id="btn-request">Demander l'accès</button>
+        <button class="btn btn-secondary" id="btn-admin">🔑 Espace Admin</button>
       </div>
     </section>
 
-    <!-- ÉCRAN 2 : Login admin -->
-    <section id="screen-admin-login" class="screen">
-      <div class="card">
-        <h2>Connexion Admin</h2>
-        <input type="password" id="input-admin-pwd" placeholder="Mot de passe admin">
-        <button class="btn btn-primary" onclick="loginAdmin()">Se connecter</button>
-        <button class="btn btn-secondary" onclick="showScreen('screen-home')">← Retour</button>
-      </div>
-    </section>
-
-    <!-- ÉCRAN 3 : Tableau admin -->
-    <section id="screen-admin" class="screen">
-      <div class="card">
-        <h2>📊 Tableau de bord Admin</h2>
-        <p class="subtitle">Gestion des accès tiers</p>
-        <div class="table-wrapper">
-          <table id="users-table">
-            <thead>
-              <tr>
-                <th>Prénom</th>
-                <th>Statut</th>
-                <th>Date</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody id="users-body"></tbody>
-          </table>
-        </div>
-        <div class="admin-actions">
-          <button class="btn btn-success" onclick="shareAPK()">📤 Partager l'APK</button>
-          <button class="btn btn-danger" onclick="logoutAdmin()">Déconnexion</button>
-        </div>
-      </div>
-    </section>
-
-    <!-- ÉCRAN 4 : Demande en attente -->
+    <!-- DEMANDE EN ATTENTE -->
     <section id="screen-pending" class="screen">
       <div class="card">
-        <h2>⏳ Demande envoyée</h2>
+        <h2>⏳ Demande en attente</h2>
         <div class="status-icon">📨</div>
-        <p>Votre demande a été transmise à l'administrateur.</p>
-        <p class="small">Vous serez notifié dès qu'elle sera traitée.</p>
-        <button class="btn btn-secondary" onclick="showScreen('screen-home')">Retour à l'accueil</button>
+        <p>Votre demande a été enregistrée.<br>
+        <strong>Envoyez-la maintenant à l'administrateur</strong> via un des canaux ci-dessous :</p>
+        <div class="share-row">
+          <a id="share-wa" class="btn btn-success" target="_blank" rel="noopener">📱 WhatsApp</a>
+          <a id="share-sms" class="btn btn-primary" target="_blank" rel="noopener">💬 SMS</a>
+          <a id="share-mail" class="btn btn-secondary" target="_blank" rel="noopener">✉️ Email</a>
+        </div>
+        <p class="small">L'administrateur doit autoriser votre prénom. Votre accès sera activé automatiquement au prochain lancement.</p>
+        <button class="btn btn-secondary" id="btn-refresh-pending">🔄 Vérifier mon statut</button>
       </div>
     </section>
 
-    <!-- ÉCRAN 5 : Accès accordé -->
+    <!-- ACCÈS ACCORDÉ -->
     <section id="screen-granted" class="screen">
       <div class="card">
         <h2>✅ Accès autorisé</h2>
         <div class="status-icon">🎉</div>
         <p>Bienvenue <strong id="user-name"></strong> !</p>
-        <p class="small">Votre accès a été validé par l'administrateur.</p>
-        <button class="btn btn-primary" onclick="showScreen('screen-home')">Continuer</button>
+        <button class="btn btn-success" id="btn-enter-app">🚗 Entrer dans l'application</button>
+        <button class="btn btn-secondary" id="btn-home-granted">Accueil</button>
       </div>
     </section>
 
-    <!-- ÉCRAN 6 : Accès refusé -->
+    <!-- ACCÈS REFUSÉ -->
     <section id="screen-refused" class="screen">
       <div class="card">
         <h2>❌ Accès refusé</h2>
         <div class="status-icon">🚫</div>
-        <p>Votre demande a été refusée par l'administrateur.</p>
-        <button class="btn btn-secondary" onclick="showScreen('screen-home')">Retour</button>
+        <p>L'administrateur a refusé votre demande.</p>
+        <button class="btn btn-primary" id="btn-retry-refused">Faire une nouvelle demande</button>
       </div>
     </section>
 
-    <!-- ÉCRAN 7 : Accès révoqué -->
+    <!-- ACCÈS RÉVOQUÉ -->
     <section id="screen-revoked" class="screen">
       <div class="card">
-        <h2>⚠️ Accès révoqué</h2>
-        <div class="status-icon">🔒</div>
+        <h2>🔒 Accès révoqué</h2>
+        <div class="status-icon">⚠️</div>
         <p>Votre accès a été révoqué par l'administrateur.</p>
-        <button class="btn btn-secondary" onclick="showScreen('screen-home')">Retour</button>
+        <button class="btn btn-primary" id="btn-retry-revoked">Faire une nouvelle demande</button>
       </div>
     </section>
 
-    <!-- Bouton d'installation PWA -->
-    <button id="install-btn" class="install-btn hidden" onclick="installPWA()">
-      📲 Installer l'application
-    </button>
-  </div>
+    <!-- MISE À JOUR OBLIGATOIRE -->
+    <section id="screen-update" class="screen">
+      <div class="card">
+        <h2>🔄 Mise à jour requise</h2>
+        <div class="status-icon">📦</div>
+        <p id="update-message">Une nouvelle version est disponible.<br>Contactez l'administrateur pour obtenir l'installation.</p>
+        <button class="btn btn-primary" id="btn-reload-update">🔄 Rechercher la mise à jour</button>
+      </div>
+    </section>
 
+    <!-- BOUTON INSTALLER (mode APK / PWABuilder) -->
+    <button id="install-btn" class="install-btn hidden">📲 Installer l'application</button>
+  </div>
   <script src="./app.js"></script>
 </body>
 </html>
