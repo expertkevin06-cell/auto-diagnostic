@@ -168,8 +168,9 @@ async function addDTC() {
 /* ---------- application ---------- */
 async function enterApp() {
   const s = getSession();
-  if (!s || s.status !== 'accepted') return notify('Accès non autorisé', 'error');
-  document.getElementById('app-user').textContent = s.prenom;
+  const isAdmin = sessionStorage.getItem('autodiag_admin') === '1';
+  if (!isAdmin && (!s || s.status !== 'accepted')) return notify('Accès non autorisé', 'error');
+  document.getElementById('app-user').textContent = isAdmin ? '👑 Admin' : s.prenom;
   showScreen('screen-app');
   const v = await db.ref('data/version').once('value');
   const vv = v.val(); document.getElementById('app-version').textContent = vv && vv.lastUpdate ? new Date(vv.lastUpdate).toLocaleDateString('fr-FR') : '1.0';
