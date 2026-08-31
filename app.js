@@ -12,9 +12,9 @@ let db, usersData = {}, brandsData = {}, motorsCache = [], deferredPrompt = null
 let curBrand = null, curModelId = null, curModelName = null;
 
 window.addEventListener('DOMContentLoaded', () => {
+  if ('serviceWorker' in navigator) navigator.serviceWorker.register('./sw.js').catch(() => {});
   firebase.initializeApp(firebaseConfig);
   db = firebase.database();
-  if ('serviceWorker' in navigator) navigator.serviceWorker.register('./sw.js').catch(() => {});
   setupInstall(); bindAdminTable(); boot();
 });
 
