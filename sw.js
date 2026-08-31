@@ -1,114 +1,118 @@
-// ===== Configuration =====
-const CACHE_NAME = 'app-sec-v2';
-const UPDATE_INTERVAL_MS = 15 * 24 * 60 * 60 * 1000; // 15 jours
-
-// Fichiers à mettre en cache
-const urlsToCache = [
+/* Service Worker - Auto Diagnostic Sécurisé */
+const CACHE_NAME = 'autodiag-v3';
+const CORE_FILES = [
   './',
   './index.html',
-  './style.css',
-  './app.js',
+  './admin.html',
+  './check.html',
   './manifest.json',
+  './styles.css',
+  './app.js',
+  './admin.js',
   './icon-192.png',
-  './icon-512.png'
+  './icon-512.png',
+  './db.js',
+  './dtc-db.js',
+  './vehicles-db.js',
+  './recalls-db.js',
+  './extra-brands.js',
+  './ai-search.js'
 ];
+const ALWAYS_NETWORK = ['access.json', 'version.json'];
 
-// ===== INSTALLATION =====
+/* ===== INSTALLATION (tolérante aux fichiers manquants) ===== */
 self.addEventListener('install', event => {
-  console.log('[SW] Installation...');
   self.skipWaiting();
   event.waitUntil(
-    caches.open(CACHE_NAME)
-      .then(cache => cache.addAll(urlsToCache))
-      .catch(err => console.error('[SW] Erreur cache:', err))
-  );
-});
-
-// ===== ACTIVATION =====
-self.addEventListener('activate', event => {
-  console.log('[SW] Activation...');
-  event.waitUntil(
-    caches.keys().then(keys =>
+    caches.open(CACHE_NAME).then(cache =>
       Promise.all(
-        keys.filter(key => key !== CACHE_NAME).map(key => caches.delete(key))
+        CORE_FILES.map(url =>
+          cache.add(url).catch(err => console.warn('[SW] Non mis en cache :', url))
+        )
       )
     )
   );
-  self.clients.claim();
 });
 
-// ===== INTERCEPTION DES REQUÊTES =====
+/* ===== ACTIVATION (nettoyage des anciens caches) ===== */
+self.addEventListener('activate', event => {
+  event.waitUntil(
+    caches.keys().then(keys =>
+      Promise.all(keys.filter(k => k !== CACHE_NAME).map(k => caches.delete(k)))
+    ).then(() => self.clients.claim())
+  );
+});
+
+/* ===== INTERCEPTION DES REQUÊTES ===== */
 self.addEventListener('fetch', event => {
+  const req = event.request;
+  if (req.method !== 'GET') return;
+
+  const url = new URL(req.url);
+
+  /* Fichiers de contrôle : toujours réseau d'abord (temps réel) */
+  if (ALWAYS_NETWORK.some(f => url.pathname.endsWith(f))) {
+    event.respondWith(
+      fetch(req).then(res => {
+        const copy = res.clone();
+        caches.open(CACHE_NAME).then(c => c.put(req, copy));
+        return res;
+      }).catch(() => caches.match(req))
+    );
+    return;
+  }
+
+  /* Navigation : réseau d'abord, repli sur le cache (hors-ligne) */
+  if (req.mode === 'navigate') {
+    event.respondWith(
+      fetch(req).then(res => {
+        const copy = res.clone();
+        caches.open(CACHE_NAME).then(c => c.put(req, copy));
+        return res;
+      }).catch(() => caches.match(req).then(r => r || caches.match('./index.html')))
+    );
+    return;
+  }
+
+  /* Le reste : cache d'abord, puis réseau */
   event.respondWith(
-    caches.match(event.request).then(cached => {
+    caches.match(req).then(cached => {
       if (cached) return cached;
-      return fetch(event.request).then(response => {
-        if (!response || response.status !== 200 || response.type !== 'basic') {
-          return response;
+      return fetch(req).then(res => {
+        if (res && res.status === 200 && res.type === 'basic') {
+          const copy = res.clone();
+          caches.open(CACHE_NAME).then(c => c.put(req, copy));
         }
-        const responseToCache = response.clone();
-        caches.open(CACHE_NAME).then(cache => {
-          cache.put(event.request, responseToCache);
-        });
-        return response;
-      }).catch(() => caches.match('./index.html'));
+        return res;
+      });
     })
   );
 });
 
-// ===== MESSAGES DEPUIS L'APPLICATION =====
+/* ===== MESSAGES DEPUIS L'APPLICATION ===== */
 self.addEventListener('message', event => {
   if (!event.data) return;
-
-  // Demande d'accès d'un tiers
+  if (event.data.type === 'CHECK_UPDATE') self.registration.update();
+  if (event.data.type === 'SKIP_WAITING') self.skipWaiting();
   if (event.data.type === 'ACCESS_REQUEST') {
-    const { prenom } = event.data;
     event.waitUntil(
-      self.registration.showNotification('Nouvelle demande d\'accès', {
-        body: `${prenom} demande un accès à l'application`,
+      self.registration.showNotification("Nouvelle demande d'accès", {
+        body: event.data.prenom + " demande un accès à l'application",
         icon: './icon-192.png',
         badge: './icon-192.png',
-        tag: 'access-request-' + Date.now(),
-        requireInteraction: true,
-        data: { prenom: prenom }
-      })
+        requireInteraction: true
+      }).catch(() => {})
     );
-  }
-
-  // Forcer la mise à jour
-  if (event.data.type === 'CHECK_UPDATE') {
-    self.registration.update();
-  }
-
-  // Forcer le skip waiting
-  if (event.data.type === 'SKIP_WAITING') {
-    self.skipWaiting();
   }
 });
 
-// ===== CLIC SUR NOTIFICATION =====
+/* ===== CLIC NOTIFICATION → ouvre le mode admin ===== */
 self.addEventListener('notificationclick', event => {
   event.notification.close();
   event.waitUntil(
     clients.matchAll({ type: 'window', includeUncontrolled: true }).then(list => {
-      for (const client of list) {
-        if ('focus' in client) return client.focus();
-      }
-      if (clients.openWindow) return clients.openWindow('./index.html?mode=admin');
+      for (const c of list) { if ('focus' in c) return c.focus(); }
+      if (clients.openWindow) return clients.openWindow('./admin.html');
     })
   );
 });
-
-// ===== MISE À JOUR PÉRIODIQUE (15 jours) =====
-// Note : setInterval fonctionne tant que le SW est actif
-let lastUpdateCheck = Date.now();
-
-self.addEventListener('fetch', event => {
-  const now = Date.now();
-  if (now - lastUpdateCheck > UPDATE_INTERVAL_MS) {
-    lastUpdateCheck = now;
-    self.registration.update();
-  }
-});
-
-console.log('[SW] Service Worker chargé');
