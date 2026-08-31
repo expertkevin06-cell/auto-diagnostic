@@ -2,89 +2,115 @@
 <html lang="fr">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <meta name="theme-color" content="#0f3460">
+  <meta name="description" content="Application sécurisée avec contrôle d'accès">
   <title>App Sécurisée</title>
-  <link rel="manifest" href="manifest.json">
-  <link rel="apple-touch-icon" href="icons/icon-192.png">
-  <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; font-family: system-ui, sans-serif; }
-    body { background: #1a1a2e; color: #eee; min-height: 100vh; padding: 20px; }
-    .container { max-width: 600px; margin: 0 auto; }
-    h1 { text-align: center; margin: 20px 0; color: #e94560; }
-    .card { background: #16213e; padding: 20px; border-radius: 12px; margin: 15px 0; box-shadow: 0 4px 12px rgba(0,0,0,0.3); }
-    input, button { width: 100%; padding: 12px; margin: 8px 0; border-radius: 8px; border: none; font-size: 16px; }
-    input { background: #0f3460; color: #fff; }
-    button { background: #e94560; color: #fff; cursor: pointer; font-weight: bold; }
-    button:hover { background: #c73650; }
-    button.secondary { background: #533483; }
-    button.success { background: #2ecc71; }
-    button.danger { background: #e74c3c; }
-    .hidden { display: none; }
-    table { width: 100%; border-collapse: collapse; margin-top: 10px; }
-    th, td { padding: 10px; text-align: left; border-bottom: 1px solid #0f3460; }
-    th { background: #0f3460; }
-    .status { padding: 4px 8px; border-radius: 4px; font-size: 12px; }
-    .status.pending { background: #f39c12; }
-    .status.accepted { background: #2ecc71; }
-    .status.revoked { background: #e74c3c; }
-    .status.refused { background: #95a5a6; }
-    .install-btn { position: fixed; bottom: 20px; right: 20px; background: #2ecc71; padding: 15px 25px; border-radius: 30px; box-shadow: 0 4px 12px rgba(0,0,0,0.4); }
-  </style>
+  <link rel="manifest" href="./manifest.json">
+  <link rel="icon" type="image/png" href="./icon-192.png">
+  <link rel="apple-touch-icon" href="./icon-192.png">
+  <link rel="stylesheet" href="./style.css">
 </head>
 <body>
   <div class="container">
-    <h1>🔐 Application Sécurisée</h1>
+    <header class="app-header">
+      <h1>🔐 App Sécurisée</h1>
+    </header>
 
-    <!-- Écran d'accueil tiers -->
-    <div id="screen-home" class="card">
-      <h2>Bienvenue</h2>
-      <p style="margin:10px 0">Identifiez-vous pour demander un accès :</p>
-      <input type="text" id="input-prenom" placeholder="Votre prénom">
-      <button onclick="requestAccess()">Demander l'accès</button>
-      <button class="secondary" onclick="showAdminLogin()">🔑 Espace Admin</button>
-    </div>
+    <!-- ÉCRAN 1 : Accueil tiers -->
+    <section id="screen-home" class="screen active">
+      <div class="card">
+        <h2>Bienvenue</h2>
+        <p class="subtitle">Identifiez-vous pour demander un accès</p>
+        <input type="text" id="input-prenom" placeholder="Votre prénom" autocomplete="off">
+        <button class="btn btn-primary" onclick="requestAccess()">Demander l'accès</button>
+        <button class="btn btn-secondary" onclick="showScreen('screen-admin-login')">🔑 Espace Admin</button>
+      </div>
+    </section>
 
-    <!-- Login admin -->
-    <div id="screen-admin-login" class="card hidden">
-      <h2>Connexion Admin</h2>
-      <input type="password" id="input-admin-pwd" placeholder="Mot de passe admin">
-      <button onclick="loginAdmin()">Se connecter</button>
-      <button class="secondary" onclick="showHome()">Retour</button>
-    </div>
+    <!-- ÉCRAN 2 : Login admin -->
+    <section id="screen-admin-login" class="screen">
+      <div class="card">
+        <h2>Connexion Admin</h2>
+        <input type="password" id="input-admin-pwd" placeholder="Mot de passe admin">
+        <button class="btn btn-primary" onclick="loginAdmin()">Se connecter</button>
+        <button class="btn btn-secondary" onclick="showScreen('screen-home')">← Retour</button>
+      </div>
+    </section>
 
-    <!-- Tableau admin -->
-    <div id="screen-admin" class="card hidden">
-      <h2>📊 Tableau de bord Admin</h2>
-      <p style="margin:10px 0">Gestion des accès tiers</p>
-      <table id="users-table">
-        <thead>
-          <tr><th>Prénom</th><th>Statut</th><th>Date</th><th>Actions</th></tr>
-        </thead>
-        <tbody id="users-body"></tbody>
-      </table>
-      <button class="success" onclick="shareAPK()" style="margin-top:15px">📤 Partager l'APK</button>
-      <button class="danger" onclick="logoutAdmin()">Déconnexion</button>
-    </div>
+    <!-- ÉCRAN 3 : Tableau admin -->
+    <section id="screen-admin" class="screen">
+      <div class="card">
+        <h2>📊 Tableau de bord Admin</h2>
+        <p class="subtitle">Gestion des accès tiers</p>
+        <div class="table-wrapper">
+          <table id="users-table">
+            <thead>
+              <tr>
+                <th>Prénom</th>
+                <th>Statut</th>
+                <th>Date</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="users-body"></tbody>
+          </table>
+        </div>
+        <div class="admin-actions">
+          <button class="btn btn-success" onclick="shareAPK()">📤 Partager l'APK</button>
+          <button class="btn btn-danger" onclick="logoutAdmin()">Déconnexion</button>
+        </div>
+      </div>
+    </section>
 
-    <!-- Confirmation demande -->
-    <div id="screen-pending" class="card hidden">
-      <h2>⏳ Demande en attente</h2>
-      <p style="margin:15px 0">Votre demande a été envoyée à l'administrateur. Vous recevrez une notification dès qu'elle sera traitée.</p>
-      <button onclick="showHome()">Retour</button>
-    </div>
+    <!-- ÉCRAN 4 : Demande en attente -->
+    <section id="screen-pending" class="screen">
+      <div class="card">
+        <h2>⏳ Demande envoyée</h2>
+        <div class="status-icon">📨</div>
+        <p>Votre demande a été transmise à l'administrateur.</p>
+        <p class="small">Vous serez notifié dès qu'elle sera traitée.</p>
+        <button class="btn btn-secondary" onclick="showScreen('screen-home')">Retour à l'accueil</button>
+      </div>
+    </section>
 
-    <!-- Accès accordé -->
-    <div id="screen-granted" class="card hidden">
-      <h2>✅ Accès autorisé</h2>
-      <p style="margin:15px 0">Bienvenue <span id="user-name"></span> !</p>
-      <button onclick="showHome()">Continuer</button>
-    </div>
+    <!-- ÉCRAN 5 : Accès accordé -->
+    <section id="screen-granted" class="screen">
+      <div class="card">
+        <h2>✅ Accès autorisé</h2>
+        <div class="status-icon">🎉</div>
+        <p>Bienvenue <strong id="user-name"></strong> !</p>
+        <p class="small">Votre accès a été validé par l'administrateur.</p>
+        <button class="btn btn-primary" onclick="showScreen('screen-home')">Continuer</button>
+      </div>
+    </section>
+
+    <!-- ÉCRAN 6 : Accès refusé -->
+    <section id="screen-refused" class="screen">
+      <div class="card">
+        <h2>❌ Accès refusé</h2>
+        <div class="status-icon">🚫</div>
+        <p>Votre demande a été refusée par l'administrateur.</p>
+        <button class="btn btn-secondary" onclick="showScreen('screen-home')">Retour</button>
+      </div>
+    </section>
+
+    <!-- ÉCRAN 7 : Accès révoqué -->
+    <section id="screen-revoked" class="screen">
+      <div class="card">
+        <h2>⚠️ Accès révoqué</h2>
+        <div class="status-icon">🔒</div>
+        <p>Votre accès a été révoqué par l'administrateur.</p>
+        <button class="btn btn-secondary" onclick="showScreen('screen-home')">Retour</button>
+      </div>
+    </section>
 
     <!-- Bouton d'installation PWA -->
-    <button id="install-btn" class="install-btn hidden" onclick="installPWA()">📲 Installer l'APK</button>
+    <button id="install-btn" class="install-btn hidden" onclick="installPWA()">
+      📲 Installer l'application
+    </button>
   </div>
 
-  <script src="app.js"></script>
+  <script src="./app.js"></script>
 </body>
 </html>
