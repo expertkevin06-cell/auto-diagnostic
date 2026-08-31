@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html><head><title>Init Firebase</title></head>
+<body style="background:#000;color:#fff;padding:20px;font-family:sans-serif">
+<h1>🚀 Initialisation Firebase</h1>
+<button onclick="init()" style="padding:20px;font-size:20px;background:#4ade80;border:none;border-radius:10px;cursor:pointer">Initialiser la base</button>
+<pre id="log"></pre>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
+<script src="./firebase-config.js"></script>
+<script>
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
+const log = m => document.getElementById('log').textContent += m + '\n';
+async function init() {
+  await db.ref('data/marques').set([
+    { id: 'renault', name: 'Renault' }, { id: 'peugeot', name: 'Peugeot' },
+    { id: 'citroen', name: 'Citroën' }, { id: 'volkswagen', name: 'Volkswagen' },
+    { id: 'bmw', name: 'BMW' }, { id: 'mercedes', name: 'Mercedes' }
+  ]);
+  log('✅ Marques');
+  await db.ref('data/models').set({
+    m1: { id: 'm1', marqueId: 'renault', name: 'Clio IV' },
+    m2: { id: 'm2', marqueId: 'renault', name: 'Megane 3' },
+    m3: { id: 'm3', marqueId: 'peugeot', name: '308 II' },
+    m4: { id: 'm4', marqueId: 'peugeot', name: '208 I' },
+    m5: { id: 'm5', marqueId: 'volkswagen', name: 'Golf 7' }
+  });
+  log('✅ Modèles');
+  await db.ref('data/motorisations').set({
+    mo1: { id: 'mo1', modelId: 'm1', name: '1.5 dCi 90' },
+    mo2: { id: 'mo2', modelId: 'm1', name: '0.9 TCe 90' },
+    mo3: { id: 'mo3', modelId: 'm2', name: '1.5 dCi 110' },
+    mo4: { id: 'mo4', modelId: 'm3', name: '1.6 BlueHDi 120' },
+    mo5: { id: 'mo5', modelId: 'm5', name: '2.0 TDI 150' }
+  });
+  log('✅ Motorisations');
+  await db.ref('data/dtc').set({
+    P0300: { code: 'P0300', description: 'Ratés d\'allumage aléatoires', cause: 'Bougies, bobines, injecteurs', solution: 'Vérifier bougies et bobines' },
+    P0301: { code: 'P0301', description: 'Raté cylindre 1', cause: 'Bougie/bobine cyl.1', solution: 'Remplacer bougie cylindre 1' },
+    P0420: { code: 'P0420', description: 'Catalyseur efficacité faible', cause: 'Catalyseur usé, sonde lambda', solution: 'Remplacer catalyseur ou sonde aval' },
+    P0171: { code: 'P0171', description: 'Mélange trop pauvre', cause: 'Prise d\'air, débitmètre', solution: 'Vérifier durites admission' },
+    P0401: { code: 'P0401', description: 'Débit EGR insuffisant', cause: 'Vanne EGR encrassée', solution: 'Nettoyer vanne EGR' },
+    P0135: { code: 'P0135', description: 'Chauffage sonde O2 HS', cause: 'Sonde lambda', solution: 'Remplacer sonde amont' },
+    P0442: { code: 'P0442', description: 'Petite fuite EVAP', cause: 'Bouchon réservoir', solution: 'Serrer/remplacer bouchon' },
+    P0128: { code: 'P0128', description: 'Thermostat température basse', cause: 'Thermostat bloqué ouvert', solution: 'Remplacer thermostat' },
+    P0507: { code: 'P0507', description: 'Ralenti trop haut', cause: 'Prise d\'air, papillon', solution: 'Nettoyer boîtier papillon' },
+    P2002: { code: 'P2002', description: 'FAP efficacité faible', cause: 'FAP colmaté', solution: 'Régénération ou remplacement FAP' }
+  });
+  log('✅ DTC');
+  await db.ref('data/issues').set({
+    i1: { modelId: 'm1', title: 'Clio IV dCi : vanne EGR', detail: 'Perte de puissance, P0401. Nettoyage vanne EGR.' },
+    i2: { modelId: 'm1', title: 'Clio IV : ralenti instable', detail: 'P0507. Nettoyage boîtier papillon.' },
+    i3: { modelId: 'm3', title: '308 BlueHDi : FAP', detail: 'P2002. Vérifier capteur pression différentielle.' },
+    i4: { modelId: 'm5', title: 'Golf 7 TDI : injecteurs', detail: 'P0300. Contrôle des injecteurs.' }
+  });
+  log('✅ Pannes connues');
+  await db.ref('data/version').set({ version: Date.now(), lastUpdate: new Date().toISOString(), updateIntervalDays: 15 });
+  log('✅ Version');
+  await db.ref('access/users').set({});
+  log('\n🎉 TERMINÉ ! Supprimez init.html de GitHub.');
+}
+</script>
+</body></html>
