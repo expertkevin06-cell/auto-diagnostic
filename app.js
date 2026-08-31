@@ -1,211 +1,131 @@
-/* =====================================================
-   APP.JS - Contrôle d'accès + installation + mises à jour
-   ===================================================== */
-const APP_VERSION = 2;
-const UPDATE_INTERVAL_DAYS = 15;
-const LS_SESSION = 'appsec_session';
-const LS_REQUESTS = 'appsec_requests';
-const LS_LAST_CHECK = 'appsec_last_update_check';
+/* APP.JS — VERSION FIREBASE (sans bugs) */
+const ADMIN_PASSWORD = 'Kevin83600';
+const SESSION_KEY = 'autodiag_session';
 
+let db = null;
+let usersData = {};
 let deferredPrompt = null;
+let listenersStarted = false;
 
-/* ===== UTILITAIRES ===== */
-function $(id) { return document.getElementById(id); }
-function showScreen(id) {
-  document.querySelectorAll('.screen').forEach(s => s.style.display = 'none');
-  const el = $(id);
-  if (el) el.style.display = 'block';
-}
-function readLS(key, fallback) {
-  try { return JSON.parse(localStorage.getItem(key)) ?? fallback; }
-  catch (e) { return fallback; }
-}
-function writeLS(key, val) { localStorage.setItem(key, JSON.stringify(val)); }
-function deviceId() {
-  let id = localStorage.getItem('appsec_device');
-  if (!id) {
-    id = 'DEV-' + Math.random().toString(36).substr(2, 6).toUpperCase();
-    localStorage.setItem('appsec_device', id);
-  }
-  return id;
-}
-
-/* ===== INITIALISATION ===== */
-document.addEventListener('DOMContentLoaded', () => {
+window.addEventListener('DOMContentLoaded', () => {
+  firebase.initializeApp(firebaseConfig);
+  db = firebase.database();
   registerSW();
-  bindEvents();
   setupInstall();
+  bindAdminTable();
   boot();
 });
 
 function registerSW() {
   if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('./sw.js')
-      .then(() => {
-        if ('Notification' in window && Notification.permission === 'default') {
-          Notification.requestPermission();
-        }
-      })
-      .catch(err => console.error('[SW] erreur :', err));
+    navigator.serviceWorker.register('./sw.js').catch(e => console.warn('SW:', e));
   }
 }
 
-/* ===== DÉMARRAGE : version + statut ===== */
-async function boot() {
-  /* 1. Contrôle de version (accord admin obligatoire) */
-  const version = await fetchJSON('./version.json');
-  if (version && version.minAppVersion && APP_VERSION < version.minAppVersion) {
-    $('update-message').innerHTML =
-      'Version requise : <strong>' + version.minAppVersion + '</strong><br>' +
-      'Contactez l\'administrateur pour obtenir la nouvelle installation.';
-    showScreen('screen-update');
-    return;
-  }
-
-  /* 2. Mise à jour automatique tous les 15 jours */
-  checkPeriodicUpdate();
-
-  /* 3. Résolution du statut de l'utilisateur */
-  await resolveStatus();
+/* ----- Session ----- */
+function getSession() { try { return JSON.parse(localStorage.getItem(SESSION_KEY)); } catch (e) { return null; } }
+function saveSession(s) { localStorage.setItem(SESSION_KEY, JSON.stringify(s)); }
+function resetSession() {
+  localStorage.removeItem(SESSION_KEY);
+  document.getElementById('input-prenom').value = '';
+  showScreen('screen-home');
 }
 
-async function fetchJSON(path) {
-  try {
-    const res = await fetch(path + '?t=' + Date.now(), { cache: 'no-store' });
-    if (!res.ok) return null;
-    return await res.json();
-  } catch (e) { return null; }
+/* ----- Navigation ----- */
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+function screenIsActive(id) { return document.getElementById(id).classList.contains('active'); }
+
+/* ----- Démarrage + écoute temps réel ----- */
+function boot() { startListeners(); routeUser(); }
+
+function startListeners() {
+  if (listenersStarted) return;
+  listenersStarted = true;
+  db.ref('access/users').on('value', snap => {
+    usersData = snap.val() || {};
+    routeUser();
+    if (screenIsActive('screen-admin')) renderAdmin();
+  });
 }
 
-async function resolveStatus() {
-  const session = readLS(LS_SESSION, null);
+function findUserKey(prenom) {
+  if (!prenom) return null;
+  return Object.keys(usersData).find(k =>
+    usersData[k] && usersData[k].prenom &&
+    String(usersData[k].prenom).toLowerCase() === String(prenom).toLowerCase()
+  ) || null;
+}
 
-  /* Pas de session → accueil */
+function routeUser() {
+  const session = getSession();
   if (!session || !session.prenom) { showScreen('screen-home'); return; }
-
-  /* Le serveur (access.json publié par l'admin) fait foi */
-  const remote = await fetchJSON('./access.json');
-  let status = session.status;
-  if (remote && Array.isArray(remote.users)) {
-    const found = remote.users.find(u =>
-      u.prenom.toLowerCase() === session.prenom.toLowerCase());
-    if (found) status = found.status;
-  }
-
+  const key = findUserKey(session.prenom);
+  if (!key) { showPending(session.prenom); return; }
+  const status = usersData[key].status;
   session.status = status;
-  writeLS(LS_SESSION, session);
-
-  switch (status) {
-    case 'accepted':
-      $('user-name').textContent = session.prenom;
-      notifyLocal('✅ Accès autorisé', 'Bienvenue ' + session.prenom + ' !');
-      showScreen('screen-granted');
-      break;
-    case 'refused':  showScreen('screen-refused'); break;
-    case 'revoked':  showScreen('screen-revoked'); break;
-    case 'pending':  preparePending(session.prenom); showScreen('screen-pending'); break;
-    default:         showScreen('screen-home');
-  }
+  saveSession(session);
+  if (status === 'accepted') {
+    document.getElementById('accepted-name').textContent = session.prenom;
+    showScreen('screen-accepted');
+  } else if (status === 'refused') showScreen('screen-refused');
+  else if (status === 'revoked') showScreen('screen-revoked');
+  else showPending(session.prenom);
 }
 
-/* ===== DEMANDE D'ACCÈS (identification par prénom) ===== */
-function requestAccess() {
-  const prenom = $('input-prenom').value.trim();
-  if (prenom.length < 2) { alert('Veuillez entrer votre prénom (2 caractères minimum)'); return; }
+/* ----- Demande d'accès (prénom) ----- */
+async function requestAccess() {
+  const prenom = document.getElementById('input-prenom').value.trim();
+  if (prenom.length < 2) { notify('Prénom invalide (2 caractères minimum)', 'error'); return; }
+  saveSession({ prenom: prenom, status: 'pending', deviceId: getDeviceId(), date: Date.now() });
+  const key = 'user_' + prenom.toLowerCase().replace(/[^a-z0-9]+/g, '_');
+  await db.ref('access/users/' + key).set({
+    prenom: prenom, status: 'pending', device: getDeviceId(), date: Date.now()
+  });
+  showPending(prenom);
+  notify('📨 Demande envoyée à l\'administrateur');
+}
 
-  const request = {
-    prenom: prenom,
-    status: 'pending',
-    date: new Date().toISOString(),
-    device: deviceId()
-  };
-
-  writeLS(LS_SESSION, request);
-  const all = readLS(LS_REQUESTS, []);
-  all.push(request);
-  writeLS(LS_REQUESTS, all);
-
-  /* Notification locale + notification via SW */
-  notifyLocal('📨 Demande envoyée', 'Demande d\'accès pour ' + prenom);
-  if (navigator.serviceWorker && navigator.serviceWorker.controller) {
-    navigator.serviceWorker.controller.postMessage({ type: 'ACCESS_REQUEST', prenom: prenom });
-  }
-
-  preparePending(prenom);
+function showPending(prenom) {
+  document.getElementById('pending-name').textContent = prenom;
+  const msg = '🔐 DEMANDE D\'ACCÈS - Auto Diagnostic Pro\n👤 Prénom : ' + prenom +
+    '\n📱 Appareil : ' + getDeviceId() + '\n📅 ' + new Date().toLocaleString('fr-FR');
+  const enc = encodeURIComponent(msg);
+  document.getElementById('share-wa').href = 'https://wa.me/?text=' + enc;
+  document.getElementById('share-sms').href = 'sms:?body=' + enc;
+  document.getElementById('share-mail').href = 'mailto:?subject=' + encodeURIComponent('Demande d\'accès - ' + prenom) + '&body=' + enc;
   showScreen('screen-pending');
 }
 
-/* Boutons d'envoi de la demande à l'admin (WhatsApp / SMS / Email) */
-function preparePending(prenom) {
-  const msg =
-    '🔐 DEMANDE D\'ACCÈS - Auto Diagnostic\n' +
-    '👤 Prénom : ' + prenom + '\n' +
-    '📱 Appareil : ' + deviceId() + '\n' +
-    '📅 Date : ' + new Date().toLocaleString('fr-FR') + '\n\n' +
-    'Merci de m\'autoriser l\'accès à l\'application.';
-  const enc = encodeURIComponent(msg);
-  $('share-wa').href   = 'https://wa.me/?text=' + enc;
-  $('share-sms').href  = 'sms:?body=' + enc;
-  $('share-mail').href = 'mailto:?subject=' + encodeURIComponent('Demande d\'accès - ' + prenom) + '&body=' + enc;
+function checkStatus() { notify('🔄 Vérification...'); routeUser(); }
+
+/* ----- Admin ----- */
+function loginAdmin() {
+  if (document.getElementById('admin-pwd').value === ADMIN_PASSWORD) {
+    sessionStorage.setItem('autodiag_admin', '1');
+    document.getElementById('admin-pwd').value = '';
+    startListeners();
+    showScreen('screen-admin');
+    renderAdmin();
+  } else notify('❌ Mot de passe incorrect', 'error');
 }
 
-function notifyLocal(title, body) {
-  if ('Notification' in window && Notification.permission === 'granted') {
-    try { new Notification(title, { body: body, icon: './icon-192.png' }); } catch (e) {}
+function logoutAdmin() { sessionStorage.removeItem('autodiag_admin'); showScreen('screen-home'); }
+
+function renderAdmin() {
+  const container = document.getElementById('users-table-container');
+  const keys = Object.keys(usersData).sort((a, b) => (usersData[b].date || 0) - (usersData[a].date || 0));
+  if (keys.length === 0) {
+    container.innerHTML = '<p style="color:#94a3b8;text-align:center;padding:16px">Aucun tiers enregistré</p>';
+    return;
   }
-}
-
-/* ===== MISE À JOUR PÉRIODIQUE (15 jours) ===== */
-function checkPeriodicUpdate() {
-  const last = parseInt(localStorage.getItem(LS_LAST_CHECK) || '0', 10);
-  const now = Date.now();
-  if (now - last > UPDATE_INTERVAL_DAYS * 24 * 60 * 60 * 1000) {
-    localStorage.setItem(LS_LAST_CHECK, String(now));
-    if (navigator.serviceWorker && navigator.serviceWorker.controller) {
-      navigator.serviceWorker.controller.postMessage({ type: 'CHECK_UPDATE' });
-    }
-  }
-}
-
-/* ===== INSTALLATION PWA (mode "installer sur APK") ===== */
-function setupInstall() {
-  window.addEventListener('beforeinstallprompt', e => {
-    e.preventDefault();
-    deferredPrompt = e;
-    $('install-btn').classList.remove('hidden');
-  });
-  window.addEventListener('appinstalled', () => {
-    deferredPrompt = null;
-    $('install-btn').classList.add('hidden');
-  });
-  $('install-btn').addEventListener('click', async () => {
-    if (!deferredPrompt) { alert('Installation non disponible sur cet appareil.'); return; }
-    deferredPrompt.prompt();
-    await deferredPrompt.userChoice;
-    deferredPrompt = null;
-    $('install-btn').classList.add('hidden');
-  });
-}
-
-/* ===== ÉVÉNEMENTS ===== */
-function bindEvents() {
-  $('btn-request').addEventListener('click', requestAccess);
-  $('btn-admin').addEventListener('click', () => { location.href = './admin.html'; });
-  $('btn-enter-app').addEventListener('click', () => { location.href = './check.html'; });
-  $('btn-home-granted').addEventListener('click', () => showScreen('screen-home'));
-  $('btn-refresh-pending').addEventListener('click', () => resolveStatus());
-  $('btn-retry-refused').addEventListener('click', resetRequest);
-  $('btn-retry-revoked').addEventListener('click', resetRequest);
-  $('btn-reload-update').addEventListener('click', () => location.reload());
-
-  /* Temps réel même appareil (onglets ouverts) */
-  window.addEventListener('storage', e => {
-    if (e.key === LS_SESSION) resolveStatus();
-  });
-}
-
-function resetRequest() {
-  localStorage.removeItem(LS_SESSION);
-  $('input-prenom').value = '';
-  showScreen('screen-home');
-}
+  const labels = { pending: '⏳ Attente', accepted: '✅ Accepté', refused: '❌ Refusé', revoked: '🔒 Révoqué' };
+  let html = '<table><thead><tr><th>Prénom</th><th>Statut</th><th>Date</th><th>Actions</th></tr></thead><tbody>';
+  keys.forEach(k => {
+    const u = usersData[k];
+    const st = u.status || 'pending';
+    let actions = '';
+    if (st === 'pending') {
+     
