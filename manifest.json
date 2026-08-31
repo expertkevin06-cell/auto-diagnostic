@@ -1,14 +1,15 @@
 {
-  "name": "Auto Diagnostic Pro",
-  "short_name": "AutoDiag",
-  "description": "Diagnostic automobile complet - DTC, Rappels, Pannes par région",
+  "name": "Mon Application Sécurisée",
+  "short_name": "AppSec",
+  "description": "Application avec contrôle d'accès admin",
   "start_url": "/index.html",
+  "scope": "/",
   "display": "standalone",
-  "background_color": "#0f172a",
-  "theme_color": "#1e293b",
   "orientation": "portrait",
-  "categories": ["automotive", "utilities", "productivity"],
+  "background_color": "#1a1a2e",
+  "theme_color": "#0f3460",
   "lang": "fr-FR",
+  "categories": ["utilities"],
   "icons": [
     {
       "src": "icons/icon-192.png",
@@ -23,5 +24,11 @@
       "purpose": "any maskable"
     }
   ],
-  "permissions": ["notifications", "storage"]
+  "shortcuts": [
+    {
+      "name": "Mode Admin",
+      "url": "/index.html?mode=admin",
+      "icons": [{ "src": "icons/icon-192.png", "sizes": "192x192" }]
+    }
+  ]
 }
