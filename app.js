@@ -1,294 +1,224 @@
-/* APP.JS — VERSION FIREBASE (sans bugs) */
+/* APP.JS FINAL — Firebase + accès + base complète */
 const ADMIN_PASSWORD = 'Kevin83600';
 const SESSION_KEY = 'autodiag_session';
-
-let db = null;
-let usersData = {};
-let deferredPrompt = null;
-let listenersStarted = false;
+let db, usersData = {}, brandsData = {}, deferredPrompt = null, listenersStarted = false, curBrand = null;
 
 window.addEventListener('DOMContentLoaded', () => {
   firebase.initializeApp(firebaseConfig);
   db = firebase.database();
-  registerSW();
-  setupInstall();
-  bindAdminTable();
-  boot();
+  if ('serviceWorker' in navigator) navigator.serviceWorker.register('./sw.js').catch(() => {});
+  setupInstall(); bindAdminTable(); boot();
 });
 
-function registerSW() {
-  if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('./sw.js').catch(e => console.warn('SW:', e));
-  }
-}
-
-/* ----- Session ----- */
+/* ---------- utils ---------- */
 function getSession() { try { return JSON.parse(localStorage.getItem(SESSION_KEY)); } catch (e) { return null; } }
 function saveSession(s) { localStorage.setItem(SESSION_KEY, JSON.stringify(s)); }
-function resetSession() {
-  localStorage.removeItem(SESSION_KEY);
-  document.getElementById('input-prenom').value = '';
-  showScreen('screen-home');
-}
-
-/* ----- Navigation ----- */
-function showScreen(id) {
-  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
-  document.getElementById(id).classList.add('active');
-}
+function showScreen(id) { document.querySelectorAll('.screen').forEach(s => s.classList.remove('active')); document.getElementById(id).classList.add('active'); }
 function screenIsActive(id) { return document.getElementById(id).classList.contains('active'); }
+function notify(m, t) { const n = document.createElement('div'); n.className = 'notification' + (t === 'error' ? ' error' : ''); n.textContent = m; document.body.appendChild(n); setTimeout(() => n.remove(), 3000); }
+function esc(s) { const d = document.createElement('div'); d.textContent = String(s); return d.innerHTML; }
+function deviceId() { let id = localStorage.getItem('autodiag_device'); if (!id) { id = 'DEV-' + Math.random().toString(36).substr(2, 8).toUpperCase(); localStorage.setItem('autodiag_device', id); } return id; }
 
-/* ----- Démarrage + écoute temps réel ----- */
-function boot() { startListeners(); routeUser(); }
-
-function startListeners() {
-  if (listenersStarted) return;
-  listenersStarted = true;
-  db.ref('access/users').on('value', snap => {
-    usersData = snap.val() || {};
-    routeUser();
-    if (screenIsActive('screen-admin')) renderAdmin();
-  });
+/* ---------- démarrage / temps réel ---------- */
+function boot() {
+  if (!listenersStarted) {
+    listenersStarted = true;
+    db.ref('access/users').on('value', s => { usersData = s.val() || {}; routeUser(); if (screenIsActive('screen-admin')) renderAdmin(); });
+    db.ref('data/brands').on('value', s => { brandsData = s.val() || {}; if (screenIsActive('screen-admin')) fillBrandSelects(); });
+  }
+  routeUser();
 }
-
-function findUserKey(prenom) {
-  if (!prenom) return null;
-  return Object.keys(usersData).find(k =>
-    usersData[k] && usersData[k].prenom &&
-    String(usersData[k].prenom).toLowerCase() === String(prenom).toLowerCase()
-  ) || null;
-}
-
+function findKey(p) { return p ? Object.keys(usersData).find(k => usersData[k].prenom && usersData[k].prenom.toLowerCase() === p.toLowerCase()) || null : null; }
 function routeUser() {
-  const session = getSession();
-  if (!session || !session.prenom) { showScreen('screen-home'); return; }
-  const key = findUserKey(session.prenom);
-  if (!key) { showPending(session.prenom); return; }
-  const status = usersData[key].status;
-  session.status = status;
-  saveSession(session);
-  if (status === 'accepted') {
-    document.getElementById('accepted-name').textContent = session.prenom;
-    showScreen('screen-accepted');
-  } else if (status === 'refused') showScreen('screen-refused');
-  else if (status === 'revoked') showScreen('screen-revoked');
-  else showPending(session.prenom);
+  const s = getSession();
+  if (!s || !s.prenom) { showScreen('screen-home'); return; }
+  const k = findKey(s.prenom);
+  if (!k) { showPending(s.prenom); return; }
+  s.status = usersData[k].status; saveSession(s);
+  if (s.status === 'accepted') { document.getElementById('accepted-name').textContent = s.prenom; showScreen('screen-accepted'); }
+  else if (s.status === 'refused') showScreen('screen-refused');
+  else if (s.status === 'revoked') showScreen('screen-revoked');
+  else showPending(s.prenom);
 }
 
-/* ----- Demande d'accès (prénom) ----- */
+/* ---------- tiers ---------- */
 async function requestAccess() {
-  const prenom = document.getElementById('input-prenom').value.trim();
-  if (prenom.length < 2) { notify('Prénom invalide (2 caractères minimum)', 'error'); return; }
-  saveSession({ prenom: prenom, status: 'pending', deviceId: getDeviceId(), date: Date.now() });
-  const key = 'user_' + prenom.toLowerCase().replace(/[^a-z0-9]+/g, '_');
-  await db.ref('access/users/' + key).set({
-    prenom: prenom, status: 'pending', device: getDeviceId(), date: Date.now()
-  });
-  showPending(prenom);
-  notify('📨 Demande envoyée à l\'administrateur');
+  const p = document.getElementById('input-prenom').value.trim();
+  if (p.length < 2) return notify('Prénom invalide', 'error');
+  saveSession({ prenom: p, status: 'pending', date: Date.now() });
+  await db.ref('access/users/user_' + p.toLowerCase().replace(/[^a-z0-9]+/g, '_')).set({ prenom: p, status: 'pending', device: deviceId(), date: Date.now() });
+  showPending(p); notify('📨 Demande envoyée à l\'admin');
 }
-
-function showPending(prenom) {
-  document.getElementById('pending-name').textContent = prenom;
-  const msg = '🔐 DEMANDE D\'ACCÈS - Auto Diagnostic Pro\n👤 Prénom : ' + prenom +
-    '\n📱 Appareil : ' + getDeviceId() + '\n📅 ' + new Date().toLocaleString('fr-FR');
-  const enc = encodeURIComponent(msg);
-  document.getElementById('share-wa').href = 'https://wa.me/?text=' + enc;
-  document.getElementById('share-sms').href = 'sms:?body=' + enc;
-  document.getElementById('share-mail').href = 'mailto:?subject=' + encodeURIComponent('Demande d\'accès - ' + prenom) + '&body=' + enc;
+function showPending(p) {
+  document.getElementById('pending-name').textContent = p;
+  const m = encodeURIComponent('🔐 DEMANDE D\'ACCÈS Auto Diagnostic Pro\n👤 ' + p + '\n📱 ' + deviceId() + '\n📅 ' + new Date().toLocaleString('fr-FR'));
+  document.getElementById('share-wa').href = 'https://wa.me/?text=' + m;
+  document.getElementById('share-sms').href = 'sms:?body=' + m;
+  document.getElementById('share-mail').href = 'mailto:?subject=Demande%20acc%C3%A8s&body=' + m;
   showScreen('screen-pending');
 }
+function checkStatus() { routeUser(); }
+function resetSession() { localStorage.removeItem(SESSION_KEY); document.getElementById('input-prenom').value = ''; showScreen('screen-home'); }
 
-function checkStatus() { notify('🔄 Vérification...'); routeUser(); }
-
-/* ----- Admin ----- */
+/* ---------- admin ---------- */
 function loginAdmin() {
   if (document.getElementById('admin-pwd').value === ADMIN_PASSWORD) {
     sessionStorage.setItem('autodiag_admin', '1');
     document.getElementById('admin-pwd').value = '';
-    startListeners();
-    showScreen('screen-admin');
-    renderAdmin();
+    boot(); showScreen('screen-admin'); renderAdmin(); fillBrandSelects();
   } else notify('❌ Mot de passe incorrect', 'error');
 }
-
 function logoutAdmin() { sessionStorage.removeItem('autodiag_admin'); showScreen('screen-home'); }
-
-function renderAdmin() {
-  const container = document.getElementById('users-table-container');
-  const keys = Object.keys(usersData).sort((a, b) => (usersData[b].date || 0) - (usersData[a].date || 0));
-  if (keys.length === 0) {
-    container.innerHTML = '<p style="color:#94a3b8;text-align:center;padding:16px">Aucun tiers enregistré</p>';
-    return;
-  }
-  const labels = { pending: '⏳ Attente', accepted: '✅ Accepté', refused: '❌ Refusé', revoked: '🔒 Révoqué' };
-  let html = '<table><thead><tr><th>Prénom</th><th>Statut</th><th>Date</th><th>Actions</th></tr></thead><tbody>';
-  keys.forEach(k => {
-    const u = usersData[k];
-    const st = u.status || 'pending';
-    let actions = '';
-    if (st === 'pending') {
-      actions += '<button class="btn btn-sm btn-success" data-action="accept" data-key="' + k + '">✓ Autoriser</button>';
-      actions += '<button class="btn btn-sm btn-danger" data-action="refuse" data-key="' + k + '">✗ Refuser</button>';
-    } else if (st === 'accepted') {
-      actions += '<button class="btn btn-sm btn-danger" data-action="revoke" data-key="' + k + '">Révoquer</button>';
-    } else {
-      actions += '<button class="btn btn-sm btn-success" data-action="accept" data-key="' + k + '">Réautoriser</button>';
-    }
-    actions += '<button class="btn btn-sm btn-secondary" data-action="delete" data-key="' + k + '">🗑️</button>';
-    html += '<tr><td><strong>' + escapeHtml(u.prenom || '?') + '</strong></td>' +
-      '<td><span class="badge badge-' + st + '">' + (labels[st] || st) + '</span></td>' +
-      '<td style="font-size:11px">' + (u.date ? new Date(u.date).toLocaleDateString('fr-FR') : '--') + '</td>' +
-      '<td>' + actions + '</td></tr>';
-  });
-  container.innerHTML = html + '</tbody></table>';
+function adminTab(id) {
+  document.getElementById('tab-access').classList.toggle('hidden', id !== 'tab-access');
+  document.getElementById('tab-data').classList.toggle('hidden', id !== 'tab-data');
+  if (id === 'tab-data') fillBrandSelects();
 }
-
+function renderAdmin() {
+  const c = document.getElementById('users-table-container');
+  const keys = Object.keys(usersData).sort((a, b) => (usersData[b].date || 0) - (usersData[a].date || 0));
+  if (!keys.length) { c.innerHTML = '<p style="color:#94a3b8;text-align:center">Aucun tiers</p>'; return; }
+  const L = { pending: '⏳ Attente', accepted: '✅ Accepté', refused: '❌ Refusé', revoked: '🔒 Révoqué' };
+  let h = '<table><thead><tr><th>Prénom</th><th>Statut</th><th>Date</th><th>Actions</th></tr></thead><tbody>';
+  keys.forEach(k => {
+    const u = usersData[k], st = u.status || 'pending';
+    let a = '';
+    if (st === 'pending') a += '<button class="btn btn-sm btn-success" data-action="accept" data-key="' + k + '">✓</button><button class="btn btn-sm btn-danger" data-action="refuse" data-key="' + k + '">✗</button>';
+    else if (st === 'accepted') a += '<button class="btn btn-sm btn-danger" data-action="revoke" data-key="' + k + '">Révoquer</button>';
+    else a += '<button class="btn btn-sm btn-success" data-action="accept" data-key="' + k + '">Réautoriser</button>';
+    a += '<button class="btn btn-sm btn-secondary" data-action="delete" data-key="' + k + '">🗑️</button>';
+    h += '<tr><td>' + esc(u.prenom) + '</td><td><span class="badge badge-' + st + '">' + L[st] + '</span></td><td style="font-size:11px">' + (u.date ? new Date(u.date).toLocaleDateString('fr-FR') : '--') + '</td><td>' + a + '</td></tr>';
+  });
+  c.innerHTML = h + '</tbody></table>';
+}
 function bindAdminTable() {
   document.getElementById('users-table-container').addEventListener('click', e => {
-    const btn = e.target.closest('button[data-action]');
-    if (!btn) return;
-    const a = btn.dataset.action, k = btn.dataset.key;
-    if (a === 'accept') setUserStatus(k, 'accepted');
-    if (a === 'refuse') setUserStatus(k, 'refused');
-    if (a === 'revoke') setUserStatus(k, 'revoked');
-    if (a === 'delete') deleteUser(k);
+    const b = e.target.closest('button[data-action]'); if (!b) return;
+    const k = b.dataset.key, a = b.dataset.action;
+    if (a === 'delete') { if (confirm('Supprimer ?')) db.ref('access/users/' + k).remove(); return; }
+    db.ref('access/users/' + k).update({ status: a === 'accept' ? 'accepted' : a === 'refuse' ? 'refused' : 'revoked' });
   });
 }
-
-async function setUserStatus(key, status) {
-  await db.ref('access/users/' + key).update({ status: status });
-  notify('✅ Statut mis à jour : ' + status);
-}
-
-async function deleteUser(key) {
-  if (!confirm('Supprimer définitivement ce tiers ?')) return;
-  await db.ref('access/users/' + key).remove();
-  notify('🗑️ Tiers supprimé');
-}
-
 async function addUser() {
-  const prenom = document.getElementById('new-prenom').value.trim();
-  if (prenom.length < 2) { notify('Prénom invalide', 'error'); return; }
-  const key = 'user_' + prenom.toLowerCase().replace(/[^a-z0-9]+/g, '_');
-  await db.ref('access/users/' + key).set({ prenom: prenom, status: 'accepted', device: 'admin', date: Date.now() });
-  document.getElementById('new-prenom').value = '';
-  notify('✅ ' + prenom + ' ajouté et autorisé');
+  const p = document.getElementById('new-prenom').value.trim();
+  if (p.length < 2) return notify('Prénom invalide', 'error');
+  await db.ref('access/users/user_' + p.toLowerCase().replace(/[^a-z0-9]+/g, '_')).set({ prenom: p, status: 'accepted', device: 'admin', date: Date.now() });
+  document.getElementById('new-prenom').value = ''; notify('✅ ' + p + ' autorisé');
 }
-
-/* ----- Partage APK (admin uniquement) ----- */
 function shareAPK() {
-  if (sessionStorage.getItem('autodiag_admin') !== '1') { notify('❌ Réservé à l\'admin', 'error'); return; }
-  const url = new URL('./index.html', location.href).href;
-  if (navigator.share) navigator.share({ title: 'Auto Diagnostic Pro', text: 'Installez l\'application :', url: url }).catch(() => {});
-  else if (navigator.clipboard) navigator.clipboard.writeText(url).then(() => notify('🔗 Lien copié'));
-  else prompt('Copiez ce lien :', url);
+  if (sessionStorage.getItem('autodiag_admin') !== '1') return notify('❌ Réservé admin', 'error');
+  const u = new URL('./index.html', location.href).href;
+  if (navigator.share) navigator.share({ title: 'Auto Diagnostic Pro', text: 'Installez l\'APK :', url: u }).catch(() => {});
+  else if (navigator.clipboard) navigator.clipboard.writeText(u).then(() => notify('🔗 Lien APK copié'));
+  else prompt('Lien :', u);
 }
-
-/* ----- Mise à jour base (cycle 15 jours) ----- */
 async function updateBase() {
   await db.ref('data/version').set({ version: Date.now(), lastUpdate: new Date().toISOString(), updateIntervalDays: 15 });
-  notify('✅ Mise à jour diffusée sur toutes les APK');
+  notify('✅ MAJ diffusée sur toutes les APK');
 }
 
-/* ----- Application diagnostic ----- */
+/* ---------- admin base de données ---------- */
+function fillBrandSelects() {
+  ['nm-brand', 'mo-brand', 'is-brand'].forEach(id => {
+    const s = document.getElementById(id); if (!s) return;
+    s.innerHTML = '';
+    Object.entries(brandsData).sort((a, b) => a[1].name.localeCompare(b[1].name)).forEach(([k, b]) => { s.innerHTML += '<option value="' + k + '">' + esc(b.name) + '</option>'; });
+  });
+  fillModelSelect();
+}
+function fillModelSelect() {
+  const b = document.getElementById('is-brand').value;
+  db.ref('data/models').once('value').then(s => {
+    const sel = document.getElementById('is-model'); sel.innerHTML = '';
+    Object.values(s.val() || {}).filter(m => m.brandId === b).forEach(m => { sel.innerHTML += '<option value="' + esc(m.name) + '">' + esc(m.name) + '</option>'; });
+  });
+}
+async function addBrand() {
+  const n = document.getElementById('nb-name').value.trim(), r = document.getElementById('nb-region').value;
+  if (!n) return notify('Nom requis', 'error');
+  await db.ref('data/brands/' + n.toLowerCase().replace(/[^a-z0-9]+/g, '-')).set({ name: n, region: r });
+  document.getElementById('nb-name').value = ''; notify('✅ Marque ajoutée');
+}
+async function addModel() {
+  const b = document.getElementById('nm-brand').value, n = document.getElementById('nm-name').value.trim(), y = document.getElementById('nm-years').value.trim();
+  if (!b || !n) return notify('Marque + modèle requis', 'error');
+  await db.ref('data/models/' + b + '_' + Date.now()).set({ brandId: b, name: n, years: y || '2017-2026' });
+  document.getElementById('nm-name').value = ''; notify('✅ Modèle ajouté');
+}
+async function addMotor() {
+  const b = document.getElementById('mo-brand').value, n = document.getElementById('mo-name').value.trim();
+  if (!b || !n) return notify('Infos requises', 'error');
+  const ref = db.ref('data/motors/' + b);
+  const s = await ref.once('value'); const arr = s.val() || []; arr.push(n);
+  await ref.set(arr); notify('✅ Motorisation ajoutée');
+}
+async function addIssue() {
+  const b = document.getElementById('is-brand').value, m = document.getElementById('is-model').value, t = document.getElementById('is-title').value.trim(), d = document.getElementById('is-detail').value.trim(), src = document.getElementById('is-source').value;
+  if (!t) return notify('Titre requis', 'error');
+  await db.ref('data/issues/iss_' + Date.now()).set({ brandId: b, model: m, title: t, detail: d, source: src });
+  document.getElementById('is-title').value = ''; document.getElementById('is-detail').value = ''; notify('✅ Panne/rappel ajouté');
+}
+async function addDTC() {
+  const c = document.getElementById('dt-code').value.trim().toUpperCase(), de = document.getElementById('dt-desc').value.trim();
+  if (!c || !de) return notify('Code + description requis', 'error');
+  await db.ref('data/dtc/' + c.replace(/[^A-Z0-9]+/g, '_')).set({ code: c, description: de, cause: document.getElementById('dt-cause').value.trim(), solution: document.getElementById('dt-sol').value.trim() });
+  document.getElementById('dt-code').value = ''; document.getElementById('dt-desc').value = ''; notify('✅ DTC ajouté');
+}
+
+/* ---------- application ---------- */
 async function enterApp() {
-  const session = getSession();
-  if (!session || session.status !== 'accepted') { notify('Accès non autorisé', 'error'); return; }
-  document.getElementById('app-user').textContent = session.prenom;
+  const s = getSession();
+  if (!s || s.status !== 'accepted') return notify('Accès non autorisé', 'error');
+  document.getElementById('app-user').textContent = s.prenom;
   showScreen('screen-app');
-  const snap = await db.ref('data').once('value');
-  const data = snap.val() || {};
-  document.getElementById('app-version').textContent =
-    (data.version && data.version.lastUpdate) ? new Date(data.version.lastUpdate).toLocaleDateString('fr-FR') : '1.0';
+  const v = await db.ref('data/version').once('value');
+  const vv = v.val(); document.getElementById('app-version').textContent = vv && vv.lastUpdate ? new Date(vv.lastUpdate).toLocaleDateString('fr-FR') : '1.0';
+  const bs = await db.ref('data/brands').once('value');
+  brandsData = bs.val() || {};
   const sel = document.getElementById('sel-marque');
-  sel.innerHTML = '<option value="">-- Choisir une marque --</option>';
-  Object.values(data.marques || {}).forEach(m => {
-    sel.innerHTML += '<option value="' + m.id + '">' + escapeHtml(m.name) + '</option>';
+  const regions = { francaises: '🇫🇷 Françaises', europeennes: '🇪🇺 Européennes', asiatiques: '🌏 Asiatiques', chinoises: '🇨🇳 Chinoises', americaines: '🇺🇸 Américaines' };
+  sel.innerHTML = '<option value="">-- Choisir --</option>';
+  Object.entries(regions).forEach(([r, label]) => {
+    const items = Object.entries(brandsData).filter(([, b]) => b.region === r);
+    if (!items.length) return;
+    sel.innerHTML += '<optgroup label="' + label + '">' + items.map(([k, b]) => '<option value="' + k + '">' + esc(b.name) + '</option>').join('') + '</optgroup>';
   });
 }
-
 function logoutApp() { showScreen('screen-accepted'); }
-
 async function loadModels() {
-  const marqueId = document.getElementById('sel-marque').value;
-  const selModel = document.getElementById('sel-model');
-  selModel.innerHTML = '<option value="">-- Modèle --</option>';
-  document.getElementById('sel-motor').innerHTML = '<option value="">-- Motorisation --</option>';
-  document.getElementById('known-issues').innerHTML = '<p style="color:#94a3b8">Sélectionnez un véhicule...</p>';
-  if (!marqueId) return;
-  const snap = await db.ref('data/models').once('value');
-  Object.values(snap.val() || {}).filter(m => m.marqueId === marqueId).forEach(m => {
-    selModel.innerHTML += '<option value="' + m.id + '">' + escapeHtml(m.name) + '</option>';
+  curBrand = document.getElementById('sel-marque').value;
+  const sm = document.getElementById('sel-model');
+  sm.innerHTML = '<option value="">-- Modèle --</option>';
+  document.getElementById('motor-list').innerHTML = '<p style="color:#94a3b8">—</p>';
+  document.getElementById('known-issues').innerHTML = '<p style="color:#94a3b8">Sélectionnez un véhicule…</p>';
+  if (!curBrand) return;
+  const s = await db.ref('data/models').once('value');
+  Object.values(s.val() || {}).filter(m => m.brandId === curBrand).sort((a, b) => a.name.localeCompare(b.name)).forEach(m => {
+    sm.innerHTML += '<option value="' + esc(m.name) + '">' + esc(m.name) + ' (' + esc(m.years) + ')</option>';
   });
 }
-
 async function loadMotorisations() {
-  const modelId = document.getElementById('sel-model').value;
-  const selMotor = document.getElementById('sel-motor');
-  selMotor.innerHTML = '<option value="">-- Motorisation --</option>';
-  if (!modelId) return;
-  const snap = await db.ref('data/motorisations').once('value');
-  Object.values(snap.val() || {}).filter(m => m.modelId === modelId).forEach(m => {
-    selMotor.innerHTML += '<option value="' + m.id + '">' + escapeHtml(m.name) + '</option>';
-  });
-  const snapIssues = await db.ref('data/issues').once('value');
-  const issues = Object.values(snapIssues.val() || {}).filter(i => i.modelId === modelId);
-  document.getElementById('known-issues').innerHTML = issues.length === 0
-    ? '<p style="color:#94a3b8">Aucune panne connue référencée.</p>'
-    : issues.map(i => '<div class="dtc-card"><strong>' + escapeHtml(i.title || '') + '</strong><p>' + escapeHtml(i.detail || '') + '</p></div>').join('');
+  const model = document.getElementById('sel-model').value;
+  if (!model || !curBrand) return;
+  const mo = await db.ref('data/motors/' + curBrand).once('value');
+  const motors = mo.val() || [];
+  document.getElementById('motor-list').innerHTML = motors.length ? motors.map(m => '<span class="badge badge-accepted" style="margin:2px">' + esc(m) + '</span>').join(' ') : '<p style="color:#94a3b8">Non renseigné</p>';
+  const is = await db.ref('data/issues').once('value');
+  const issues = Object.values(is.val() || {}).filter(i => i.brandId === curBrand && (!i.model || i.model === model));
+  document.getElementById('known-issues').innerHTML = issues.length ? issues.map(i => '<div class="issue-card"><strong>' + esc(i.title) + '</strong><span class="src">' + esc(i.source) + '</span><p>' + esc(i.detail || '') + '</p></div>').join('') : '<p style="color:#94a3b8">Aucune panne/rappel en base pour ce modèle — vérifiez les sites officiels ci-dessous.</p>';
 }
-
 async function searchDTC() {
-  const query = document.getElementById('dtc-search').value.toUpperCase().trim();
-  const container = document.getElementById('dtc-results');
-  if (query.length < 2) { container.innerHTML = ''; return; }
-  const snap = await db.ref('data/dtc').once('value');
-  const matches = Object.values(snap.val() || {}).filter(d =>
-    (d.code || '').toUpperCase().includes(query) ||
-    (d.description || '').toLowerCase().includes(query.toLowerCase()));
-  container.innerHTML = matches.length === 0
-    ? '<p style="color:#94a3b8">Aucun DTC trouvé</p>'
-    : matches.slice(0, 10).map(d =>
-        '<div class="dtc-card"><strong>' + escapeHtml(d.code) + '</strong>' +
-        '<p><strong>' + escapeHtml(d.description || '') + '</strong></p>' +
-        (d.cause ? '<p>🔍 Cause : ' + escapeHtml(d.cause) + '</p>' : '') +
-        (d.solution ? '<p>🔧 Solution : ' + escapeHtml(d.solution) + '</p>' : '') +
-        '</div>').join('');
+  const q = document.getElementById('dtc-search').value.toUpperCase().trim();
+  const c = document.getElementById('dtc-results');
+  if (q.length < 2) { c.innerHTML = ''; return; }
+  const s = await db.ref('data/dtc').once('value');
+  const m = Object.values(s.val() || {}).filter(d => (d.code || '').toUpperCase().includes(q) || (d.description || '').toLowerCase().includes(q.toLowerCase()));
+  c.innerHTML = m.length ? m.slice(0, 12).map(d => '<div class="dtc-card"><strong>' + esc(d.code) + '</strong><p>' + esc(d.description) + '</p>' + (d.cause ? '<p>🔍 ' + esc(d.cause) + '</p>' : '') + (d.solution ? '<p>🔧 ' + esc(d.solution) + '</p>' : '') + '</div>').join('') : '<p style="color:#94a3b8">Aucun DTC trouvé</p>';
 }
 
-/* ----- Installation PWA ----- */
+/* ---------- install ---------- */
 function setupInstall() {
-  window.addEventListener('beforeinstallprompt', e => {
-    e.preventDefault();
-    deferredPrompt = e;
-    document.getElementById('install-btn').classList.remove('hidden');
-  });
-  window.addEventListener('appinstalled', () => {
-    document.getElementById('install-btn').classList.add('hidden');
-    notify('🎉 Application installée !');
-  });
+  window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); deferredPrompt = e; document.getElementById('install-btn').classList.remove('hidden'); });
+  window.addEventListener('appinstalled', () => { document.getElementById('install-btn').classList.add('hidden'); notify('🎉 APK installée !'); });
 }
-
-async function installApp() {
-  if (!deferredPrompt) { notify('Installation non disponible ici', 'error'); return; }
-  deferredPrompt.prompt();
-  await deferredPrompt.userChoice;
-  deferredPrompt = null;
-  document.getElementById('install-btn').classList.add('hidden');
-}
-
-/* ----- Utilitaires ----- */
-function getDeviceId() {
-  let id = localStorage.getItem('autodiag_device');
-  if (!id) { id = 'DEV-' + Math.random().toString(36).substr(2, 8).toUpperCase(); localStorage.setItem('autodiag_device', id); }
-  return id;
-}
-function notify(msg, type) {
-  const n = document.createElement('div');
-  n.className = 'notification' + (type === 'error' ? ' error' : '');
-  n.textContent = msg;
-  document.body.appendChild(n);
-  setTimeout(() => n.remove(), 3000);
-}
-function escapeHtml(s) { const d = document.createElement('div'); d.textContent = String(s); return d.innerHTML; }
+async function installApp() { if (!deferredPrompt) return notify('Non disponible ici', 'error'); deferredPrompt.prompt(); await deferredPrompt.userChoice; deferredPrompt = null; document.getElementById('install-btn').classList.add('hidden'); }
