@@ -185,7 +185,7 @@ async function enterApp() {
     sel.innerHTML += '<optgroup label="' + label + '">' + items.map(([k, b]) => '<option value="' + k + '">' + esc(b.name) + '</option>').join('') + '</optgroup>';
   });
 }
-function logoutApp() { showScreen('screen-accepted'); }
+function logoutApp() { showScreen(sessionStorage.getItem('autodiag_admin') === '1' ? 'screen-admin' : 'screen-accepted'); }
 async function loadModels() {
   curBrand = document.getElementById('sel-marque').value;
   const sm = document.getElementById('sel-model');
