@@ -1,8 +1,7 @@
-<!DOCTYPE html>
-<html><head><title>Init Firebase</title></head>
+<!DOCTYPE html><html><head><title>Init</title></head>
 <body style="background:#000;color:#fff;padding:20px;font-family:sans-serif">
-<h1>🚀 Initialisation Firebase</h1>
-<button onclick="init()" style="padding:20px;font-size:20px;background:#4ade80;border:none;border-radius:10px;cursor:pointer">Initialiser la base</button>
+<h1>🚀 Initialisation base complète</h1>
+<button onclick="init()" style="padding:18px;font-size:18px;background:#4ade80;border:none;border-radius:10px;cursor:pointer">INITIALISER</button>
 <pre id="log"></pre>
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
@@ -11,53 +10,153 @@
 firebase.initializeApp(firebaseConfig);
 const db = firebase.database();
 const log = m => document.getElementById('log').textContent += m + '\n';
+const B = {
+ renault:['Renault','francaises'],peugeot:['Peugeot','francaises'],citroen:['Citroën','francaises'],ds:['DS','francaises'],alpine:['Alpine','francaises'],dacia:['Dacia','europeennes'],
+ volkswagen:['Volkswagen','europeennes'],audi:['Audi','europeennes'],bmw:['BMW','europeennes'],mercedes:['Mercedes','europeennes'],opel:['Opel','europeennes'],fiat:['Fiat','europeennes'],seat:['Seat','europeennes'],skoda:['Skoda','europeennes'],volvo:['Volvo','europeennes'],porsche:['Porsche','europeennes'],mini:['Mini','europeennes'],alfa:['Alfa Romeo','europeennes'],
+ toyota:['Toyota','asiatiques'],honda:['Honda','asiatiques'],nissan:['Nissan','asiatiques'],mazda:['Mazda','asiatiques'],mitsubishi:['Mitsubishi','asiatiques'],subaru:['Subaru','asiatiques'],suzuki:['Suzuki','asiatiques'],hyundai:['Hyundai','asiatiques'],kia:['Kia','asiatiques'],lexus:['Lexus','asiatiques'],
+ byd:['BYD','chinoises'],mg:['MG','chinoises'],lynkco:['Lynk & Co','chinoises'],nio:['NIO','chinoises'],xpeng:['Xpeng','chinoises'],aiways:['Aiways','chinoises'],seres:['Seres','chinoises'],omoda:['Omoda','chinoises'],jaecoo:['Jaecoo','chinoises'],leapmotor:['Leapmotor','chinoises'],ora:['ORA','chinoises'],
+ ford:['Ford','americaines'],chevrolet:['Chevrolet','americaines'],jeep:['Jeep','americaines'],dodge:['Dodge','americaines'],cadillac:['Cadillac','americaines'],tesla:['Tesla','americaines']
+};
+const M = {
+ renault:[['Clio IV','2017-2019'],['Clio V','2019-2026'],['Captur','2019-2026'],['Megane IV','2017-2022'],['Megane E-Tech','2022-2026'],['Arkana','2021-2026'],['Austral','2022-2026'],['Rafale','2024-2026'],['Symbioz','2024-2026'],['Espace','2017-2023'],['Kangoo','2017-2026'],['Twingo','2017-2024'],['Zoe','2017-2022'],['R5 E-Tech','2024-2026'],['Scenic E-Tech','2024-2026'],['Kadjar','2017-2022'],['Talisman','2017-2022']],
+ peugeot:[['108','2017-2021'],['208 II','2019-2026'],['e-208','2019-2026'],['2008 II','2019-2026'],['e-2008','2019-2026'],['308 III','2021-2026'],['408','2022-2026'],['508','2018-2026'],['3008','2017-2026'],['5008','2017-2026'],['Rifter','2018-2026'],['Partner','2018-2026'],['Expert','2017-2026'],['Boxer','2017-2026']],
+ citroen:[['C1','2017-2021'],['C3 III','2017-2026'],['C3 Aircross','2017-2026'],['C4 III','2020-2026'],['C4 X','2022-2026'],['e-C4','2020-2026'],['C5 Aircross','2018-2026'],['C5 X','2021-2026'],['Berlingo','2018-2026'],['e-Berlingo','2021-2026'],['Jumpy','2017-2026'],['SpaceTourer','2017-2026']],
+ ds:[['DS3 Crossback','2019-2026'],['DS4','2021-2026'],['DS7','2018-2026'],['DS9','2021-2026']],
+ alpine:[['A110','2017-2026']],
+ dacia:[['Duster II','2017-2024'],['Duster III','2024-2026'],['Sandero III','2021-2026'],['Spring','2021-2026'],['Jogger','2021-2026']],
+ volkswagen:[['up!','2017-2023'],['Polo','2017-2026'],['Golf VII','2017-2020'],['Golf VIII','2020-2026'],['T-Cross','2019-2026'],['Taigo','2021-2026'],['T-Roc','2017-2026'],['Tiguan','2017-2026'],['Passat','2017-2026'],['Caddy','2017-2026'],['Transporter','2017-2026'],['ID.3','2020-2026'],['ID.4','2021-2026'],['ID.5','2021-2026'],['ID.Buzz','2022-2026']],
+ audi:[['A1','2018-2026'],['A3','2017-2026'],['A4','2017-2023'],['A5','2017-2026'],['A6','2018-2026'],['Q2','2017-2024'],['Q3','2018-2026'],['Q5','2017-2026'],['Q8','2018-2026'],['e-tron','2019-2026'],['Q4 e-tron','2021-2026']],
+ bmw:[['Serie 1','2017-2026'],['Serie 2','2017-2026'],['Serie 3','2017-2026'],['Serie 4','2017-2026'],['Serie 5','2017-2026'],['X1','2017-2026'],['X2','2018-2026'],['X3','2017-2026'],['X5','2018-2026'],['i4','2021-2026'],['iX','2021-2026'],['iX1','2022-2026']],
+ mercedes:[['Classe A','2018-2026'],['Classe B','2019-2026'],['Classe C','2017-2026'],['Classe E','2017-2026'],['CLA','2019-2026'],['GLA','2020-2026'],['GLB','2019-2026'],['GLC','2017-2026'],['GLE','2019-2026'],['EQA','2021-2026'],['EQB','2021-2026'],['EQC','2019-2026'],['EQE','2022-2026']],
+ opel:[['Corsa F','2019-2026'],['Corsa-e','2020-2026'],['Mokka B','2020-2026'],['Crossland','2017-2026'],['Grandland','2017-2026'],['Astra','2017-2026'],['Combo','2018-2026'],['Vivaro','2019-2026'],['Frontera','2024-2026']],
+ fiat:[['500','2017-2026'],['500e','2020-2026'],['500X','2017-2026'],['500L','2017-2022'],['Panda','2017-2026'],['Tipo','2017-2024'],['Doblo','2017-2026'],['Ducato','2017-2026']],
+ seat:[['Ibiza','2017-2026'],['Leon','2017-2026'],['Arona','2017-2026'],['Ateca','2017-2026'],['Tarraco','2018-2026']],
+ skoda:[['Fabia','2017-2026'],['Scala','2019-2026'],['Octavia','2017-2026'],['Superb','2017-2024'],['Kamiq','2019-2026'],['Karoq','2017-2026'],['Kodiaq','2017-2026'],['Enyaq','2021-2026']],
+ volvo:[['S60','2019-2026'],['V60','2018-2026'],['S90','2017-2026'],['V90','2017-2026'],['XC40','2017-2026'],['C40','2021-2026'],['XC60','2017-2026'],['XC90','2017-2026'],['EX30','2023-2026'],['EX40','2024-2026']],
+ porsche:[['911','2017-2026'],['Macan','2017-2026'],['Cayenne','2017-2026'],['Panamera','2017-2026'],['Taycan','2020-2026']],
+ mini:[['Mini 3 portes','2017-2024'],['Mini Cooper','2024-2026'],['Countryman','2017-2026']],
+ alfa:[['Giulietta','2017-2020'],['Giulia','2017-2026'],['Stelvio','2017-2026'],['Tonale','2022-2026'],['Junior','2024-2026']],
+ toyota:[['Yaris','2017-2026'],['Yaris Cross','2021-2026'],['Aygo X','2022-2026'],['Corolla','2019-2026'],['C-HR','2017-2026'],['RAV4','2019-2026'],['Camry','2018-2024'],['Highlander','2020-2026'],['Proace','2017-2026'],['bZ4X','2022-2026']],
+ honda:[['Civic','2017-2026'],['CR-V','2017-2026'],['HR-V','2017-2026'],['Jazz','2017-2026'],['e','2020-2026'],['ZR-V','2023-2026']],
+ nissan:[['Micra','2017-2026'],['Juke','2019-2026'],['Qashqai','2017-2026'],['X-Trail','2017-2022'],['Leaf','2018-2026'],['Ariya','2022-2026'],['Townstar','2022-2026']],
+ mazda:[['Mazda2','2017-2026'],['Mazda3','2017-2026'],['CX-30','2019-2026'],['CX-5','2017-2026'],['CX-60','2022-2026'],['MX-5','2017-2026']],
+ mitsubishi:[['ASX','2017-2026'],['Outlander','2017-2026'],['Eclipse Cross','2018-2026'],['Space Star','2017-2024'],['Colt','2023-2026']],
+ subaru:[['Impreza','2017-2026'],['Crosstrek','2017-2026'],['Forester','2017-2026'],['Outback','2017-2026'],['Solterra','2022-2026']],
+ suzuki:[['Swift','2017-2026'],['Ignis','2017-2026'],['Vitara','2017-2026'],['S-Cross','2017-2026'],['Swace','2020-2026'],['Across','2020-2026'],['Jimny','2018-2026']],
+ hyundai:[['i10','2017-2026'],['i20','2017-2026'],['i30','2017-2026'],['Bayon','2021-2026'],['Kona','2017-2026'],['Tucson','2020-2026'],['Santa Fe','2018-2026'],['Ioniq 5','2021-2026'],['Ioniq 6','2022-2026']],
+ kia:[['Picanto','2017-2026'],['Rio','2017-2023'],['Ceed','2018-2026'],['Stonic','2017-2026'],['Niro','2017-2026'],['Sportage','2021-2026'],['Sorento','2017-2026'],['EV6','2021-2026'],['EV9','2023-2026']],
+ lexus:[['UX','2018-2026'],['NX','2017-2026'],['RX','2017-2026'],['LBX','2023-2026'],['RZ','2022-2026']],
+ byd:[['Atto 3','2022-2026'],['Dolphin','2023-2026'],['Seal','2023-2026'],['Seal U','2024-2026'],['Sealion 7','2024-2026'],['Tang','2021-2026'],['Han','2021-2026']],
+ mg:[['MG3','2024-2026'],['MG4','2022-2026'],['MG5','2021-2026'],['ZS','2017-2026'],['HS','2020-2026'],['Marvel R','2021-2026']],
+ lynkco:[['01','2020-2026'],['02','2021-2026']],
+ nio:[['ET7','2022-2026'],['ET5','2023-2026'],['EL7','2022-2026']],
+ xpeng:[['P7','2021-2026'],['G9','2023-2026'],['G6','2024-2026']],
+ aiways:[['U5','2020-2026'],['U6','2022-2026']],
+ seres:[['3','2021-2026'],['5','2023-2026']],
+ omoda:[['5','2023-2026']],
+ jaecoo:[['7','2024-2026']],
+ leapmotor:[['T03','2023-2026'],['C10','2024-2026']],
+ ora:[['03','2023-2026']],
+ ford:[['Fiesta','2017-2023'],['Focus','2018-2026'],['Puma','2019-2026'],['Kuga','2019-2026'],['Explorer EV','2024-2026'],['Capri EV','2024-2026'],['Mustang Mach-E','2021-2026'],['Ranger','2017-2026'],['Transit','2017-2026']],
+ chevrolet:[['Camaro','2017-2024'],['Corvette C8','2020-2026']],
+ jeep:[['Renegade','2017-2026'],['Compass','2017-2026'],['Wrangler','2018-2026'],['Avenger','2023-2026'],['Grand Cherokee','2021-2026']],
+ dodge:[['Charger','2017-2023'],['Challenger','2017-2023']],
+ cadillac:[['Lyriq','2024-2026']],
+ tesla:[['Model S','2017-2026'],['Model 3','2019-2026'],['Model X','2017-2026'],['Model Y','2021-2026']]
+};
+const MO = {
+ renault:['0.9 TCe 90','1.0 TCe 90/110','1.3 TCe 140/160','1.5 dCi 90/115','1.6 E-Tech 145','1.7 Blue dCi 150','Electrique 90-220'],
+ peugeot:['1.2 PureTech 82/110/130','1.5 BlueHDi 100/130','1.6 PureTech 180/225','Hybride 136/180/225','Electrique 136-204'],
+ citroen:['1.2 PureTech 82/110/130','1.5 BlueHDi 100/130','Hybride 136/180','Electrique 136-204'],
+ ds:['1.2 PureTech 130/155','1.5 BlueHDi 130','Hybride 225/360','Electrique 200'],
+ volkswagen:['1.0 TSI 95/110','1.5 TSI 130/150','2.0 TSI 190-320','1.6 TDI 95/115','2.0 TDI 115-200','Electrique 145-340'],
+ audi:['1.5 TSI 150','2.0 TSI 190-320','2.0 TDI 150-200','3.0 TDI 231-340','PHEV','e-tron 204-408'],
+ bmw:['1.5 B38 136-170','2.0 B48 184-306','2.0 B47 150-190','3.0 B58 340-387','PHEV','eDrive 184-544'],
+ mercedes:['1.3 136-163','2.0 M264 197-258','2.0 OM654 163-245','3.0 OM656 286-367','PHEV','EQ 190-658'],
+ toyota:['1.0 VVT-i 72','1.5 Hybrid 116/130','1.8 Hybrid 122/140','2.0 Hybrid 180-200','2.5 Hybrid 218-248','Electrique 204'],
+ honda:['1.0 VTEC 126','1.5 VTEC 182','2.0 e:HEV 184','Electrique 154'],
+ hyundai:['1.0 T-GDI 100/120','1.5 T-GDI 160','1.6 T-GDI 150-230','1.6 CRDi 115/136','Hybride/PHEV','Electrique 136-325'],
+ kia:['1.0 T-GDI 100/120','1.5 T-GDI 160','1.6 T-GDI 150-230','1.6 CRDi 115/136','Hybride/PHEV','Electrique 171-385'],
+ byd:['Electrique 176-523','DM-i hybride 197-313'],
+ mg:['Electrique 156-435','Hybride 194'],
+ tesla:['Electrique 283-1020'],
+ ford:['1.0 EcoBoost 95-155','1.5 EcoBlue 95-120','2.0 EcoBlue 150-213','PHEV','Electrique 170-487']
+};
+const ISSUES = [
+ ['peugeot','208 II','Courroie de distribution 1.2 PureTech','Dégradation courroie dans l\'huile → risque casse moteur. Remplacement courroie + pompe à huile.','Rappel Conso'],
+ ['peugeot','2008 II','Courroie 1.2 PureTech','Campagne identique PureTech.','Rappel Conso'],
+ ['citroen','C3 III','Courroie 1.2 PureTech','Campagne PureTech courroie humide.','Rappel Conso'],
+ ['ds','DS3 Crossback','Courroie 1.2 PureTech','Campagne PureTech.','Rappel Conso'],
+ ['opel','Corsa F','Courroie 1.2 PureTech','Campagne PureTech.','Rappel Conso'],
+ ['peugeot','308 III','AdBlue 1.5 BlueHDi','Cristallisation, pompe AdBlue HS.','Campagne constructeur'],
+ ['renault','Megane IV','1.5 dCi EGR/FAP','Encrassement EGR, perte puissance, FAP.','Campagne constructeur'],
+ ['renault','Captur','1.5 dCi EGR','Vanne EGR encrassée, voyant moteur.','Campagne constructeur'],
+ ['volkswagen','Golf VIII','2.0 TDI AdBlue','Mise à jour logiciel NOx/AdBlue.','Campagne constructeur'],
+ ['bmw','X3','B47 chaîne de distribution','Usure prématurée, claquement.','NHTSA'],
+ ['mercedes','Classe C','OM654 injecteurs AdBlue','Campagne injecteurs AdBlue.','Campagne constructeur'],
+ ['toyota','RAV4','Pompe à carburant','Risque calage, remplacement pompe.','NHTSA'],
+ ['hyundai','Santa Fe','Moteur Theta II risque incendie','Contrôle pompe à huile, risque incendie.','NHTSA'],
+ ['kia','Sportage','Moteur Theta II risque incendie','Campagne identique Hyundai.','NHTSA'],
+ ['hyundai','Kona','Kona EV batterie risque incendie','Mise à jour BMS / remplacement batterie.','Safety Gate'],
+ ['tesla','Model 3','Freinage fantôme / MCU','Mises à jour logicielles NHTSA.','NHTSA'],
+ ['volvo','EX30','Batterie HV surchauffe','Contrôle + logiciel batterie.','Safety Gate'],
+ ['ford','Kuga','PHEV risque incendie batterie','Remplacement batterie PHEV.','Safety Gate'],
+ ['porsche','Taycan','Perte de puissance','Mise à jour logiciel batterie.','NHTSA'],
+ ['mg','MG4','Batterie 12V décharge','Mise à jour logiciel gestion énergie.','Campagne constructeur']
+];
+const DTC = {
+ P0016:['Synchronisation vilebrequin/arbre à cames','Chaîne décalée, capteurs','Contrôler distribution, capteurs'],
+ P0087:['Pression carburant trop faible','Pompe HP, filtre, régulateur','Contrôler pompe HP et filtre'],
+ P0101:['Débitmètre d\'air hors plage','MAF encrassé/HS','Nettoyer ou remplacer MAF'],
+ P0128:['Température moteur trop basse','Thermostat bloqué ouvert','Remplacer thermostat'],
+ P0135:['Chauffage sonde O2 HS','Sonde lambda amont','Remplacer sonde amont'],
+ P0171:['Mélange trop pauvre','Prise d\'air, MAF, injecteurs','Chercher prise d\'air, tester MAF'],
+ P0172:['Mélange trop riche','Injecteur fuyard, sonde','Tester injecteurs, sonde amont'],
+ P0201:['Circuit injecteur cyl 1','Injecteur/câblage','Tester injecteur cyl 1'],
+ P0234:['Surturbo','Wastegate bloquée, capteur','Contrôler wastegate et durites'],
+ P0299:['Sous-turbo','Fuite admission, turbo fatigué','Contrôler durites, géométrie turbo'],
+ P0300:['Ratés d\'allumage aléatoires','Bougies, bobines, injecteurs','Contrôler bougies/bobines'],
+ P0301:['Raté cylindre 1','Bougie/bobine cyl 1','Remplacer bougie/bobine 1'],
+ P0302:['Raté cylindre 2','Bougie/bobine cyl 2','Remplacer bougie/bobine 2'],
+ P0303:['Raté cylindre 3','Bougie/bobine cyl 3','Remplacer bougie/bobine 3'],
+ P0304:['Raté cylindre 4','Bougie/bobine cyl 4','Remplacer bougie/bobine 4'],
+ P0335:['Capteur vilebrequin','Capteur HS/câblage','Remplacer capteur vilebrequin'],
+ P0340:['Capteur arbre à cames','Capteur HS','Remplacer capteur AAC'],
+ P0380:['Circuit bougies de préchauffage','Relais/bougies','Tester relais et bougies'],
+ P0401:['Débit EGR insuffisant','Vanne EGR encrassée','Nettoyer/remplacer EGR'],
+ P0420:['Catalyseur efficacité faible','Catalyseur usé, sonde aval','Remplacer catalyseur/sonde aval'],
+ P0442:['Petite fuite EVAP','Bouchon réservoir, durites','Contrôler bouchon réservoir'],
+ P0455:['Grosse fuite EVAP','Durite EVAP percée','Contrôler circuit EVAP'],
+ P0490:['Commande EGR','Câblage/valve','Tester commande EGR'],
+ P0507:['Ralenti trop élevé','Prise d\'air, papillon','Nettoyer papillon'],
+ P0562:['Tension batterie faible','Batterie/alternateur','Tester batterie et alternateur'],
+ P0606:['Calculateur moteur','ECU','Mettre à jour/remplacer ECU'],
+ P0671:['Bougie préchauffage cyl 1','Bougie HS','Remplacer bougie cyl 1'],
+ P0700:['Boîte de vitesses','Défaut BVA','Lire défauts boîte (TCM)'],
+ P0715:['Capteur entrée boîte','Capteur HS','Remplacer capteur entrée BVA'],
+ P2002:['FAP efficacité faible','FAP colmaté','Régénération ou remplacer FAP'],
+ P2008:['Volet d\'admission','Moteur volet HS','Remplacer moteur de volet'],
+ P2262:['Turbo pression non détectée','Turbo/capteur','Contrôler turbo et capteur'],
+ P2463:['FAP charge excessive','Colmatage FAP','Régénération forcée, contrôle'],
+ P2562:['Commande suralimentation','Capteur/wastegate','Contrôler circuit suralimentation'],
+ U0101:['Perte communication TCM','Câblage CAN','Contrôler bus CAN'],
+ U0121:['Perte communication ABS','Câblage/capteur ABS','Contrôler module ABS'],
+ C0035:['Capteur vitesse roue AV G','Capteur ABS','Remplacer capteur ABS'],
+ C0040:['Capteur vitesse roue AV D','Capteur ABS','Remplacer capteur ABS']
+};
 async function init() {
-  await db.ref('data/marques').set([
-    { id: 'renault', name: 'Renault' }, { id: 'peugeot', name: 'Peugeot' },
-    { id: 'citroen', name: 'Citroën' }, { id: 'volkswagen', name: 'Volkswagen' },
-    { id: 'bmw', name: 'BMW' }, { id: 'mercedes', name: 'Mercedes' }
-  ]);
-  log('✅ Marques');
-  await db.ref('data/models').set({
-    m1: { id: 'm1', marqueId: 'renault', name: 'Clio IV' },
-    m2: { id: 'm2', marqueId: 'renault', name: 'Megane 3' },
-    m3: { id: 'm3', marqueId: 'peugeot', name: '308 II' },
-    m4: { id: 'm4', marqueId: 'peugeot', name: '208 I' },
-    m5: { id: 'm5', marqueId: 'volkswagen', name: 'Golf 7' }
-  });
-  log('✅ Modèles');
-  await db.ref('data/motorisations').set({
-    mo1: { id: 'mo1', modelId: 'm1', name: '1.5 dCi 90' },
-    mo2: { id: 'mo2', modelId: 'm1', name: '0.9 TCe 90' },
-    mo3: { id: 'mo3', modelId: 'm2', name: '1.5 dCi 110' },
-    mo4: { id: 'mo4', modelId: 'm3', name: '1.6 BlueHDi 120' },
-    mo5: { id: 'mo5', modelId: 'm5', name: '2.0 TDI 150' }
-  });
-  log('✅ Motorisations');
-  await db.ref('data/dtc').set({
-    P0300: { code: 'P0300', description: 'Ratés d\'allumage aléatoires', cause: 'Bougies, bobines, injecteurs', solution: 'Vérifier bougies et bobines' },
-    P0301: { code: 'P0301', description: 'Raté cylindre 1', cause: 'Bougie/bobine cyl.1', solution: 'Remplacer bougie cylindre 1' },
-    P0420: { code: 'P0420', description: 'Catalyseur efficacité faible', cause: 'Catalyseur usé, sonde lambda', solution: 'Remplacer catalyseur ou sonde aval' },
-    P0171: { code: 'P0171', description: 'Mélange trop pauvre', cause: 'Prise d\'air, débitmètre', solution: 'Vérifier durites admission' },
-    P0401: { code: 'P0401', description: 'Débit EGR insuffisant', cause: 'Vanne EGR encrassée', solution: 'Nettoyer vanne EGR' },
-    P0135: { code: 'P0135', description: 'Chauffage sonde O2 HS', cause: 'Sonde lambda', solution: 'Remplacer sonde amont' },
-    P0442: { code: 'P0442', description: 'Petite fuite EVAP', cause: 'Bouchon réservoir', solution: 'Serrer/remplacer bouchon' },
-    P0128: { code: 'P0128', description: 'Thermostat température basse', cause: 'Thermostat bloqué ouvert', solution: 'Remplacer thermostat' },
-    P0507: { code: 'P0507', description: 'Ralenti trop haut', cause: 'Prise d\'air, papillon', solution: 'Nettoyer boîtier papillon' },
-    P2002: { code: 'P2002', description: 'FAP efficacité faible', cause: 'FAP colmaté', solution: 'Régénération ou remplacement FAP' }
-  });
+  for (const [id, v] of Object.entries(B)) await db.ref('data/brands/' + id).set({ name: v[0], region: v[1] });
+  log('✅ ' + Object.keys(B).length + ' marques');
+  for (const [bid, list] of Object.entries(M)) for (let i = 0; i < list.length; i++) await db.ref('data/models/' + bid + '_' + i).set({ brandId: bid, name: list[i][0], years: list[i][1] });
+  log('✅ modèles (≈330)');
+  for (const [bid, list] of Object.entries(MO)) await db.ref('data/motors/' + bid).set(list);
+  log('✅ motorisations');
+  for (let i = 0; i < ISSUES.length; i++) await db.ref('data/issues/iss_' + i).set({ brandId: ISSUES[i][0], model: ISSUES[i][1], title: ISSUES[i][2], detail: ISSUES[i][3], source: ISSUES[i][4] });
+  log('✅ pannes/rappels');
+  for (const [c, v] of Object.entries(DTC)) await db.ref('data/dtc/' + c).set({ code: c, description: v[0], cause: v[1], solution: v[2] });
   log('✅ DTC');
-  await db.ref('data/issues').set({
-    i1: { modelId: 'm1', title: 'Clio IV dCi : vanne EGR', detail: 'Perte de puissance, P0401. Nettoyage vanne EGR.' },
-    i2: { modelId: 'm1', title: 'Clio IV : ralenti instable', detail: 'P0507. Nettoyage boîtier papillon.' },
-    i3: { modelId: 'm3', title: '308 BlueHDi : FAP', detail: 'P2002. Vérifier capteur pression différentielle.' },
-    i4: { modelId: 'm5', title: 'Golf 7 TDI : injecteurs', detail: 'P0300. Contrôle des injecteurs.' }
-  });
-  log('✅ Pannes connues');
   await db.ref('data/version').set({ version: Date.now(), lastUpdate: new Date().toISOString(), updateIntervalDays: 15 });
-  log('✅ Version');
   await db.ref('access/users').set({});
-  log('\n🎉 TERMINÉ ! Supprimez init.html de GitHub.');
+  log('\n🎉 TERMINÉ — supprimez init.html de GitHub !');
 }
-</script>
-</body></html>
+</script></body></html>
