@@ -11,94 +11,119 @@
   <link rel="stylesheet" href="./styles.css">
 </head>
 <body>
-  <div class="container">
-    <header>
-      <h1>🚗 Auto Diagnostic Pro</h1>
-      <p>Marques • Modèles • Motorisations • DTC • Pannes</p>
-    </header>
+<div class="container">
+  <header><h1>🚗 Auto Diagnostic Pro</h1><p>Marques 2017-2026 • Pannes • Rappels • DTC</p></header>
 
-    <section id="screen-home" class="screen active">
-      <div class="card">
-        <h2>👋 Bienvenue</h2>
-        <p>Entrez votre prénom pour demander un accès :</p>
-        <input type="text" id="input-prenom" placeholder="Votre prénom" maxlength="20" autocomplete="off">
-        <button class="btn btn-primary" onclick="requestAccess()">📨 Demander l'accès</button>
-        <button class="btn btn-admin" onclick="showScreen('screen-admin-login')">🔑 Espace Admin</button>
+  <section id="screen-home" class="screen active"><div class="card">
+    <h2>👋 Bienvenue</h2>
+    <p>Entrez votre prénom pour demander un accès :</p>
+    <input type="text" id="input-prenom" placeholder="Votre prénom" maxlength="20" autocomplete="off">
+    <button class="btn btn-primary" onclick="requestAccess()">📨 Demander l'accès</button>
+    <button class="btn btn-admin" onclick="showScreen('screen-admin-login')">🔑 Espace Admin</button>
+  </div></section>
+
+  <section id="screen-pending" class="screen"><div class="card">
+    <div class="status-icon">⏳</div><h2>Demande envoyée</h2>
+    <p><strong>Bonjour <span id="pending-name"></span></strong>, votre demande attend la validation de l'administrateur.</p>
+    <div class="share-buttons">
+      <a id="share-wa" class="btn btn-success" target="_blank" rel="noopener">📱 WhatsApp</a>
+      <a id="share-sms" class="btn btn-primary" target="_blank" rel="noopener">💬 SMS</a>
+      <a id="share-mail" class="btn btn-admin" target="_blank" rel="noopener">✉️ Email</a>
+    </div>
+    <button class="btn btn-secondary" onclick="checkStatus()">🔄 Vérifier mon statut</button>
+    <button class="btn btn-secondary" onclick="resetSession()">↩️ Annuler</button>
+  </div></section>
+
+  <section id="screen-accepted" class="screen"><div class="card">
+    <div class="status-icon">✅</div><h2>Accès autorisé</h2>
+    <p>Bienvenue <strong id="accepted-name"></strong> !</p>
+    <button class="btn btn-success" onclick="enterApp()">🚗 Entrer dans l'application</button>
+  </div></section>
+
+  <section id="screen-refused" class="screen"><div class="card">
+    <div class="status-icon">❌</div><h2>Accès refusé</h2>
+    <button class="btn btn-primary" onclick="resetSession()">Faire une nouvelle demande</button>
+  </div></section>
+
+  <section id="screen-revoked" class="screen"><div class="card">
+    <div class="status-icon">🔒</div><h2>Accès révoqué</h2>
+    <button class="btn btn-primary" onclick="resetSession()">Faire une nouvelle demande</button>
+  </div></section>
+
+  <section id="screen-admin-login" class="screen"><div class="card">
+    <h2>🔐 Connexion Admin</h2>
+    <input type="password" id="admin-pwd" placeholder="Mot de passe admin">
+    <button class="btn btn-admin" onclick="loginAdmin()">Se connecter</button>
+    <button class="btn btn-secondary" onclick="showScreen('screen-home')">← Retour</button>
+  </div></section>
+
+  <section id="screen-admin" class="screen"><div class="card">
+    <h2>🛠️ Administration</h2>
+    <div class="tabs">
+      <button class="btn btn-primary" onclick="adminTab('tab-access')">👥 Accès tiers</button>
+      <button class="btn btn-secondary" onclick="adminTab('tab-data')">🗄️ Base données</button>
+    </div>
+
+    <div id="tab-access">
+      <h3>➕ Ajouter / autoriser un tiers</h3>
+      <div class="grid-2">
+        <input type="text" id="new-prenom" placeholder="Prénom">
+        <button class="btn btn-success" onclick="addUser()">Ajouter</button>
       </div>
-    </section>
+      <h3>📊 Tableau récapitulatif (temps réel)</h3>
+      <div id="users-table-container"><div class="loader">Chargement…</div></div>
+      <button class="btn btn-success" onclick="shareAPK()">📤 Partager / télécharger l'APK (admin)</button>
+      <button class="btn btn-secondary" onclick="updateBase()">🔄 Diffuser MAJ base (toutes APK, cycle 15 j)</button>
+      <button class="btn btn-danger" onclick="logoutAdmin()">Déconnexion</button>
+    </div>
 
-    <section id="screen-pending" class="screen">
-      <div class="card">
-        <div class="status-icon">⏳</div>
-        <h2>Demande envoyée</h2>
-        <p><strong>Bonjour <span id="pending-name"></span></strong>, votre demande attend la validation de l'administrateur.</p>
-        <p>Envoyez-lui un rappel :</p>
-        <div class="share-buttons">
-          <a id="share-wa" class="btn btn-success" target="_blank" rel="noopener">📱 WhatsApp</a>
-          <a id="share-sms" class="btn btn-primary" target="_blank" rel="noopener">💬 SMS</a>
-          <a id="share-mail" class="btn btn-admin" target="_blank" rel="noopener">✉️ Email</a>
-        </div>
-        <p style="margin-top:14px;font-size:.85em;color:#94a3b8">L'accès s'active automatiquement dès validation.</p>
-        <button class="btn btn-secondary" onclick="checkStatus()">🔄 Vérifier mon statut</button>
-        <button class="btn btn-secondary" onclick="resetSession()">↩️ Annuler</button>
-      </div>
-    </section>
+    <div id="tab-data" class="hidden">
+      <h3>🏷️ Ajouter une marque</h3>
+      <input id="nb-name" placeholder="Nom (ex: Dacia)"><select id="nb-region"><option value="francaises">Française</option><option value="europeennes">Européenne</option><option value="asiatiques">Asiatique</option><option value="chinoises">Chinoise</option><option value="americaines">Américaine</option></select>
+      <button class="btn btn-success" onclick="addBrand()">Ajouter la marque</button>
+      <h3>🚘 Ajouter un modèle</h3>
+      <select id="nm-brand"></select><input id="nm-name" placeholder="Modèle (ex: Clio V)"><input id="nm-years" placeholder="Années (ex: 2019-2026)">
+      <button class="btn btn-success" onclick="addModel()">Ajouter le modèle</button>
+      <h3>⚙️ Ajouter une motorisation</h3>
+      <select id="mo-brand"></select><input id="mo-name" placeholder="Motorisation (ex: 1.5 dCi 115)">
+      <button class="btn btn-success" onclick="addMotor()">Ajouter</button>
+      <h3>⚠️ Ajouter panne / campagne rappel</h3>
+      <select id="is-brand" onchange="fillModelSelect()"></select><select id="is-model"></select>
+      <input id="is-title" placeholder="Titre (ex: Courroie distribution 1.2 PureTech)">
+      <textarea id="is-detail" rows="2" placeholder="Détail de la panne / campagne"></textarea>
+      <select id="is-source"><option>Rappel Conso</option><option>Safety Gate</option><option>NHTSA</option><option>Campagne constructeur</option></select>
+      <button class="btn btn-success" onclick="addIssue()">Ajouter</button>
+      <h3>🔧 Ajouter un code DTC</h3>
+      <input id="dt-code" placeholder="Code (ex: P0420)"><input id="dt-desc" placeholder="Description"><input id="dt-cause" placeholder="Cause"><input id="dt-sol" placeholder="Solution">
+      <button class="btn btn-success" onclick="addDTC()">Ajouter</button>
+    </div>
+  </div></section>
 
-    <section id="screen-accepted" class="screen">
-      <div class="card">
-        <div class="status-icon">✅</div>
-        <h2>Accès autorisé</h2>
-        <p>Bienvenue <strong id="accepted-name"></strong> !</p>
-        <button class="btn btn-success" onclick="enterApp()">🚗 Entrer dans l'application</button>
-      </div>
-    </section>
-
-    <section id="screen-refused" class="screen">
-      <div class="card">
-        <div class="status-icon">❌</div>
-        <h2>Accès refusé</h2>
-        <p>L'administrateur a refusé votre demande.</p>
-        <button class="btn btn-primary" onclick="resetSession()">Faire une nouvelle demande</button>
-      </div>
-    </section>
-
-    <section id="screen-revoked" class="screen">
-      <div class="card">
-        <div class="status-icon">🔒</div>
-        <h2>Accès révoqué</h2>
-        <p>Votre accès a été révoqué par l'administrateur.</p>
-        <button class="btn btn-primary" onclick="resetSession()">Faire une nouvelle demande</button>
-      </div>
-    </section>
-
-    <section id="screen-admin-login" class="screen">
-      <div class="card">
-        <h2>🔐 Connexion Admin</h2>
-        <input type="password" id="admin-pwd" placeholder="Mot de passe admin">
-        <button class="btn btn-admin" onclick="loginAdmin()">Se connecter</button>
-        <button class="btn btn-secondary" onclick="showScreen('screen-home')">← Retour</button>
-      </div>
-    </section>
-
-    <section id="screen-admin" class="screen">
-      <div class="card">
-        <h2>📊 Tableau récapitulatif des accès</h2>
-        <p style="font-size:.85em;color:#94a3b8;margin-bottom:12px">Temps réel Firebase : chaque modification est appliquée immédiatement sur toutes les APK.</p>
-        <h3>➕ Ajouter un tiers</h3>
-        <div class="grid-2">
-          <input type="text" id="new-prenom" placeholder="Prénom">
-          <button class="btn btn-success" onclick="addUser()">Ajouter</button>
-        </div>
-        <h3>👥 Tiers enregistrés</h3>
-        <div id="users-table-container"><div class="loader">Chargement</div></div>
-        <button class="btn btn-success" onclick="shareAPK()" style="margin-top:16px">📤 Partager l'APK (admin)</button>
-        <button class="btn btn-secondary" onclick="updateBase()">🔄 Diffuser mise à jour base</button>
-        <button class="btn btn-danger" onclick="logoutAdmin()">Déconnexion</button>
-      </div>
-    </section>
-
-    <section id="screen-app" class="screen">
-      <div class="card">
-        <h2>🚗 Diagnostic Automobile</h2>
-        <p>Bienvenue <strong id="app-user"></strong> — Base du : <span id="app-version">--</span></p>
-        <h3>🔍 Vé
+  <section id="screen-app" class="screen"><div class="card">
+    <h2>🚗 Diagnostic</h2>
+    <p>Bienvenue <strong id="app-user"></strong> • Base du : <span id="app-version">--</span></p>
+    <h3>🔍 Véhicule (tiroirs par région)</h3>
+    <select id="sel-marque" onchange="loadModels()"></select>
+    <select id="sel-model" onchange="loadMotorisations()"></select>
+    <h3>⚙️ Motorisations</h3><div id="motor-list"><p style="color:#94a3b8">—</p></div>
+    <h3>⚠️ Pannes connues & campagnes de rappel</h3><div id="known-issues"><p style="color:#94a3b8">Sélectionnez un véhicule…</p></div>
+    <h3>🌐 Vérifier sur les sites officiels</h3>
+    <div class="links-row">
+      <a target="_blank" rel="noopener" href="https://www.rappel.conso.gouv.fr/">Rappel Conso 🇫</a>
+      <a target="_blank" rel="noopener" href="https://ec.europa.eu/safety-gate-alerts/screen/webReport">Safety Gate 🇪🇺</a>
+      <a target="_blank" rel="noopener" href="https://www.nhtsa.gov/recalls">NHTSA 🇺🇸</a>
+      <a target="_blank" rel="noopener" href="https://www.service-public.fr/particuliers/vosdroits/F37013">Rappels constructeurs</a>
+    </div>
+    <h3>🔧 Codes défaut DTC</h3>
+    <input type="text" id="dtc-search" placeholder="Ex: P0300, P0420, turbo…" oninput="searchDTC()">
+    <div id="dtc-results"></div>
+    <button class="btn btn-secondary" onclick="logoutApp()">🚪 Retour</button>
+  </div></section>
+</div>
+<button id="install-btn" class="install-fab hidden" onclick="installApp()">📲 Installer l'APK</button>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
+<script src="./firebase-config.js"></script>
+<script src="./app.js"></script>
+</body>
+</html>
