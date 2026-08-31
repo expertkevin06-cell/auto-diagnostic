@@ -1,32 +1,26 @@
-const CACHE_NAME = 'auto-diag-v3';
-const DB_UPDATE_INTERVAL = 15 * 24 * 60 * 60 * 1000;
-
+const CACHE_NAME = 'app-sec-v1';
+const UPDATE_INTERVAL = 15 * 24 * 60 * 60 * 1000; // 15 jours
 const urlsToCache = [
   '/',
   '/index.html',
-  '/admin.html',
-  '/styles.css',
   '/app.js',
-  '/admin.js',
-  '/db.js',
-  '/vehicles-db.js',
-  '/dtc-db.js',
-  '/recalls-db.js',
-  '/ai-search.js',
-  '/manifest.json'
+  '/manifest.json',
+  '/icons/icon-192.png',
+  '/icons/icon-512.png'
 ];
 
 self.addEventListener('install', event => {
   event.waitUntil(
-    caches.open(CACHE_NAME).then(cache => cache.addAll(urlsToCache))
+    caches.open(CACHE_NAME)
+      .then(cache => cache.addAll(urlsToCache))
   );
   self.skipWaiting();
 });
 
 self.addEventListener('activate', event => {
   event.waitUntil(
-    caches.keys().then(names =>
-      Promise.all(names.filter(name => name !== CACHE_NAME).map(name => caches.delete(name)))
+    caches.keys().then(keys =>
+      Promise.all(keys.filter(k => k !== CACHE_NAME).map(k => caches.delete(k)))
     )
   );
   self.clients.claim();
@@ -34,31 +28,23 @@ self.addEventListener('activate', event => {
 
 self.addEventListener('fetch', event => {
   event.respondWith(
-    fetch(event.request)
-      .then(response => {
-        const clone = response.clone();
-        caches.open(CACHE_NAME).then(cache => cache.put(event.request, clone));
-        return response;
-      })
-      .catch(() => caches.match(event.request))
+    caches.match(event.request)
+      .then(cached => cached || fetch(event.request))
+      .catch(() => caches.match('/index.html'))
   );
 });
 
-self.addEventListener('message', event => {
-  if (event.data && event.data.action === 'CHECK_DB_UPDATE') {
-    const lastUpdate = parseInt(localStorage.getItem('lastDbUpdate') || '0');
-    const now = Date.now();
-    if (now - lastUpdate >= DB_UPDATE_INTERVAL) {
-      self.clients.matchAll().then(clients => {
-        clients.forEach(client => {
-          client.postMessage({ action: 'DB_UPDATE_REQUIRED' });
-        });
-      });
-    }
-  }
-});
+// Vérification de mise à jour toutes les 15 jours
+setInterval(() => {
+  self.registration.update();
+}, UPDATE_INTERVAL);
 
-self.addEventListener('notificationclick', event => {
-  event.notification.close();
-  event.waitUntil(clients.openWindow('/admin.html'));
+// Notification de demande d'accès
+self.addEventListener('message', event => {
+  if (event.data && event.data.type === 'ACCESS_REQUEST') {
+    self.registration.showNotification('Nouvelle demande d\'accès', {
+      body: `${event.data.prenom} demande un accès`,
+      data: event.data
+    });
+  }
 });
