@@ -1,16 +1,68 @@
-/* APP.JS v5 — Catégories massives (toutes marques/modèles/motorisations) + expert + mensuel */
+/* APP.JS v6 — AUTO-RÉPARATION catalogue (R4 E-Tech, Bigster, récents) + expert + mensuel */
 const ADMIN_PASSWORD = 'Kevin83600';
 const SESSION_KEY = 'autodiag_session';
 const MONTHLY_MS = 30 * 24 * 60 * 60 * 1000;
 const FUELS = { essence: '⛽ Essence', diesel: '🛢️ Diesel', hybride: '🔋 Hybride', electrique: '⚡ Électrique' };
-/* Catégories par énergie : moteur, chaîne/courroie, FAP, EGR, pompe HP, injecteurs, batterie HV, charge, autonomie, électronique */
+/* Modèles récents GARANTIS : ajoutés automatiquement s'ils manquent en base */
+const ENSURE = [
+ ['renault','R4 E-Tech','2024-2026',[['Electrique 120','electrique','120 ch'],['Electrique 150','electrique','150 ch']]],
+ ['renault','Twingo E-Tech','2026-2026',[['Electrique 82','electrique','82 ch']]],
+ ['peugeot','3008 III','2023-2026',[['1.2 Hybrid 136','hybride','136 ch'],['Hybrid 195','hybride','195 ch'],['Hybrid 230','hybride','230 ch']]],
+ ['peugeot','E-3008','2024-2026',[['Electrique 210','electrique','210 ch'],['Electrique 230','electrique','230 ch'],['Electrique 320','electrique','320 ch']]],
+ ['peugeot','5008 III','2024-2026',[['1.2 Hybrid 136','hybride','136 ch'],['Hybrid 195','hybride','195 ch']]],
+ ['peugeot','E-5008','2024-2026',[['Electrique 210','electrique','210 ch'],['Electrique 320','electrique','320 ch']]],
+ ['citroen','C3 IV','2024-2026',[['1.2 Hybrid 100','hybride','100 ch'],['1.2 Hybrid 136','hybride','136 ch']]],
+ ['citroen','ë-C3','2024-2026',[['Electrique 113','electrique','113 ch']]],
+ ['citroen','C3 Aircross III','2024-2026',[['1.2 Hybrid 100','hybride','100 ch'],['1.2 Hybrid 136','hybride','136 ch'],['Electrique 113','electrique','113 ch']]],
+ ['ds','DS N°4','2025-2026',[['Hybrid 136','hybride','136 ch'],['E-Tense 210','electrique','210 ch']]],
+ ['ds','DS N°8','2025-2026',[['E-Tense 230','electrique','230 ch'],['E-Tense 350','electrique','350 ch']]],
+ ['dacia','Bigster','2025-2026',[['1.2 TCe 130','essence','130 ch'],['1.2 TCe 140 4x4','essence','140 ch'],['Hybrid 155','hybride','155 ch']]],
+ ['volkswagen','Tiguan III','2024-2026',[['1.5 TSI 130','essence','130 ch'],['1.5 TSI 150','essence','150 ch'],['2.0 TDI 150','diesel','150 ch'],['2.0 TDI 193','diesel','193 ch'],['eHybrid 204','hybride','204 ch'],['eHybrid 272','hybride','272 ch']]],
+ ['volkswagen','Passat B9','2024-2026',[['1.5 TSI 150','essence','150 ch'],['2.0 TDI 122','diesel','122 ch'],['2.0 TDI 150','diesel','150 ch'],['2.0 TDI 193','diesel','193 ch'],['eHybrid 204','hybride','204 ch']]],
+ ['volkswagen','ID.7','2023-2026',[['Electrique 286','electrique','286 ch'],['Electrique 340','electrique','340 ch']]],
+ ['audi','Q6 e-tron','2024-2026',[['Electrique 252','electrique','252 ch'],['Electrique 388','electrique','388 ch'],['SQ6 490','electrique','490 ch']]],
+ ['audi','A5 B10','2024-2026',[['2.0 TSI 150','essence','150 ch'],['2.0 TSI 204','essence','204 ch'],['2.0 TDI 204','diesel','204 ch']]],
+ ['bmw','X3 G45','2024-2026',[['20 208','essence','208 ch'],['20d 197','diesel','197 ch'],['30e 299','hybride','299 ch'],['M50 398','essence','398 ch']]],
+ ['bmw','i5','2023-2026',[['eDrive40 340','electrique','340 ch'],['M60 601','electrique','601 ch']]],
+ ['mercedes','Classe E W214','2024-2026',[['E200 204','essence','204 ch'],['E220d 197','diesel','197 ch'],['E300e 313','hybride','313 ch'],['E400e 381','hybride','381 ch']]],
+ ['mercedes','CLA C174','2025-2026',[['Electrique 272','electrique','272 ch'],['Electrique 354','electrique','354 ch']]],
+ ['opel','Grandland II','2024-2026',[['1.2 Hybrid 136','hybride','136 ch'],['1.2 Hybrid 145','hybride','145 ch'],['Electrique 210','electrique','210 ch'],['Electrique 230','electrique','230 ch']]],
+ ['fiat','Grande Panda','2024-2026',[['1.2 Hybrid 100','hybride','100 ch'],['1.2 100','essence','100 ch'],['Electrique 113','electrique','113 ch']]],
+ ['fiat','600','2023-2026',[['1.2 Hybrid 100','hybride','100 ch'],['Electrique 156','electrique','156 ch']]],
+ ['fiat','Topolino','2023-2026',[['Electrique 42','electrique','42 ch']]],
+ ['skoda','Kodiaq II','2024-2026',[['1.5 TSI 150','essence','150 ch'],['2.0 TDI 150','diesel','150 ch'],['2.0 TDI 193','diesel','193 ch']]],
+ ['skoda','Superb IV','2024-2026',[['1.5 TSI 150','essence','150 ch'],['2.0 TDI 150','diesel','150 ch'],['2.0 TSI 204','essence','204 ch'],['iV 204','hybride','204 ch']]],
+ ['volvo','EX90','2024-2026',[['Electrique 449','electrique','449 ch'],['Electrique 517','electrique','517 ch']]],
+ ['volvo','ES90','2025-2026',[['Electrique 333','electrique','333 ch'],['Electrique 680','electrique','680 ch']]],
+ ['porsche','Macan EV','2024-2026',[['Electrique 360','electrique','360 ch'],['Electrique 639','electrique','639 ch']]],
+ ['porsche','Taycan II','2024-2026',[['Electrique 408','electrique','408 ch'],['Electrique 544','electrique','544 ch'],['Turbo GT 1108','electrique','1108 ch']]],
+ ['toyota','C-HR II','2023-2026',[['1.8 Hybrid 140','hybride','140 ch'],['2.0 Hybrid 200','hybride','200 ch'],['2.0 PHEV 223','hybride','223 ch']]],
+ ['toyota','Land Cruiser 250','2024-2026',[['2.8 D-4D 204','diesel','204 ch'],['2.8 Mild Hybrid 204','hybride','204 ch']]],
+ ['hyundai','Inster','2024-2026',[['Electrique 97','electrique','97 ch'],['Electrique 115','electrique','115 ch']]],
+ ['hyundai','Santa Fe MX5','2024-2026',[['1.6 T-GDI Hybrid 215','hybride','215 ch'],['1.6 T-GDI PHEV 253','hybride','253 ch']]],
+ ['hyundai','Ioniq 9','2025-2026',[['Electrique 218','electrique','218 ch'],['Electrique 435','electrique','435 ch']]],
+ ['kia','EV3','2024-2026',[['Electrique 204','electrique','204 ch']]],
+ ['kia','EV4','2025-2026',[['Electrique 204','electrique','204 ch']]],
+ ['kia','EV5','2025-2026',[['Electrique 218','electrique','218 ch'],['Electrique 313','electrique','313 ch']]],
+ ['byd','Dolphin Surf','2025-2026',[['Electrique 88','electrique','88 ch'],['Electrique 156','electrique','156 ch']]],
+ ['byd','Seal 6','2025-2026',[['DM-i 218','hybride','218 ch']]],
+ ['mg','S5 EV','2024-2026',[['Electrique 170','electrique','170 ch'],['Electrique 204','electrique','204 ch']]],
+ ['omoda','7','2025-2026',[['1.6 156','essence','156 ch'],['PHEV 347','hybride','347 ch']]],
+ ['jaecoo','5','2025-2026',[['1.6 147','essence','147 ch'],['Electrique 204','electrique','204 ch']]],
+ ['jaecoo','8','2025-2026',[['PHEV 530','hybride','530 ch']]],
+ ['leapmotor','B10','2025-2026',[['Electrique 218','electrique','218 ch']]],
+ ['ford','Puma Gen-E','2025-2026',[['Electrique 168','electrique','168 ch']]],
+ ['mini','Countryman U25','2024-2026',[['1.5 156','essence','156 ch'],['2.0 204','essence','204 ch'],['SE 313','electrique','313 ch']]],
+ ['mini','Aceman','2024-2026',[['E 184','electrique','184 ch'],['SE 258','electrique','258 ch']]],
+ ['tesla','Model 3 Highland','2023-2026',[['Propulsion 264','electrique','264 ch'],['Grande Autonomie 498','electrique','498 ch']]],
+ ['tesla','Cybertruck','2024-2026',[['Electrique 600','electrique','600 ch'],['Electrique 845','electrique','845 ch']]]
+];
 const GENERIC = {
   diesel: { issues: [['Vanne EGR encrassée', 'Perte puissance, voyant, ralenti instable', 'P0401 / P0490'], ['FAP colmaté', 'Régénérations fréquentes, perte puissance', 'P2002 / P2463'], ['Système AdBlue', 'Cristallisation, pompe HS, countdown', 'P20EE / P204F'], ['Pompe haute pression', 'Démarrage difficile, pression rail basse', 'P0087 / P0088'], ['Injecteurs', 'Claquement, fumée, surconso, ratés', 'P0201-P0204'], ['Chaîne / courroie distribution', 'Claquement froid, décalage calage', 'P0016 / P0335'], ['Turbo / géométrie variable', 'Perte puissance, sifflement anormal', 'P0299 / P0234'], ['Préchauffage', 'Démarrage difficile à froid', 'P0380 / P0671']], dtc: ['P0401', 'P0490', 'P2002', 'P2463', 'P20EE', 'P0087', 'P0201', 'P0016', 'P0299', 'P0380'] },
   essence: { issues: [['Chaîne de distribution', 'Claquement froid, usure tendeur', 'P0016 / P0335'], ['Courroie de distribution (humide)', 'Débris, pompe à huile colmatée', 'P0087 / P0340'], ['Injecteurs / calamine (injection directe)', 'Ratés, ralenti instable, perte puissance', 'P0300-P0304'], ['Pompe haute pression (GDI)', 'Pression rail insuffisante', 'P0087'], ['Catalyseur', 'Vieillissement, contre-pression, odeur', 'P0420'], ['Turbo', 'Fuite admission, sous/sur-turbo', 'P0299 / P0234'], ['Allumage bougies/bobines', 'À-coups, ratés accélération', 'P0300-P0304'], ['Électronique / tension', 'Défauts multiples, batterie/alternateur', 'P0562']], dtc: ['P0016', 'P0087', 'P0300', 'P0301', 'P0335', 'P0340', 'P0420', 'P0299', 'P0562'] },
   hybride: { issues: [['Batterie haute tension', 'Vieillissement cellules, équilibrage, isolation', 'U0111 / P0AA6'], ['Onduleur / convertisseur', 'Perte puissance, défaut isolement', 'P0AA6'], ['Défaut de charge', 'Charge lente/absente (OBC/ICCU)', 'P0D11 / U0111'], ['Défaut d\'autonomie', 'Perte capacité, estimation erronée', 'U0111'], ['Freinage régénératif', 'À-coups, capteur pédale', 'C1365'], ['Batterie 12V / DC-DC', 'Non-démarrage, défaut circuit charge', 'P0562 / U0111'], ['Thermique batterie', 'Refroidissement, surchauffe modules', 'P0C00'], ['Moteur thermique associé', 'EGR/FAP/courroie selon motorisation', 'P0401 / P0087']], dtc: ['U0111', 'P0AA6', 'P0D11', 'P0C00', 'C1365', 'P0562'] },
   electrique: { issues: [['Batterie haute tension', 'Dégradation, surchauffe modules, BMS, isolation', 'P0AA6 / U0111'], ['Défaut de charge (OBC/ICCU/borne)', 'Charge lente/absente, erreurs connecteur', 'P0D11 / U0111'], ['Défaut d\'autonomie', 'Perte capacité, équilibrage cellules', 'U0111'], ['Court-circuit / isolement HV', 'Défaut isolement, sécurité coupure', 'P0AA6'], ['Batterie 12V / DC-DC', 'Non-démarrage, défaut 12V', 'P0562 / U0111'], ['Moteur électrique / onduleur', 'Perte puissance, bruit anormal', 'P0AA6'], ['Thermique batterie', 'Refroidissement, pompe LDR', 'P0C00'], ['Électronique / logiciels', 'Bugs BMS/MBUX, MAJ nécessaires', 'U0101']], dtc: ['P0AA6', 'U0111', 'P0D11', 'P0C00', 'P0562', 'U0101'] }
 };
-/* Universel : sécurité + ADAS + électronique — appliqué à TOUTES marques/modèles/motorisations */
 const UNIV = [
   ['Airbag (campagne Takata / générateur)', 'Risque rupture générateur au déploiement — remplacement inflateur selon rappel', '', 'NHTSA / Rappel Conso'],
   ['Ceintures de sécurité (prétensionneur/ancrage)', 'Prétensionneur pyrotechnique ou ancrage non conforme — campagne de contrôle', '', 'Safety Gate'],
@@ -23,7 +75,7 @@ const UNIV = [
   ['Batterie 12V / système charge', 'Non-démarrage répétitif, contrôle SOH + alternateur/DC-DC', 'P0562', 'Campagne constructeur'],
   ['Capteurs TPMS / pression', 'Perte signal capteur, voyant erroné', '', 'Campagne constructeur']
 ];
-let db, usersData = {}, brandsData = {}, motorsCache = [], deferredPrompt = null, listenersStarted = false;
+let db, usersData = {}, brandsData = {}, motorsCache = [], deferredPrompt = null, listenersStarted = false, ensureDone = false;
 let curBrand = null, curModelId = null, curModelName = null;
 
 window.addEventListener('DOMContentLoaded', () => {
@@ -42,6 +94,26 @@ function screenIsActive(id) { return el(id).classList.contains('active'); }
 function notify(m, t) { const n = document.createElement('div'); n.className = 'notification' + (t === 'error' ? ' error' : ''); n.textContent = m; document.body.appendChild(n); setTimeout(() => n.remove(), 3500); }
 function esc(s) { const d = document.createElement('div'); d.textContent = String(s); return d.innerHTML; }
 function deviceId() { let id = localStorage.getItem('autodiag_device'); if (!id) { id = 'DEV-' + Math.random().toString(36).substr(2, 8).toUpperCase(); localStorage.setItem('autodiag_device', id); } return id; }
+
+/* ===== AUTO-RÉPARATION CATALOGUE ===== */
+async function ensureCatalog() {
+  if (ensureDone) return;
+  ensureDone = true;
+  try {
+    const existing = (await db.ref('data/models').once('value')).val() || {};
+    const set = {}; Object.values(existing).forEach(m => set[m.brandId + '|' + String(m.name).toLowerCase()] = 1);
+    let added = 0;
+    for (let i = 0; i < ENSURE.length; i++) {
+      const e = ENSURE[i];
+      if (set[e[0] + '|' + e[1].toLowerCase()]) continue;
+      const id = 'e_' + e[0] + '_' + i;
+      await db.ref('data/models/' + id).set({ brandId: e[0], name: e[1], years: e[2] });
+      await db.ref('data/motors/' + id).set(e[3].map(m => ({ name: m[0], fuel: m[1], power: m[2] })));
+      added++;
+    }
+    if (added) notify('🚗 ' + added + ' modèles récents ajoutés automatiquement (R4 E-Tech, Bigster…)');
+  } catch (e) { console.warn('ensure', e); }
+}
 
 async function checkMonthly() {
   const v = (await db.ref('data/version').once('value')).val();
@@ -220,6 +292,7 @@ function issueCard(i, prefix) { return '<div class="issue-card"><strong>' + pref
 async function enterApp() {
   const s = getSession(); const isAdmin = sessionStorage.getItem('autodiag_admin') === '1';
   if (!isAdmin && (!s || s.status !== 'accepted')) return notify('Accès non autorisé', 'error');
+  await ensureCatalog();
   el('app-user').textContent = isAdmin ? '👑 Admin' : s.prenom;
   showScreen('screen-app');
   brandsData = (await db.ref('data/brands').once('value')).val() || {};
