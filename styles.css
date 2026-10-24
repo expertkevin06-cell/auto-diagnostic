@@ -4,7 +4,7 @@ body {
   background: linear-gradient(rgba(10,14,39,.30), rgba(10,14,39,.38)) , #0b1020;
   color: #fff; min-height: 100vh; padding: 16px; padding-bottom: 100px;
 }
-/* ===== FOND 3D : véhicule sportif rotation 360° ===== */
+/* ===== FOND 3D : véhicule sportif rotation 360°, opacité 30% ===== */
 .bg3d {
   position: fixed; inset: 0; z-index: -1;
   display: flex; align-items: center; justify-content: center;
@@ -12,13 +12,13 @@ body {
 }
 .bg3d::before {
   content: ''; position: absolute; inset: 0;
-  background: radial-gradient(ellipse at 50% 62%, rgba(74,222,128,.12), transparent 62%),
+  background: radial-gradient(ellipse at 50% 62%, rgba(74,222,128,.10), transparent 62%),
               radial-gradient(ellipse at 50% 110%, rgba(30,41,59,.9), transparent 70%);
 }
 .bg3d-car {
   width: min(92vw, 860px); height: min(54vw, 470px);
   background: url('https://images.unsplash.com/photo-1552519507-da3b142c6e3d?auto=format&fit=crop&w=1400&q=60') center/contain no-repeat;
-  opacity: .55;
+  opacity: .30;
   transform-style: preserve-3d;
   animation: spin360 16s linear infinite;
   filter: drop-shadow(0 30px 45px rgba(0,0,0,.6)) saturate(1.15);
