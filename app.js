@@ -1,14 +1,28 @@
-/* APP.JS v4 — EXPERT Ingénieur + MAJ mensuelle + corrélation complète */
+/* APP.JS v5 — Catégories massives (toutes marques/modèles/motorisations) + expert + mensuel */
 const ADMIN_PASSWORD = 'Kevin83600';
 const SESSION_KEY = 'autodiag_session';
 const MONTHLY_MS = 30 * 24 * 60 * 60 * 1000;
 const FUELS = { essence: '⛽ Essence', diesel: '🛢️ Diesel', hybride: '🔋 Hybride', electrique: '⚡ Électrique' };
+/* Catégories par énergie : moteur, chaîne/courroie, FAP, EGR, pompe HP, injecteurs, batterie HV, charge, autonomie, électronique */
 const GENERIC = {
-  diesel: { issues: [['Vanne EGR encrassée', 'Perte puissance, voyant moteur, ralenti instable', 'P0401 / P0490'], ['FAP colmaté', 'Régénérations fréquentes, perte puissance', 'P2002 / P2463'], ['Système AdBlue', 'Cristallisation, pompe HS, voyant', 'P20EE'], ['Préchauffage', 'Démarrage difficile à froid', 'P0380 / P0671'], ['Injecteurs HP', 'Claquement, fumée, surconso', 'P0201-P0204']], dtc: ['P0401', 'P0490', 'P2002', 'P2463', 'P0380', 'P0671', 'P0087', 'P20EE'] },
-  essence: { issues: [['Ratés d\'allumage', 'Bougies/bobines usées, à-coups', 'P0300-P0304'], ['Distribution courroie/chaîne', 'Usure prématurée selon motorisation', 'P0016'], ['Catalyseur', 'Vieillissement, contre-pression', 'P0420'], ['Boîtier papillon', 'Ralenti instable', 'P0507']], dtc: ['P0300', 'P0301', 'P0335', 'P0340', 'P0171', 'P0172', 'P0420', 'P0507', 'P0016'] },
-  hybride: { issues: [['Batterie traction', 'Vieillissement cellules, équilibrage', 'U0111'], ['Onduleur/convertisseur', 'Perte puissance, défaut isolement', 'P0AA6'], ['Freinage régénératif', 'À-coups, capteur pédale', 'C1365']], dtc: ['U0111', 'P0AA6', 'P0C00', 'C1365'] },
-  electrique: { issues: [['Batterie HV', 'Dégradation, surchauffe modules, BMS', 'U0111 / P0AA6'], ['Charge/Connecteur', 'Charge lente, erreurs borne', 'P0D11'], ['Thermique batterie', 'Défaut refroidissement', 'P0C00']], dtc: ['U0111', 'P0AA6', 'P0C00', 'P0D11'] }
+  diesel: { issues: [['Vanne EGR encrassée', 'Perte puissance, voyant, ralenti instable', 'P0401 / P0490'], ['FAP colmaté', 'Régénérations fréquentes, perte puissance', 'P2002 / P2463'], ['Système AdBlue', 'Cristallisation, pompe HS, countdown', 'P20EE / P204F'], ['Pompe haute pression', 'Démarrage difficile, pression rail basse', 'P0087 / P0088'], ['Injecteurs', 'Claquement, fumée, surconso, ratés', 'P0201-P0204'], ['Chaîne / courroie distribution', 'Claquement froid, décalage calage', 'P0016 / P0335'], ['Turbo / géométrie variable', 'Perte puissance, sifflement anormal', 'P0299 / P0234'], ['Préchauffage', 'Démarrage difficile à froid', 'P0380 / P0671']], dtc: ['P0401', 'P0490', 'P2002', 'P2463', 'P20EE', 'P0087', 'P0201', 'P0016', 'P0299', 'P0380'] },
+  essence: { issues: [['Chaîne de distribution', 'Claquement froid, usure tendeur', 'P0016 / P0335'], ['Courroie de distribution (humide)', 'Débris, pompe à huile colmatée', 'P0087 / P0340'], ['Injecteurs / calamine (injection directe)', 'Ratés, ralenti instable, perte puissance', 'P0300-P0304'], ['Pompe haute pression (GDI)', 'Pression rail insuffisante', 'P0087'], ['Catalyseur', 'Vieillissement, contre-pression, odeur', 'P0420'], ['Turbo', 'Fuite admission, sous/sur-turbo', 'P0299 / P0234'], ['Allumage bougies/bobines', 'À-coups, ratés accélération', 'P0300-P0304'], ['Électronique / tension', 'Défauts multiples, batterie/alternateur', 'P0562']], dtc: ['P0016', 'P0087', 'P0300', 'P0301', 'P0335', 'P0340', 'P0420', 'P0299', 'P0562'] },
+  hybride: { issues: [['Batterie haute tension', 'Vieillissement cellules, équilibrage, isolation', 'U0111 / P0AA6'], ['Onduleur / convertisseur', 'Perte puissance, défaut isolement', 'P0AA6'], ['Défaut de charge', 'Charge lente/absente (OBC/ICCU)', 'P0D11 / U0111'], ['Défaut d\'autonomie', 'Perte capacité, estimation erronée', 'U0111'], ['Freinage régénératif', 'À-coups, capteur pédale', 'C1365'], ['Batterie 12V / DC-DC', 'Non-démarrage, défaut circuit charge', 'P0562 / U0111'], ['Thermique batterie', 'Refroidissement, surchauffe modules', 'P0C00'], ['Moteur thermique associé', 'EGR/FAP/courroie selon motorisation', 'P0401 / P0087']], dtc: ['U0111', 'P0AA6', 'P0D11', 'P0C00', 'C1365', 'P0562'] },
+  electrique: { issues: [['Batterie haute tension', 'Dégradation, surchauffe modules, BMS, isolation', 'P0AA6 / U0111'], ['Défaut de charge (OBC/ICCU/borne)', 'Charge lente/absente, erreurs connecteur', 'P0D11 / U0111'], ['Défaut d\'autonomie', 'Perte capacité, équilibrage cellules', 'U0111'], ['Court-circuit / isolement HV', 'Défaut isolement, sécurité coupure', 'P0AA6'], ['Batterie 12V / DC-DC', 'Non-démarrage, défaut 12V', 'P0562 / U0111'], ['Moteur électrique / onduleur', 'Perte puissance, bruit anormal', 'P0AA6'], ['Thermique batterie', 'Refroidissement, pompe LDR', 'P0C00'], ['Électronique / logiciels', 'Bugs BMS/MBUX, MAJ nécessaires', 'U0101']], dtc: ['P0AA6', 'U0111', 'P0D11', 'P0C00', 'P0562', 'U0101'] }
 };
+/* Universel : sécurité + ADAS + électronique — appliqué à TOUTES marques/modèles/motorisations */
+const UNIV = [
+  ['Airbag (campagne Takata / générateur)', 'Risque rupture générateur au déploiement — remplacement inflateur selon rappel', '', 'NHTSA / Rappel Conso'],
+  ['Ceintures de sécurité (prétensionneur/ancrage)', 'Prétensionneur pyrotechnique ou ancrage non conforme — campagne de contrôle', '', 'Safety Gate'],
+  ['Caméra recul / 360°', 'Image figée, buée, perte signal — MAJ ou remplacement caméra', '', 'Campagne constructeur'],
+  ['Caméra ADAS / radar (calibration)', 'Perte fonctions assistance, défaut calibration pare-brise', 'U0121', 'Campagne constructeur'],
+  ['Conduite autonome / ACC', 'Freinage fantôme, perte assistance direction — MAJ logicielle obligatoire', 'U0101', 'NHTSA'],
+  ['Court-circuit faisceau / 12V', 'Risque échauffement câblage, incendie — campagne inspection faisceau', '', 'NHTSA / Rappel Conso'],
+  ['Incendie compartiment moteur / batterie', 'Fuite carburant ou défaut module HV — arrêt immédiat si rappel ouvert', '', 'Safety Gate / NHTSA'],
+  ['Électronique multiplexée / gateway', 'Défauts communication multiples, écrans figés', 'U0101 / U0121', 'Campagne constructeur'],
+  ['Batterie 12V / système charge', 'Non-démarrage répétitif, contrôle SOH + alternateur/DC-DC', 'P0562', 'Campagne constructeur'],
+  ['Capteurs TPMS / pression', 'Perte signal capteur, voyant erroné', '', 'Campagne constructeur']
+];
 let db, usersData = {}, brandsData = {}, motorsCache = [], deferredPrompt = null, listenersStarted = false;
 let curBrand = null, curModelId = null, curModelName = null;
 
@@ -29,14 +43,12 @@ function notify(m, t) { const n = document.createElement('div'); n.className = '
 function esc(s) { const d = document.createElement('div'); d.textContent = String(s); return d.innerHTML; }
 function deviceId() { let id = localStorage.getItem('autodiag_device'); if (!id) { id = 'DEV-' + Math.random().toString(36).substr(2, 8).toUpperCase(); localStorage.setItem('autodiag_device', id); } return id; }
 
-/* ----- MAJ MENSUELLE AUTOMATIQUE ----- */
 async function checkMonthly() {
   const v = (await db.ref('data/version').once('value')).val();
   if (!v || !v.lastUpdate) return;
-  const age = Date.now() - new Date(v.lastUpdate).getTime();
-  if (age > MONTHLY_MS) {
+  if (Date.now() - new Date(v.lastUpdate).getTime() > MONTHLY_MS) {
     if (sessionStorage.getItem('autodiag_admin') === '1') { await updateBase(true); notify('📅 MAJ mensuelle diffusée automatiquement'); }
-    else notify('📅 Base > 30 jours : mise à jour mensuelle en cours de diffusion');
+    else notify('📅 Base > 30 jours : MAJ mensuelle en diffusion');
   }
 }
 async function updateBase(manual) {
@@ -44,7 +56,6 @@ async function updateBase(manual) {
   if (manual) notify('✅ MAJ diffusée sur toutes les APK');
 }
 
-/* ----- temps réel / routage ----- */
 function boot() {
   if (!listenersStarted) {
     listenersStarted = true;
@@ -82,7 +93,6 @@ function showPending(p) {
 function checkStatus() { routeUser(); }
 function resetSession() { localStorage.removeItem(SESSION_KEY); el('input-prenom').value = ''; showScreen('screen-home'); }
 
-/* ----- admin ----- */
 function loginAdmin() {
   if (el('admin-pwd').value === ADMIN_PASSWORD) { sessionStorage.setItem('autodiag_admin', '1'); el('admin-pwd').value = ''; boot(); showScreen('screen-admin'); renderAdmin(); fillBrandSelects(); checkMonthly(); }
   else notify('❌ Mot de passe incorrect', 'error');
@@ -125,7 +135,6 @@ function shareAPK() {
   else prompt('Lien :', u);
 }
 
-/* ----- admin base ----- */
 function fillBrandSelects() {
   ['nm-brand', 'is-brand', 'ex-brand'].forEach(id => { const s = el(id); if (!s) return; s.innerHTML = ''; Object.entries(brandsData).sort((a, b) => a[1].name.localeCompare(b[1].name)).forEach(([k, b]) => { s.innerHTML += '<option value="' + k + '">' + esc(b.name) + '</option>'; }); });
   fillModelSelect(); fillModelSelectAdmin();
@@ -181,7 +190,6 @@ async function importJSON() {
   el('import-json').value = ''; notify('✅ ' + n + ' fiches importées');
 }
 
-/* ----- RECHERCHE EXPERT PAR SYMPTÔME ----- */
 let expertTimer = null;
 function expertSearch() { clearTimeout(expertTimer); expertTimer = setTimeout(doExpertSearch, 300); }
 async function doExpertSearch() {
@@ -190,13 +198,14 @@ async function doExpertSearch() {
   if (q.length < 3) { box.innerHTML = ''; return; }
   const ex = (await db.ref('data/expert').once('value')).val() || {};
   const iss = (await db.ref('data/issues').once('value')).val() || {};
-  const hitsE = Object.values(ex).filter(e => ((e.title || '') + ' ' + (e.symptom || '') + ' ' + (e.diagnosis || '') + ' ' + (e.parts || '') + ' ' + (e.dtc || '') + ' ' + (e.motor || '') + ' ' + (e.model || '')).toLowerCase().includes(q));
-  const hitsI = Object.values(iss).filter(i => ((i.title || '') + ' ' + (i.detail || '') + ' ' + (i.dtc || '') + ' ' + (i.model || '')).toLowerCase().includes(q));
   let html = '';
-  hitsE.slice(0, 15).forEach(e => html += expertCard(e, '🧠 '));
-  hitsI.slice(0, 10).forEach(i => html += issueCard(i, ''));
-  box.innerHTML = html || '<p style="color:#94a3b8">Aucune fiche expert pour « ' + esc(q) + ' » — essayez : perte puissance, claquement, AdBlue, charge, fumée, voyant…</p>';
+  Object.values(ex).filter(e => ((e.title || '') + ' ' + (e.symptom || '') + ' ' + (e.diagnosis || '') + ' ' + (e.parts || '') + ' ' + (e.dtc || '') + ' ' + (e.motor || '') + ' ' + (e.model || '')).toLowerCase().includes(q)).slice(0, 15).forEach(e => html += expertCard(e, '🧠 '));
+  Object.values(iss).filter(i => ((i.title || '') + ' ' + (i.detail || '') + ' ' + (i.dtc || '') + ' ' + (i.model || '')).toLowerCase().includes(q)).slice(0, 10).forEach(i => html += issueCard(i, ''));
+  UNIV.filter(u => (u[0] + ' ' + u[1]).toLowerCase().includes(q)).forEach(u => html += univCard(u));
+  Object.entries(GENERIC).forEach(([f, g]) => g.issues.forEach(i => { if ((i[0] + ' ' + i[1]).toLowerCase().includes(q)) html += '<div class="issue-card"><strong>' + i[0] + '</strong><span class="src">Typique ' + FUELS[f] + '</span><p>' + i[1] + '</p><p style="color:#fbbf24;font-size:12px">DTC : ' + i[2] + '</p></div>'; }));
+  box.innerHTML = html || '<p style="color:#94a3b8">Aucune fiche pour « ' + esc(q) + ' » — essayez : airbag, ceinture, caméra, ADAS, incendie, court-circuit, charge, autonomie, courroie, chaîne, FAP, EGR, injecteurs…</p>';
 }
+function univCard(u) { return '<div class="issue-card" style="border-left-color:#f59e0b"><strong>🌐 ' + u[0] + '</strong><span class="src">' + u[3] + '</span><p>' + u[1] + '</p>' + (u[2] ? '<p style="color:#fbbf24;font-size:12px">DTC : ' + u[2] + '</p>' : '') + '</div>'; }
 function expertCard(e, prefix) {
   const bn = brandsData[e.brandId] ? brandsData[e.brandId].name : '';
   return '<div class="issue-card" style="border-left-color:#f59e0b"><strong>' + prefix + esc(e.title) + '</strong><span class="src">🧠 ' + esc(e.source || 'Expert') + '</span>' + (bn ? '<span class="src">' + esc(bn) + '</span>' : '') + (e.model ? '<span class="src">' + esc(e.model) + '</span>' : '') + (e.motor ? '<span class="src">' + esc(e.motor) + '</span>' : '') +
@@ -208,7 +217,6 @@ function expertCard(e, prefix) {
 }
 function issueCard(i, prefix) { return '<div class="issue-card"><strong>' + prefix + esc(i.title) + '</strong><span class="src">' + esc(i.source || '') + '</span>' + (i.motor ? '<span class="src">' + esc(i.motor) + '</span>' : '') + '<p>' + esc(i.detail || '') + '</p>' + (i.dtc ? '<p style="color:#fbbf24;font-size:12px">DTC : ' + esc(i.dtc) + '</p>' : '') + '</div>'; }
 
-/* ----- application corrélée ----- */
 async function enterApp() {
   const s = getSession(); const isAdmin = sessionStorage.getItem('autodiag_admin') === '1';
   if (!isAdmin && (!s || s.status !== 'accepted')) return notify('Accès non autorisé', 'error');
@@ -257,13 +265,15 @@ async function correlate() {
   specific.forEach(i => html += issueCard(i, '🎯 '));
   general.forEach(i => html += issueCard(i, ''));
   if (fuel && GENERIC[fuel]) GENERIC[fuel].issues.forEach(g => { html += '<div class="issue-card"><strong>' + g[0] + '</strong><span class="src">Typique ' + FUELS[fuel] + '</span><p>' + g[1] + '</p><p style="color:#fbbf24;font-size:12px">DTC : ' + g[2] + '</p></div>'; });
-  box.innerHTML = html || '<p style="color:#94a3b8">Aucune panne en base — vérifiez les sites officiels.</p>';
+  UNIV.forEach(u => html += univCard(u));
+  box.innerHTML = html || '<p style="color:#94a3b8">Aucune panne — vérifiez les sites officiels.</p>';
   const exAll = Object.values((await db.ref('data/expert').once('value')).val() || {});
   const exHits = exAll.filter(e => e.brandId === curBrand && (!e.model || e.model === curModelName) && motorMatch(e, motor));
-  ebox.innerHTML = exHits.length ? exHits.map(e => expertCard(e, '🧠 ')).join('') : '<p style="color:#94a3b8">Aucune fiche expert spécifique — utilisez la recherche par symptôme ci-dessus.</p>';
+  ebox.innerHTML = exHits.length ? exHits.map(e => expertCard(e, '🧠 ')).join('') : '<p style="color:#94a3b8">Aucune fiche expert spécifique — recherche par symptôme ci-dessus.</p>';
   const codes = new Set();
   all.forEach(i => String(i.dtc || '').split(/[,\/\s]+/).forEach(c => { if (/^[A-Z0-9]{4,}$/i.test(c)) codes.add(c.toUpperCase()); }));
   exHits.forEach(e => String(e.dtc || '').split(/[,\/\s]+/).forEach(c => { if (/^[A-Z0-9]{4,}$/i.test(c)) codes.add(c.toUpperCase()); }));
+  UNIV.forEach(u => String(u[2] || '').split(/[,\/\s]+/).forEach(c => { if (/^[A-Z0-9]{4,}$/i.test(c)) codes.add(c.toUpperCase()); }));
   if (fuel && GENERIC[fuel]) GENERIC[fuel].dtc.forEach(c => codes.add(c));
   const D = (await db.ref('data/dtc').once('value')).val() || {};
   let dh = '';
@@ -279,7 +289,6 @@ async function doSearchDTC() {
   c.innerHTML = m.length ? m.slice(0, 12).map(d => '<div class="dtc-card"><strong>' + esc(d.code) + '</strong><p>' + esc(d.description) + '</p>' + (d.cause ? '<p>🔍 ' + esc(d.cause) + '</p>' : '') + (d.solution ? '<p>🔧 ' + esc(d.solution) + '</p>' : '') + '</div>').join('') : '<p style="color:#94a3b8">Aucun DTC trouvé</p>';
 }
 
-/* ----- install ----- */
 function setupInstall() {
   window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); deferredPrompt = e; el('install-btn').classList.remove('hidden'); });
   window.addEventListener('appinstalled', () => { el('install-btn').classList.add('hidden'); notify('🎉 APK installée !'); });
