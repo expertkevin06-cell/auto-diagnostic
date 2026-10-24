@@ -1,0 +1,137 @@
+<!DOCTYPE html><html><head><title>Update expert</title></head>
+<body style="background:#000;color:#fff;padding:20px;font-family:sans-serif">
+<h1>🧠 MAJ expert + modèles 2023-2026</h1>
+<button onclick="run()" style="padding:18px;font-size:18px;background:#f59e0b;border:none;border-radius:10px;cursor:pointer">LANCER</button>
+<pre id="log" style="font-size:12px"></pre>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
+<script src="./firebase-config.js"></script>
+<script>
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
+const log = m => document.getElementById('log').textContent += m + '\n';
+const NEW = [
+ ['renault','Renault 4 E-Tech','2024-2026',[['Electrique 120','electrique','120 ch'],['Electrique 150','electrique','150 ch']]],
+ ['renault','Twingo E-Tech','2026-2026',[['Electrique 82','electrique','82 ch']]],
+ ['peugeot','3008 III','2023-2026',[['1.2 Hybrid 136','hybride','136 ch'],['Hybrid 195','hybride','195 ch'],['Hybrid 230','hybride','230 ch']]],
+ ['peugeot','E-3008','2024-2026',[['Electrique 210','electrique','210 ch'],['Electrique 230','electrique','230 ch'],['Electrique 320','electrique','320 ch']]],
+ ['peugeot','5008 III','2024-2026',[['1.2 Hybrid 136','hybride','136 ch'],['Hybrid 195','hybride','195 ch']]],
+ ['peugeot','E-5008','2024-2026',[['Electrique 210','electrique','210 ch'],['Electrique 320','electrique','320 ch']]],
+ ['citroen','C3 IV','2024-2026',[['1.2 Hybrid 100','hybride','100 ch'],['1.2 Hybrid 136','hybride','136 ch']]],
+ ['citroen','ë-C3','2024-2026',[['Electrique 113','electrique','113 ch']]],
+ ['citroen','C3 Aircross III','2024-2026',[['1.2 Hybrid 100','hybride','100 ch'],['1.2 Hybrid 136','hybride','136 ch'],['Electrique 113','electrique','113 ch']]],
+ ['ds','DS N°4','2025-2026',[['Hybrid 136','hybride','136 ch'],['E-Tense 210','electrique','210 ch']]],
+ ['ds','DS N°8','2025-2026',[['E-Tense 230','electrique','230 ch'],['E-Tense 350','electrique','350 ch']]],
+ ['dacia','Bigster','2025-2026',[['1.2 TCe 130','essence','130 ch'],['1.2 TCe 140 4x4','essence','140 ch'],['Hybrid 155','hybride','155 ch']]],
+ ['volkswagen','Tiguan III','2024-2026',[['1.5 TSI 130','essence','130 ch'],['1.5 TSI 150','essence','150 ch'],['2.0 TDI 150','diesel','150 ch'],['2.0 TDI 193','diesel','193 ch'],['eHybrid 204','hybride','204 ch'],['eHybrid 272','hybride','272 ch']]],
+ ['volkswagen','Passat B9','2024-2026',[['1.5 TSI 150','essence','150 ch'],['2.0 TDI 122','diesel','122 ch'],['2.0 TDI 150','diesel','150 ch'],['2.0 TDI 193','diesel','193 ch'],['eHybrid 204','hybride','204 ch']]],
+ ['volkswagen','Tayron','2024-2026',[['1.5 TSI 150','essence','150 ch'],['2.0 TDI 150','diesel','150 ch'],['eHybrid 204','hybride','204 ch']]],
+ ['volkswagen','ID.7','2023-2026',[['Electrique 286','electrique','286 ch'],['Electrique 340','electrique','340 ch']]],
+ ['audi','Q6 e-tron','2024-2026',[['Electrique 252','electrique','252 ch'],['Electrique 388','electrique','388 ch'],['SQ6 490','electrique','490 ch']]],
+ ['audi','A5 B10','2024-2026',[['2.0 TSI 150','essence','150 ch'],['2.0 TSI 204','essence','204 ch'],['2.0 TDI 204','diesel','204 ch']]],
+ ['audi','Q5 III','2024-2026',[['2.0 TSI 204','essence','204 ch'],['2.0 TDI 204','diesel','204 ch']]],
+ ['bmw','X3 G45','2024-2026',[['20 208','essence','208 ch'],['20d 197','diesel','197 ch'],['30e 299','hybride','299 ch'],['M50 398','essence','398 ch']]],
+ ['bmw','i5','2023-2026',[['eDrive40 340','electrique','340 ch'],['M60 601','electrique','601 ch']]],
+ ['bmw','X2 U10','2023-2026',[['18 156','essence','156 ch'],['20d 163','diesel','163 ch'],['iX2 313','electrique','313 ch']]],
+ ['mercedes','Classe E W214','2024-2026',[['E200 204','essence','204 ch'],['E220d 197','diesel','197 ch'],['E300e 313','hybride','313 ch'],['E400e 381','hybride','381 ch']]],
+ ['mercedes','CLA C174','2025-2026',[['Electrique 272','electrique','272 ch'],['Electrique 354','electrique','354 ch']]],
+ ['opel','Grandland II','2024-2026',[['1.2 Hybrid 136','hybride','136 ch'],['1.2 Hybrid 145','hybride','145 ch'],['Electrique 210','electrique','210 ch'],['Electrique 230','electrique','230 ch']]],
+ ['fiat','Grande Panda','2024-2026',[['1.2 Hybrid 100','hybride','100 ch'],['1.2 100','essence','100 ch'],['Electrique 113','electrique','113 ch']]],
+ ['fiat','600','2023-2026',[['1.2 Hybrid 100','hybride','100 ch'],['Electrique 156','electrique','156 ch']]],
+ ['fiat','Topolino','2023-2026',[['Electrique 42','electrique','42 ch']]],
+ ['toyota','C-HR II','2023-2026',[['1.8 Hybrid 140','hybride','140 ch'],['2.0 Hybrid 200','hybride','200 ch'],['2.0 PHEV 223','hybride','223 ch']]],
+ ['toyota','Land Cruiser 250','2024-2026',[['2.8 D-4D 204','diesel','204 ch'],['2.8 Mild Hybrid 204','hybride','204 ch']]],
+ ['toyota','C-HR+','2025-2026',[['Electrique 167','electrique','167 ch'],['Electrique 224','electrique','224 ch']]],
+ ['toyota','Urban Cruiser','2025-2026',[['Electrique 144','electrique','144 ch'],['Electrique 184','electrique','184 ch']]],
+ ['hyundai','Inster','2024-2026',[['Electrique 97','electrique','97 ch'],['Electrique 115','electrique','115 ch']]],
+ ['hyundai','Santa Fe MX5','2024-2026',[['1.6 T-GDI Hybrid 215','hybride','215 ch'],['1.6 T-GDI PHEV 253','hybride','253 ch']]],
+ ['hyundai','Ioniq 9','2025-2026',[['Electrique 218','electrique','218 ch'],['Electrique 435','electrique','435 ch']]],
+ ['kia','EV3','2024-2026',[['Electrique 204','electrique','204 ch']]],
+ ['kia','EV4','2025-2026',[['Electrique 204','electrique','204 ch']]],
+ ['kia','EV5','2025-2026',[['Electrique 218','electrique','218 ch'],['Electrique 313','electrique','313 ch']]],
+ ['byd','Dolphin Surf','2025-2026',[['Electrique 88','electrique','88 ch'],['Electrique 156','electrique','156 ch']]],
+ ['byd','Seal 6','2025-2026',[['DM-i 218','hybride','218 ch']]],
+ ['mg','S5 EV','2024-2026',[['Electrique 170','electrique','170 ch'],['Electrique 204','electrique','204 ch']]],
+ ['leapmotor','B10','2025-2026',[['Electrique 218','electrique','218 ch']]],
+ ['omoda','Omoda 7','2025-2026',[['1.6 156','essence','156 ch'],['PHEV 347','hybride','347 ch']]],
+ ['jaecoo','Jaecoo 5','2025-2026',[['1.6 147','essence','147 ch'],['Electrique 204','electrique','204 ch']]],
+ ['jaecoo','Jaecoo 8','2025-2026',[['PHEV 530','hybride','530 ch']]],
+ ['tesla','Cybertruck','2024-2026',[['Electrique 600','electrique','600 ch'],['Electrique 845','electrique','845 ch']]],
+ ['tesla','Model 3 Highland','2023-2026',[['Propulsion 264','electrique','264 ch'],['Grande Autonomie 498','electrique','498 ch']]],
+ ['skoda','Kodiaq II','2024-2026',[['1.5 TSI 150','essence','150 ch'],['2.0 TDI 150','diesel','150 ch'],['2.0 TDI 193','diesel','193 ch']]],
+ ['skoda','Superb IV','2024-2026',[['1.5 TSI 150','essence','150 ch'],['2.0 TDI 150','diesel','150 ch'],['2.0 TSI 204','essence','204 ch'],['iV 204','hybride','204 ch']]],
+ ['volvo','EX90','2024-2026',[['Electrique 449','electrique','449 ch'],['Electrique 517','electrique','517 ch']]],
+ ['volvo','ES90','2025-2026',[['Electrique 333','electrique','333 ch'],['Electrique 680','electrique','680 ch']]],
+ ['porsche','Macan EV','2024-2026',[['Electrique 360','electrique','360 ch'],['Electrique 639','electrique','639 ch']]],
+ ['porsche','Taycan II','2024-2026',[['Electrique 408','electrique','408 ch'],['Electrique 544','electrique','544 ch'],['Turbo GT 1108','electrique','1108 ch']]],
+ ['ford','Puma Gen-E','2025-2026',[['Electrique 168','electrique','168 ch']]],
+ ['mini','Countryman U25','2024-2026',[['1.5 156','essence','156 ch'],['2.0 204','essence','204 ch'],['SE 313','electrique','313 ch']]],
+ ['mini','Aceman','2024-2026',[['E 184','electrique','184 ch'],['SE 258','electrique','258 ch']]]
+];
+const EXP = [
+ ['peugeot','','1.2 PureTech','Courroie de distribution humide (PureTech)','Bruit de courroie progressif, perte puissance, pompe à huile colmatée par debris','1) Ouvrir bouchon huile : chercher debris de courroie dans carter 2) Mesurer largeur courroie au gabarit (seuil usure ~9,4 mm) 3) Contrôler pression huile au ralenti chaud 4) Remplacer kit courroie + pompe à huile + vidange','Kit courroie, pompe à huile','P0087, P0340','Rappel Conso / TSB','2017-2023'],
+ ['citroen','','1.2 PureTech','Courroie humide (PureTech)','Idem Peugeot','Procédure identique Stellantis','Kit courroie, pompe à huile','P0087, P0340','Rappel Conso / TSB','2017-2023'],
+ ['opel','','1.2 PureTech','Courroie humide (PureTech)','Idem Peugeot','Procédure identique Stellantis','Kit courroie, pompe à huile','P0087','Rappel Conso','2019-2023'],
+ ['peugeot','','BlueHDi','Système AdBlue (pompe/injecteur)','Message défaut AdBlue, countdown non-démarrage','1) Lire DTC P20EE/P204F 2) Tester débit pompe au diag 3) Inspecter cristallisation injecteur AdBlue 4) Remplacer pompe ou injecteur + réinitialisation','Pompe AdBlue, injecteur, réservoir','P20EE, P204F, P207F','Campagne constructeur','2017-2024'],
+ ['citroen','','BlueHDi','Système AdBlue','Idem Peugeot','Procédure identique','Pompe/injecteur AdBlue','P20EE','Campagne constructeur','2017-2024'],
+ ['renault','','dCi / Blue dCi','Vanne EGR + refroidisseur','Perte puissance, fumée noire, ralenti instable','1) Test position EGR au diag 2) Mesurer taux ouverture consigne/réel 3) Contrôler colmatage refroidisseur (ΔP) 4) Nettoyer ou remplacer + adaptation','Vanne EGR, refroidisseur','P0401, P0490','Campagne constructeur','2017-2026'],
+ ['renault','','E-Tech','Batterie 12V / DC-DC','Non-démarrage, défaut circuit charge','1) Test SOH batterie 12V 2) Lire codes DC-DC 3) Contrôler charge 12V en mode READY 4) Remplacer 12V AGM si HS','Batterie 12V AGM, DC-DC','U0111','Campagne constructeur','2020-2026'],
+ ['volkswagen','','2.0 TDI EA288','Pompe à eau (fuite LDR)','Perte liquide refroidissement, odeur sucrée, traces blanches pompe','1) Pressuriser circuit refroidissement 2) Inspecter trou de fuite pompe 3) Remplacer pompe + kit distribution si nécessaire','Pompe à eau','P2181','TSB','2017-2024'],
+ ['volkswagen','','DSG DQ200','Mécatronique double embrayage sec','Broutage au démarrage, vitesses non engagées','1) Lire adaptations embrayage 2) Contrôler niveau huile mécatronique 3) Appliquer TSB update 4) Remplacer mécatronique si confirmé','Mécatronique, kit embrayage','P0700','TSB','2017-2026'],
+ ['volkswagen','','ID.','Décharge batterie 12V','Non-démarrage après stationnement, défaut 12V','1) Lire logs courant de repos 2) Mettre à jour logiciel ICU 3) Contrôler DC-DC 4) Remplacer 12V','Batterie 12V, ICU','U0111','Campagne constructeur','2020-2026'],
+ ['audi','','DSG','Mécatronique','Idem VW','Procédure identique','Mécatronique','P0700','TSB','2017-2026'],
+ ['bmw','','B47 / N47','Chaîne de distribution','Claquement métallique à froid, défaut calage','1) Oscilloscope synchro vilo/AAC 2) Contrôler tensionneur 3) Remplacer kit chaîne + guides si jeu confirmé','Kit chaîne, tensionneur','P0016, P0335','NHTSA / TSB','2017-2024'],
+ ['mercedes','','OM654 / OM651','Capteurs NOx + injecteur AdBlue','Défaut NOx, limitation puissance','1) Lire valeurs capteurs NOx amont/aval 2) Inspecter cristallisation injecteur AdBlue 3) Remplacer capteur ou injecteur 4) Réinit compteurs NOx','Capteur NOx, injecteur AdBlue','P2201, P20EE','Campagne constructeur','2017-2026'],
+ ['toyota','','Hybrid HSD','Pompe à eau onduleur','Non-démarrage, message vérifier système hybride','1) Lire codes onduleur 2) Tester débit pompe 12V 3) Contrôler niveau LDR réservoir onduleur 4) Remplacer pompe','Pompe onduleur','P0A93','TSB','2017-2026'],
+ ['toyota','','1.2 D-4T','Consommation d\'huile élevée','Baisse niveau huile, fumée bleue accélération','1) Mesurer conso sur 1000 km 2) Endoscopie cylindres 3) TSB : segments si confirmé','Segments pistons','P0302','TSB','2017-2019'],
+ ['hyundai','','Theta II 2.0/2.4','Serrage moteur (coussinets)','Claquement, serrage, limailles dans huile','1) Analyse logiciel KSDS 2) Contrôler limailles huile 3) Inspection coussinets 4) Remplacement moteur sous campagne','Coussinets bielles','','NHTSA','2017-2023'],
+ ['hyundai','','Ioniq 5 / Ioniq 6','ICCU (unité charge/intégration)','Non-charge, défaut 12V, non-démarrage','1) Lire codes ICCU 2) Contrôler fonction DC-DC 3) Remplacer ICCU + batterie 12V sous campagne','ICCU, batterie 12V','U0111, P0AA6','NHTSA / campagne','2021-2026'],
+ ['kia','','EV6 / EV9','ICCU','Idem Ioniq 5','Procédure identique','ICCU','U0111','Campagne constructeur','2021-2026'],
+ ['tesla','','Tous modèles','Usure eMMC MCU','Écran noir, reboots, lenteur interface','1) Mode service : lire santé eMMC 2) Vérifier logs reboot 3) Remplacer eMMC/MCU sous garantie étendue','MCU, eMMC','U0101','NHTSA','2017-2023'],
+ ['tesla','','Model 3 / Y','Freinage fantôme (ACC)','Freinage brusque inopiné sur autoroute','1) Vérifier version caméra/radar 2) Recalibrer 3) MAJ logicielle 4) Logger événement NHTSA','Caméra, radar','','NHTSA','2021-2026'],
+ ['byd','','Tous modèles','Équilibrage batterie LFP','Perte autonomie, déséquilibre cellules','1) Lire delta cellules (défaut si >60 mV) 2) Charge lente complète équilibrage 3) MAJ BMS 4) Remplacer module si nécessaire','BMS, modules','P0AA6, U0111','Campagne constructeur','2022-2026'],
+ ['mg','','ZS EV / MG4','Batterie 12V / DC-DC','Non-démarrage, défaut 12V','1) Test SOH 12V 2) Contrôler DC-DC 3) MAJ logicielle 4) Remplacer 12V','Batterie 12V','U0111','Campagne constructeur','2020-2026'],
+ ['volvo','','EX30 / EX40','Batterie HV (logiciel)','Limitation puissance, alerte surchauffe batterie','1) Lire codes BMS 2) Appliquer campagne logicielle 3) Contrôler boucle refroidissement','Logiciel BMS','P0AA6, P0C00','Safety Gate','2023-2026'],
+ ['ford','','1.0 EcoBoost','Courroie humide + intrusion LDR','Bruit courroie, ratés après stationnement (LDR cylindres)','1) Contrôler état courroie 2) Test compression/endoscopie 3) Vérifier joint culasse/joints injecteurs 4) Remplacer kit courroie + joints','Kit courroie, joints','P0300, P0301','TSB','2018-2024'],
+ ['ford','','PowerShift sec','Broutage embrayage','Vibrations démarrage, à-coups basse vitesse','1) Lire adaptations embrayage 2) Procédure apprentissage TSB 3) Remplacer kit embrayage si confirmé','Kit embrayage, TCM','P0700','TSB / NHTSA','2017-2023'],
+ ['peugeot','','1.6 THP','Tendeur chaîne + calamine','Claquement à froid, ratés ralenti','1) Contrôler tendeur (TSB) 2) Endoscopie soupapes (calamine) 3) Remplacer tendeur + décalaminage','Tendeur, chaîne','P0016, P0300','TSB','2017-2021'],
+ ['nissan','','Leaf','SOH batterie traction','Perte autonomie, charge lente','1) Lire SOH (diag/LeafSpy) 2) Contrôler delta cellules 3) Garantie si SOH <70% 4) Équilibrage','Modules batterie','P0AA6','Campagne constructeur','2018-2026'],
+ ['mazda','','Skyactiv-D','Calamine + FAP courts trajets','Perte puissance, régénérations fréquentes','1) Vérifier historique régénérations 2) Endoscopie admission 3) Décalaminage + MAJ 4) Conseiller usage','FAP, EGR','P2002, P2463','TSB','2017-2026'],
+ ['fiat','','1.3 MultiJet','Encrassement injecteurs','Ratés, claquement diesel, démarrage difficile','1) Test débits retour 2) Banc injecteurs 3) Remplacer injecteurs + filtre 4) Qualité carburant','Injecteurs','P0201, P0202, P0203, P0204','TSB','2017-2026'],
+ ['porsche','','Taycan / Macan EV','Modules batterie HV','Limitation puissance, défaut isolement','1) Lire résistances isolement 2) Identifier module défaillant 3) Remplacer module sous garantie 4) Test isolement','Modules batterie','P0AA6','NHTSA','2020-2026'],
+ ['peugeot','','e-208 / e-2008','OBC (chargeur embarqué)','Non-charge AC, défaut charge','1) Tester charge AC/DC 2) Lire codes OBC 3) Contrôler refroidissement 4) Remplacer OBC','OBC','P0D11','Campagne constructeur','2019-2026'],
+ ['renault','','Zoe','Chargeur Caméléon','Non-charge ou charge lente','1) Tester sur bornes différentes 2) Lire codes chargeur 3) Contrôler connecteur 4) Remplacer chargeur','Chargeur Caméléon','P0D11','Campagne constructeur','2017-2022'],
+ ['skoda','','Enyaq / Elroq','Batterie 12V + logiciels','Défauts 12V, bugs veille','1) Contrôler courant repos 2) Campagne logicielle 3) Remplacer 12V','Batterie 12V','U0111','Campagne constructeur','2021-2026'],
+ ['mercedes','','EQ (EQA/B/C/E)','MBUX / BMS','Écrans figés, estimation autonomie erronée','1) Lire logs BMS/MBUX 2) MAJ logicielle 3) Calibration HV','Logiciel','U0111','Campagne constructeur','2021-2026'],
+ ['hyundai','','1.6 CRDi','Débits retour injecteurs','Claquement, fumée, surconsommation','1) Test débits retour 2) Banc 3) Remplacer injecteurs défectueux','Injecteurs','P0201-P0204','TSB','2017-2026']
+];
+const NISS = [
+ ['peugeot','E-3008','','OBC 11 kW','Charge AC lente ou absente','Lire codes OBC, remplacer','Campagne constructeur','P0D11'],
+ ['volkswagen','ID.7','','Batterie 12V','Non-démarrage après stationnement','Courant repos, MAJ logicielle','Campagne constructeur','U0111'],
+ ['tesla','Cybertruck','','Direction by-wire','Défaut direction, recalibration','Lire codes EPS, recalibrer','NHTSA','U0101'],
+ ['hyundai','Inster','','Batterie 12V','Non-démarrage','Test 12V, DC-DC','Campagne constructeur','U0111'],
+ ['renault','Renault 4 E-Tech','','Batterie 12V / DC-DC','Défaut charge 12V','Test SOH, DC-DC','Campagne constructeur','U0111'],
+ ['kia','EV3','','ICCU','Non-charge, défaut 12V','Procédure ICCU','Campagne constructeur','U0111']
+];
+async function run() {
+  let n = 0;
+  for (let i = 0; i < NEW.length; i++) {
+    const [bid, name, years, motors] = NEW[i];
+    const id = 'x_' + bid + '_' + i;
+    await db.ref('data/models/' + id).set({ brandId: bid, name: name, years: years });
+    await db.ref('data/motors/' + id).set(motors.map(m => ({ name: m[0], fuel: m[1], power: m[2] })));
+    n++;
+  }
+  log('✅ ' + n + ' nouveaux modèles 2023-2026 + motorisations');
+  for (let i = 0; i < EXP.length; i++) {
+    await db.ref('data/expert/exs_' + i).set({ brandId: EXP[i][0], model: EXP[i][1], motor: EXP[i][2], title: EXP[i][3], symptom: EXP[i][4], diagnosis: EXP[i][5], parts: EXP[i][6], dtc: EXP[i][7], source: EXP[i][8], years: EXP[i][9] });
+  }
+  log('✅ ' + EXP.length + ' fiches expert ingénieur');
+  for (let i = 0; i < NISS.length; i++) {
+    await db.ref('data/issues/nis_' + i).set({ brandId: NISS[i][0], model: NISS[i][1], motor: NISS[i][2], title: NISS[i][3], detail: NISS[i][4] + ' → ' + NISS[i][5], source: NISS[i][6], dtc: NISS[i][7] });
+  }
+  log('✅ ' + NISS.length + ' pannes modèles récents');
+  await db.ref('data/version').set({ version: Date.now(), lastUpdate: new Date().toISOString(), updateIntervalDays: 30 });
+  log('\n🎉 TERMINÉ — supprimez update2.html de GitHub !');
+}
+</script></body></html>
