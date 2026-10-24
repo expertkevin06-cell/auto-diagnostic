@@ -11,6 +11,7 @@
   <link rel="stylesheet" href="./styles.css">
 </head>
 <body>
+<div class="bg3d" aria-hidden="true"><div class="bg3d-car"></div></div>
 <div class="container">
   <header><h1>🚗 Auto Diagnostic Pro</h1><p>Expert Ingénieur • Marques 2017-2026 • Pannes • Rappels • DTC</p></header>
 
@@ -108,7 +109,7 @@
     <h2>🚗 Diagnostic Expert</h2>
     <p>Bienvenue <strong id="app-user"></strong> • Base du : <span id="app-version">--</span></p>
     <h3>🧠 Diagnostic expert par symptôme</h3>
-    <input type="text" id="expert-search" placeholder="Ex: perte puissance, claquement froid, ne charge pas, AdBlue, fumée…" oninput="expertSearch()">
+    <input type="text" id="expert-search" placeholder="Ex: perte puissance, claquement, ne charge pas, AdBlue, fumée…" oninput="expertSearch()">
     <div id="expert-results"></div>
     <h3>1️⃣ Marque</h3><select id="sel-marque" onchange="loadModels()"></select>
     <h3>2️⃣ Modèle</h3><select id="sel-model" onchange="loadMotors()"></select>
