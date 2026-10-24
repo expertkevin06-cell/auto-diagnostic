@@ -1,18 +1,132 @@
-/* APP.JS v7 — Rappel Bigster ressorts AR auto + sources officielles cliquables + expert + mensuel */
+/* APP.JS v8 — EXPERT UNIVERSEL : toutes marques/modèles/motorisations */
 const ADMIN_PASSWORD = 'Kevin83600';
 const SESSION_KEY = 'autodiag_session';
 const MONTHLY_MS = 30 * 24 * 60 * 60 * 1000;
 const FUELS = { essence: '⛽ Essence', diesel: '🛢️ Diesel', hybride: '🔋 Hybride', electrique: '⚡ Électrique' };
-/* ===== FICHES CLÉS AUTO-AJOUTÉES (rappels officiels) ===== */
+/* ===== Fiches clés auto-ajoutées en base (Bigster) ===== */
 const KEY_ISSUES = [
  { brand:'dacia', model:'Bigster', motor:'', title:'Ressorts suspension AR : rupture (diamètre fil insuffisant)', detail:'Campagne de rappel : remplacement des 2 ressorts de suspension arrière suite à risque de rupture (diamètre de fil insuffisant). Contrôle visuel + mesure du diamètre, remplacement préventif selon VIN. Intervention gratuite en concession.', source:'Rappel Conso / Safety Gate', dtc:'', url:'https://www.rappel.conso.gouv.fr/' },
- { brand:'dacia', model:'Bigster', motor:'', title:'Ressorts AR : alerte UE (contrôle obligatoire)', detail:'Alerte Safety Gate : risque de rupture des ressorts arrière — vérification obligatoire en concession, remplacement gratuit des ressorts non conformes.', source:'Safety Gate', dtc:'', url:'https://ec.europa.eu/safety-gate-alerts/screen/webReport/searchAdvanced' },
- { brand:'dacia', model:'Bigster', motor:'', title:'Ressorts AR : suivi presse spécialisée', detail:'Articles et retours d\'utilisateurs sur la campagne ressorts arrière du Bigster (symptômes, délais de prise en charge).', source:'L\'Argus / Caradisiac', dtc:'', url:'https://www.largus.fr/' }
+ { brand:'dacia', model:'Bigster', motor:'', title:'Ressorts AR : alerte UE (contrôle obligatoire)', detail:'Alerte Safety Gate : risque de rupture des ressorts arrière — vérification obligatoire en concession, remplacement gratuit des ressorts non conformes.', source:'Safety Gate', dtc:'', url:'https://ec.europa.eu/safety-gate-alerts/screen/webReport/searchAdvanced' }
 ];
 const KEY_EXPERT = [
- { brand:'dacia', model:'Bigster', motor:'', title:'Procédure remplacement ressorts suspension AR (rappel)', symptom:'Claquement ou bruit de détente à l\'arrière, véhicule penché d\'un côté, fissure ou casse visible du ressort AR', diagnosis:'1) Vérifier le VIN sur rappel.conso.gouv.fr / Safety Gate 2) Lever le véhicule, roues AR suspendues 3) Inspecter les 2 ressorts AR : fissures, corrosion, diamètre de fil vs spécification constructeur 4) Remplacer les 2 ressorts + coupelles/butées 5) Serrer aux couples constructeur 6) Contrôle géométrie + essai routier', parts:'Ressorts AR x2, coupelles, butées', dtc:'', source:'Rappel Conso / Safety Gate', years:'2025-2026', url:'https://www.rappel.conso.gouv.fr/' }
+ { brand:'dacia', model:'Bigster', motor:'', title:'Procédure remplacement ressorts suspension AR (rappel)', symptom:'Claquement ou bruit de détente à l\'arrière, véhicule penché, fissure ou casse visible du ressort AR', diagnosis:'1) Vérifier le VIN sur rappel.conso.gouv.fr / Safety Gate 2) Lever le véhicule, roues AR suspendues 3) Inspecter les 2 ressorts AR : fissures, corrosion, diamètre de fil vs spécification 4) Remplacer les 2 ressorts + coupelles/butées 5) Serrer aux couples constructeur 6) Contrôle géométrie + essai routier', parts:'Ressorts AR x2, coupelles, butées', dtc:'', source:'Rappel Conso / Safety Gate', years:'2025-2026', url:'https://www.rappel.conso.gouv.fr/' }
 ];
-/* ===== Modèles récents GARANTIS ===== */
+/* ===== FICHES EXPERT PAR MARQUE (tous modèles) : [brand, motorKey, title, symptom, diagnosis, parts, dtc, source, years] ===== */
+const BRAND_EXPERT = [
+ ['renault','dCi','EGR/FAP diesel Renault','Perte puissance, voyant, régénérations fréquentes','1) Lire P0401/P2002 au diag 2) Test ouverture EGR consigne/réel 3) Mesure ΔP FAP 4) Nettoyage/remplacement + adaptation','EGR, FAP','P0401, P2002','Campagne constructeur','2017-2026'],
+ ['renault','TCe','GPF essence (filtre à particules)','Perte puissance courts trajets, voyant','1) Lire P2463 2) Régénération forcée 3) Contrôle GPF 4) Remplacement si colmaté','GPF','P2463','TSB','2018-2026'],
+ ['renault','','Campagnes sécurité (airbag/ceintures)','Voyant airbag, prétensionneur non conforme','1) Vérifier VIN Rappel Conso 2) Lire codes BSM 3) Remplacer modules concernés','Airbag, prétensionneurs','','Rappel Conso','2017-2026'],
+ ['peugeot','PureTech','Courroie humide (procédure complète)','Bruit courroie, perte puissance, pompe à huile colmatée','1) Gabarit largeur courroie (seuil ~9,4 mm) 2) Inspection carter débris 3) Pression huile ralenti chaud 4) Kit courroie + pompe à huile + vidange','Kit courroie, pompe à huile','P0087, P0340','Rappel Conso','2017-2023'],
+ ['peugeot','BlueHDi','AdBlue pompe/injecteur','Message défaut AdBlue, countdown non-démarrage','1) Lire P20EE/P204F 2) Test débit pompe au diag 3) Inspection cristallisation injecteur 4) Remplacement + réinitialisation','Pompe/injecteur AdBlue','P20EE, P204F','Campagne constructeur','2017-2024'],
+ ['citroen','PureTech','Courroie humide Stellantis','Idem Peugeot','Procédure identique Stellantis','Kit courroie, pompe','P0087','Rappel Conso','2017-2023'],
+ ['citroen','BlueHDi','AdBlue Stellantis','Idem Peugeot','Procédure identique','Pompe AdBlue','P20EE','Campagne constructeur','2017-2024'],
+ ['ds','PureTech','Courroie/AdBlue Stellantis','Selon motorisation','Procédures Stellantis','Kit courroie/pompe','P0087, P20EE','Rappel Conso','2017-2024'],
+ ['opel','PureTech','Courroie humide Opel','Idem Stellantis','Procédure identique','Kit courroie','P0087','Rappel Conso','2019-2023'],
+ ['opel','','Multimédia/écrans campagnes','Figements, reboots','1) Logs 2) MAJ logiciel 3) Remplacement si échec','—','U0101','Campagne constructeur','2017-2026'],
+ ['volkswagen','TSI','Chaîne distribution TSI','Claquement à froid','1) Scope synchro vilo/AAC 2) Contrôle tendeur 3) Kit chaîne + guides','Kit chaîne, tendeur','P0016','TSB','2017-2026'],
+ ['volkswagen','TDI','AdBlue/NOx TDI','Voyant NOx, limitation puissance','1) Capteurs NOx amont/aval 2) Injecteur AdBlue 3) MAJ logiciel NOx','Capteur NOx, injecteur','P20EE, P2201','Campagne constructeur','2017-2026'],
+ ['volkswagen','DSG','Mécatronique DQ200/DQ250','Broutage démarrage, vitesses non engagées','1) Lire adaptations 2) Niveau huile mécatronique 3) TSB update 4) Remplacer mécatronique','Mécatronique','P0700','TSB','2017-2026'],
+ ['volkswagen','','Campagnes sécurité (airbag/ceintures)','Voyant airbag','1) VIN check 2) Campagne 3) Remplacement','Airbag','','Rappel Conso / Safety Gate','2017-2026'],
+ ['audi','TSI','Chaîne/AdBlue VAG','Claquement, défaut NOx','Procédures VAG','Kit chaîne/AdBlue','P0016, P20EE','TSB','2017-2026'],
+ ['audi','','Caméra ADAS/calibration','Perte fonctions assistance','1) Défauts U0121 2) Recalibration après pare-brise 3) MAJ','Caméra','U0121','Campagne constructeur','2019-2026'],
+ ['skoda','TSI','Chaîne/AdBlue VAG','Idem VW','Procédures VAG','—','P0016, P20EE','TSB','2017-2026'],
+ ['seat','TSI','Chaîne TSI','Claquement froid','Procédure VAG','Kit chaîne','P0016','TSB','2017-2026'],
+ ['bmw','B47','Chaîne distribution BMW','Claquement métallique à froid, P0016','1) Scope synchro vilo/AAC 2) Tendeur 3) Kit chaîne + guides','Kit chaîne','P0016, P0335','NHTSA / TSB','2017-2024'],
+ ['bmw','N20','Pompe HP essence (GDI)','Pression rail basse, P0087','1) Pression rail mesurée vs consigne 2) Pompe HP 3) Remplacement','Pompe HP','P0087','TSB','2017-2026'],
+ ['bmw','','Airbag Takata (modèles concernés)','Campagne rupture inflateur','1) VIN check NHTSA 2) Remplacement inflateur','Inflateur','','NHTSA','2017-2019'],
+ ['mercedes','OM654','Injecteurs AdBlue + capteurs NOx','Défaut NOx, countdown AdBlue','1) Valeurs capteurs NOx 2) Cristallisation injecteur 3) Remplacement + réinit compteurs','Capteur NOx, injecteur','P2201, P20EE','Campagne constructeur','2017-2026'],
+ ['mercedes','OM651','Chaîne OM651','Claquement, usure patins','Kit chaîne complet','Kit chaîne','P0016','TSB','2017-2020'],
+ ['mercedes','','ADAS Drive Pilot / caméras','Défaut conduite autonome','1) Logs 2) Recalibration caméras/radar 3) MAJ','Caméra/radar','U0101, U0121','NHTSA','2019-2026'],
+ ['volvo','','Batterie HV EX30/EX40 (campagne)','Limitation puissance, alerte surchauffe','1) Codes BMS 2) Campagne logicielle 3) Contrôle boucle LDR','BMS/logiciel','P0AA6, P0C00','Safety Gate','2023-2026'],
+ ['volvo','','Prétensionneurs ceintures (campagne)','Campagne contrôle UE','1) VIN Safety Gate 2) Remplacement prétensionneurs','Prétensionneurs','','Safety Gate','2017-2026'],
+ ['porsche','','Batterie HV Taycan/Macan EV','Défaut isolement, limitation puissance','1) Résistance isolement 2) Identification module 3) Remplacement sous garantie','Module batterie','P0AA6','NHTSA','2020-2026'],
+ ['fiat','MultiJet','Injecteurs MultiJet encrassement','Ratés diesel, claquement, démarrage difficile','1) Test débits retour 2) Banc injecteurs 3) Remplacement + filtre','Injecteurs','P0201-P0204','TSB','2017-2026'],
+ ['fiat','','Uconnect écran/MAJ','Écran noir, reboots','MAJ logiciel','—','U0101','TSB','2017-2026'],
+ ['alfa','JTD','Injecteurs/AdBlue diesel','Ratés, défaut AdBlue','Procédure diesel standard','Injecteurs','P0201, P20EE','TSB','2017-2026'],
+ ['mini','N13','Chaîne distribution Mini','Claquement, casse tendeur','Kit chaîne complet','Kit chaîne','P0016','TSB','2017-2020'],
+ ['toyota','Hybrid','Pompe onduleur HSD','Non-démarrage, défaut système hybride','1) Codes onduleur 2) Test débit pompe 12V 3) Niveau LDR onduleur 4) Remplacement pompe','Pompe onduleur','P0A93','TSB','2017-2026'],
+ ['toyota','D-4T','Consommation huile 1.2 D-4T','Baisse niveau, fumée bleue','1) Conso sur 1000 km 2) Endoscopie cylindres 3) Segments selon TSB','Segments','P0302','TSB','2017-2019'],
+ ['toyota','','Airbag Takata','Campagne rupture','1) VIN 2) Remplacement inflateur','Inflateur','','NHTSA / Rappel Conso','2017-2019'],
+ ['honda','','Airbag Takata','Campagne rupture','1) VIN 2) Inflateur','Inflateur','','NHTSA','2017-2019'],
+ ['honda','1.5 VTEC','Dilution huile (turbo 1.5)','Niveau huile haut, odeur essence','1) Niveau/odeur 2) MAJ logiciel 3) Vidange complète','Logiciel/vidange','','TSB','2017-2020'],
+ ['nissan','','SOH batterie Leaf','Perte autonomie, charge lente','1) SOH au diag 2) Delta cellules 3) Garantie si SOH <70% 4) Équilibrage','Modules batterie','','Campagne constructeur','2018-2026'],
+ ['nissan','','Airbag Takata','Campagne','VIN, inflateur','Inflateur','','NHTSA','2017-2019'],
+ ['mazda','Skyactiv-D','Calamine + FAP courts trajets','Perte puissance, régénérations fréquentes','1) Historique régénérations 2) Endoscopie admission 3) Décalaminage + MAJ','FAP, EGR','P2002, P2463','TSB','2017-2026'],
+ ['mitsubishi','','Airbag Takata','Campagne','VIN','Inflateur','','NHTSA','2017-2019'],
+ ['subaru','','Consommation huile boxer','Baisse niveau huile','1) Conso mesurée 2) TSB segments/PCV 3) Remplacement si confirmé','Segments','','TSB','2017-2019'],
+ ['suzuki','','Caméra/ADAS campagnes','Défaut assistance','Recalibration + MAJ','Caméra','U0121','Campagne constructeur','2019-2026'],
+ ['hyundai','Theta II','Serrage moteur Theta II','Claquement, limailles dans huile','1) Analyse KSDS 2) Contrôle limailles 3) Coussinets/moteur sous campagne','Coussinets bielles','','NHTSA','2017-2023'],
+ ['hyundai','ICCU','ICCU Ioniq/Kona EV','Non-charge, défaut 12V','1) Codes ICCU 2) Test DC-DC 3) Remplacement ICCU + 12V','ICCU, 12V','U0111, P0AA6','NHTSA / campagne','2021-2026'],
+ ['hyundai','Kona EV','Incendie batterie Kona EV','Risque incendie modules','1) Campagne BMS 2) Remplacement batterie si concerné','Batterie HV','P0AA6','Safety Gate / NHTSA','2018-2022'],
+ ['kia','Theta II','Serrage Theta II','Idem Hyundai','Procédure identique','Coussinets','','NHTSA','2017-2023'],
+ ['kia','ICCU','ICCU EV6/EV9','Non-charge, défaut 12V','Procédure ICCU','ICCU','U0111','Campagne constructeur','2021-2026'],
+ ['lexus','Hybrid','Pompe onduleur Lexus','Idem Toyota','Procédure identique','Pompe onduleur','P0A93','TSB','2017-2026'],
+ ['byd','','BMS/équilibrage LFP','Perte autonomie, delta cellules','1) Delta >60 mV = défaut 2) Charge lente équilibrage 3) MAJ BMS 4) Module si nécessaire','BMS, modules','P0AA6, U0111','Campagne constructeur','2022-2026'],
+ ['mg','','12V / DC-DC MG EV','Non-démarrage, défaut 12V','1) SOH 12V 2) Test DC-DC 3) MAJ 4) Remplacement 12V','12V, DC-DC','U0111','Campagne constructeur','2020-2026'],
+ ['mg','','Caméra/ADAS MG','Défaut assistance','Recalibration + MAJ','Caméra','U0121','Campagne constructeur','2021-2026'],
+ ['lynkco','','PHEV batterie/charge','Défaut charge PHEV','1) Codes OBC 2) Campagne 3) Remplacement OBC','OBC','P0D11','Campagne constructeur','2020-2026'],
+ ['nio','','Batterie HV / BaaS','Défaut batterie, swap station','1) Codes BMS 2) Diagnostic station 3) Module','BMS','','Campagne constructeur','2022-2026'],
+ ['xpeng','','Charge/OTA','Défaut charge après mise à jour','1) Logs OTA 2) Re-flash 3) OBC','OBC/logiciel','P0D11','Campagne constructeur','2021-2026'],
+ ['aiways','','12V / batterie HV','Défaut 12V répété','Procédure EV standard','12V','U0111','Campagne constructeur','2020-2026'],
+ ['seres','','EREV batterie/générateur','Défaut générateur range-extender','1) Codes 2) Campagne 3) Générateur','Générateur','','Campagne constructeur','2021-2026'],
+ ['omoda','','Campagnes essence/PHEV','Selon motorisation','Procédures constructeur','—','','Campagne constructeur','2023-2026'],
+ ['jaecoo','','PHEV batterie/charge','Défaut charge','Procédure OBC','OBC','P0D11','Campagne constructeur','2024-2026'],
+ ['leapmotor','','BMS/12V','Défaut 12V','Procédure EV','12V','U0111','Campagne constructeur','2023-2026'],
+ ['ora','','Charge AC','Défaut charge AC','OBC','OBC','P0D11','Campagne constructeur','2023-2026'],
+ ['ford','EcoBoost','Courroie humide + LDR cylindres','Bruit courroie, ratés après stationnement','1) État courroie 2) Endoscopie/compression 3) Joints culasse/injecteurs 4) Kit courroie + joints','Kit courroie, joints','P0300, P0301','TSB','2018-2024'],
+ ['ford','PowerShift','Broutage embrayage sec','Vibrations démarrage, à-coups basse vitesse','1) Adaptations embrayage 2) Apprentissage TSB 3) Kit embrayage si confirmé','Kit embrayage','P0700','TSB / NHTSA','2017-2023'],
+ ['ford','','ADAS BlueCruise / caméras','Défaut conduite autonome','1) Recalibration 2) MAJ 3) Logs NHTSA','Caméra/radar','U0101, U0121','NHTSA','2019-2026'],
+ ['tesla','','eMMC MCU','Écran noir, reboots, lenteur','1) Santé eMMC mode service 2) Logs reboot 3) MCU sous garantie étendue','MCU, eMMC','U0101','NHTSA','2017-2023'],
+ ['tesla','','Freinage fantôme ACC','Freinage brusque inopiné','1) Version caméras 2) Recalibration 3) MAJ logicielle','Caméras','','NHTSA','2021-2026'],
+ ['tesla','','Contacteurs batterie HV','Défaut isolement/contacteur','1) Résistance isolement 2) Test contacteurs 3) Remplacement','Contacteurs','P0AA6','NHTSA','2017-2026'],
+ ['jeep','MultiJet','FAP/EGR Jeep','Colmatage, perte puissance','Procédure diesel','FAP, EGR','P2002, P0401','TSB','2017-2026'],
+ ['jeep','Uconnect','Uconnect reboots/caméra','Perte écran, caméra HS','MAJ logiciel','—','U0101','NHTSA','2017-2026'],
+ ['chevrolet','','Campagnes sécurité NHTSA','Selon campagne (airbag/caméra)','1) VIN NHTSA 2) Campagne 3) Remplacement','—','','NHTSA','2017-2026'],
+ ['dodge','','Faisceau/incendie campagnes','Risque échauffement faisceau','1) VIN 2) Inspection faisceau 3) Remplacement','Faisceau','','NHTSA','2017-2023'],
+ ['cadillac','Lyriq','Batterie HV Lyriq (campagne)','Défaut batterie, limitation','1) Codes BMS 2) Campagne 3) Module','Module batterie','P0AA6','NHTSA','2024-2026'],
+ ['dacia','','Campagnes sécurité Dacia','Airbag/ceintures selon VIN','1) VIN Rappel Conso 2) Campagne 3) Remplacement','—','','Rappel Conso','2017-2026']
+];
+/* ===== PROCÉDURES INGÉNIEUR PAR ÉNERGIE (toutes marques) : [title, symptom, diagnosis, parts, dtc] ===== */
+const GENERIC_EXPERT = {
+ diesel: [
+  ['Diagnostic EGR complet','Voyant moteur, perte puissance, ralenti instable','1) Lire P0401/P0490 2) Test position EGR au diag (consigne vs réel) 3) Mesure encrassement refroidisseur (ΔP) 4) Nettoyage ou remplacement + adaptation','Vanne EGR, refroidisseur EGR','P0401, P0490'],
+  ['Diagnostic FAP complet','Régénérations fréquentes, perte puissance','1) Lire P2002/P2463 2) Mesure différentielle pression FAP 3) Régénération forcée au diag 4) Remplacement si colmatage irréversible','FAP, capteur ΔP','P2002, P2463'],
+  ['Diagnostic AdBlue complet','Countdown non-démarrage, voyant AdBlue','1) Lire P20EE/P204F/P207F 2) Test débit pompe AdBlue 3) Inspection cristallisation injecteur 4) Remplacement pompe/injecteur + réinit','Pompe AdBlue, injecteur, réservoir','P20EE, P204F'],
+  ['Diagnostic pompe haute pression','Démarrage difficile, pression rail basse','1) Lire P0087/P0088 2) Mesure pression rail vs consigne 3) Test débits retour injecteurs 4) Remplacement pompe HP','Pompe HP, régulateur','P0087, P0088'],
+  ['Diagnostic injecteurs diesel','Claquement, fumée, surconso, ratés','1) Lire P0201-P0204 2) Test débits retour 3) Banc injecteurs 4) Remplacement injecteurs défectueux + codage','Injecteurs','P0201-P0204']],
+ essence: [
+  ['Diagnostic chaîne distribution','Claquement à froid, défaut calage','1) Lire P0016/P0335 2) Scope synchro vilo/AAC 3) Contrôle tendeur/guides 4) Kit chaîne complet','Kit chaîne, tendeur','P0016, P0335'],
+  ['Diagnostic courroie distribution','Bruit, risque rupture, débris huile','1) Inspection visuelle + gabarit usure 2) Contrôle carter débris 3) Pression huile 4) Kit courroie + pompe + vidange','Kit courroie, pompe à huile','P0087, P0340'],
+  ['Diagnostic allumage complet','Ratés, à-coups, perte puissance','1) Lire P0300-P0304 2) Permutation bobines/bougies 3) Test compressions 4) Remplacement bougies/bobines','Bougies, bobines','P0300-P0304'],
+  ['Diagnostic GPF/catalyseur','Perte puissance, voyant, odeur','1) Lire P2463/P0420 2) Régénération forcée 3) Contrôle contre-pression 4) Remplacement GPF/catalyseur','GPF, catalyseur','P2463, P0420']],
+ hybride: [
+  ['Diagnostic batterie HV','Perte autonomie, défaut isolement','1) Lire U0111/P0AA6 2) Delta cellules au diag 3) Test isolement 4) Équilibrage ou module','BMS, modules HV','U0111, P0AA6'],
+  ['Diagnostic onduleur/convertisseur','Perte puissance, défaut hybride','1) Codes onduleur 2) Test pompe LDR onduleur 3) Contrôle connexions HV 4) Remplacement onduleur','Onduleur, pompe','P0A93, P0AA6'],
+  ['Diagnostic charge hybride','Charge lente/absente','1) Lire P0D11 2) Test OBC AC/DC 3) Contrôle connecteur 4) Remplacement OBC','OBC, connecteur','P0D11']],
+ electrique: [
+  ['Diagnostic isolement HV','Défaut isolement, coupure sécurité','1) Lire P0AA6 2) Mesure résistance isolement 3) Identification branche défaillante 4) Remplacement composant HV','Câblage HV, batterie','P0AA6'],
+  ['Diagnostic charge complet','Charge lente/absente, erreurs borne','1) Lire P0D11/U0111 2) Test AC + DC 3) Contrôle ICCU/OBC 4) Remplacement ICCU/OBC + MAJ','ICCU, OBC','P0D11, U0111'],
+  ['Diagnostic autonomie/BMS','Perte autonomie anormale','1) SOH + delta cellules 2) Historique charges 3) MAJ BMS 4) Équilibrage ou module','BMS, modules','U0111'],
+  ['Diagnostic 12V/DC-DC','Non-démarrage, défaut 12V','1) SOH batterie 12V 2) Test sortie DC-DC 3) Courant de repos 4) Remplacement 12V/DC-DC','12V, DC-DC','P0562, U0111']]
+};
+const UNIV = [
+  ['Airbag (campagne Takata / générateur)', 'Risque rupture générateur au déploiement — remplacement inflateur selon rappel', '', 'NHTSA / Rappel Conso'],
+  ['Ceintures de sécurité (prétensionneur/ancrage)', 'Prétensionneur pyrotechnique ou ancrage non conforme — campagne de contrôle', '', 'Safety Gate'],
+  ['Caméra recul / 360°', 'Image figée, buée, perte signal — MAJ ou remplacement caméra', '', 'Campagne constructeur'],
+  ['Caméra ADAS / radar (calibration)', 'Perte fonctions assistance, défaut calibration pare-brise', 'U0121', 'Campagne constructeur'],
+  ['Conduite autonome / ACC', 'Freinage fantôme, perte assistance direction — MAJ logicielle obligatoire', 'U0101', 'NHTSA'],
+  ['Court-circuit faisceau / 12V', 'Risque échauffement câblage, incendie — campagne inspection faisceau', '', 'NHTSA / Rappel Conso'],
+  ['Incendie compartiment moteur / batterie', 'Fuite carburant ou défaut module HV — arrêt immédiat si rappel ouvert', '', 'Safety Gate / NHTSA'],
+  ['Électronique multiplexée / gateway', 'Défauts communication multiples, écrans figés', 'U0101 / U0121', 'Campagne constructeur'],
+  ['Batterie 12V / système charge', 'Non-démarrage répétitif, contrôle SOH + alternateur/DC-DC', 'P0562', 'Campagne constructeur'],
+  ['Capteurs TPMS / pression', 'Perte signal capteur, voyant erroné', '', 'Campagne constructeur']
+];
+const GENERIC = {
+  diesel: { issues: [['Vanne EGR encrassée', 'Perte puissance, voyant, ralenti instable', 'P0401 / P0490'], ['FAP colmaté', 'Régénérations fréquentes, perte puissance', 'P2002 / P2463'], ['Système AdBlue', 'Cristallisation, pompe HS, countdown', 'P20EE / P204F'], ['Pompe haute pression', 'Démarrage difficile, pression rail basse', 'P0087 / P0088'], ['Injecteurs', 'Claquement, fumée, surconso, ratés', 'P0201-P0204'], ['Chaîne / courroie distribution', 'Claquement froid, décalage calage', 'P0016 / P0335'], ['Turbo / géométrie variable', 'Perte puissance, sifflement anormal', 'P0299 / P0234'], ['Préchauffage', 'Démarrage difficile à froid', 'P0380 / P0671']], dtc: ['P0401', 'P0490', 'P2002', 'P2463', 'P20EE', 'P0087', 'P0201', 'P0016', 'P0299', 'P0380'] },
+  essence: { issues: [['Chaîne de distribution', 'Claquement froid, usure tendeur', 'P0016 / P0335'], ['Courroie de distribution (humide)', 'Débris, pompe à huile colmatée', 'P0087 / P0340'], ['Injecteurs / calamine (injection directe)', 'Ratés, ralenti instable, perte puissance', 'P0300-P0304'], ['Pompe haute pression (GDI)', 'Pression rail insuffisante', 'P0087'], ['Catalyseur', 'Vieillissement, contre-pression, odeur', 'P0420'], ['Turbo', 'Fuite admission, sous/sur-turbo', 'P0299 / P0234'], ['Allumage bougies/bobines', 'À-coups, ratés accélération', 'P0300-P0304'], ['Électronique / tension', 'Défauts multiples, batterie/alternateur', 'P0562']], dtc: ['P0016', 'P0087', 'P0300', 'P0301', 'P0335', 'P0340', 'P0420', 'P0299', 'P0562'] },
+  hybride: { issues: [['Batterie haute tension', 'Vieillissement cellules, équilibrage, isolation', 'U0111 / P0AA6'], ['Onduleur / convertisseur', 'Perte puissance, défaut isolement', 'P0AA6'], ['Défaut de charge', 'Charge lente/absente (OBC/ICCU)', 'P0D11 / U0111'], ['Défaut d\'autonomie', 'Perte capacité, estimation erronée', 'U0111'], ['Freinage régénératif', 'À-coups, capteur pédale', 'C1365'], ['Batterie 12V / DC-DC', 'Non-démarrage, défaut circuit charge', 'P0562 / U0111'], ['Thermique batterie', 'Refroidissement, surchauffe modules', 'P0C00'], ['Moteur thermique associé', 'EGR/FAP/courroie selon motorisation', 'P0401 / P0087']], dtc: ['U0111', 'P0AA6', 'P0D11', 'P0C00', 'C1365', 'P0562'] },
+  electrique: { issues: [['Batterie haute tension', 'Dégradation, surchauffe modules, BMS, isolation', 'P0AA6 / U0111'], ['Défaut de charge (OBC/ICCU/borne)', 'Charge lente/absente, erreurs connecteur', 'P0D11 / U0111'], ['Défaut d\'autonomie', 'Perte capacité, équilibrage cellules', 'U0111'], ['Court-circuit / isolement HV', 'Défaut isolement, sécurité coupure', 'P0AA6'], ['Batterie 12V / DC-DC', 'Non-démarrage, défaut 12V', 'P0562 / U0111'], ['Moteur électrique / onduleur', 'Perte puissance, bruit anormal', 'P0AA6'], ['Thermique batterie', 'Refroidissement, pompe LDR', 'P0C00'], ['Électronique / logiciels', 'Bugs BMS/MBUX, MAJ nécessaires', 'U0101']], dtc: ['P0AA6', 'U0111', 'P0D11', 'P0C00', 'P0562', 'U0101'] }
+};
 const ENSURE = [
  ['renault','R4 E-Tech','2024-2026',[['Electrique 120','electrique','120 ch'],['Electrique 150','electrique','150 ch']]],
  ['renault','Twingo E-Tech','2026-2026',[['Electrique 82','electrique','82 ch']]],
@@ -66,24 +180,6 @@ const ENSURE = [
  ['tesla','Model 3 Highland','2023-2026',[['Propulsion 264','electrique','264 ch'],['Grande Autonomie 498','electrique','498 ch']]],
  ['tesla','Cybertruck','2024-2026',[['Electrique 600','electrique','600 ch'],['Electrique 845','electrique','845 ch']]]
 ];
-const GENERIC = {
-  diesel: { issues: [['Vanne EGR encrassée', 'Perte puissance, voyant, ralenti instable', 'P0401 / P0490'], ['FAP colmaté', 'Régénérations fréquentes, perte puissance', 'P2002 / P2463'], ['Système AdBlue', 'Cristallisation, pompe HS, countdown', 'P20EE / P204F'], ['Pompe haute pression', 'Démarrage difficile, pression rail basse', 'P0087 / P0088'], ['Injecteurs', 'Claquement, fumée, surconso, ratés', 'P0201-P0204'], ['Chaîne / courroie distribution', 'Claquement froid, décalage calage', 'P0016 / P0335'], ['Turbo / géométrie variable', 'Perte puissance, sifflement anormal', 'P0299 / P0234'], ['Préchauffage', 'Démarrage difficile à froid', 'P0380 / P0671']], dtc: ['P0401', 'P0490', 'P2002', 'P2463', 'P20EE', 'P0087', 'P0201', 'P0016', 'P0299', 'P0380'] },
-  essence: { issues: [['Chaîne de distribution', 'Claquement froid, usure tendeur', 'P0016 / P0335'], ['Courroie de distribution (humide)', 'Débris, pompe à huile colmatée', 'P0087 / P0340'], ['Injecteurs / calamine (injection directe)', 'Ratés, ralenti instable, perte puissance', 'P0300-P0304'], ['Pompe haute pression (GDI)', 'Pression rail insuffisante', 'P0087'], ['Catalyseur', 'Vieillissement, contre-pression, odeur', 'P0420'], ['Turbo', 'Fuite admission, sous/sur-turbo', 'P0299 / P0234'], ['Allumage bougies/bobines', 'À-coups, ratés accélération', 'P0300-P0304'], ['Électronique / tension', 'Défauts multiples, batterie/alternateur', 'P0562']], dtc: ['P0016', 'P0087', 'P0300', 'P0301', 'P0335', 'P0340', 'P0420', 'P0299', 'P0562'] },
-  hybride: { issues: [['Batterie haute tension', 'Vieillissement cellules, équilibrage, isolation', 'U0111 / P0AA6'], ['Onduleur / convertisseur', 'Perte puissance, défaut isolement', 'P0AA6'], ['Défaut de charge', 'Charge lente/absente (OBC/ICCU)', 'P0D11 / U0111'], ['Défaut d\'autonomie', 'Perte capacité, estimation erronée', 'U0111'], ['Freinage régénératif', 'À-coups, capteur pédale', 'C1365'], ['Batterie 12V / DC-DC', 'Non-démarrage, défaut circuit charge', 'P0562 / U0111'], ['Thermique batterie', 'Refroidissement, surchauffe modules', 'P0C00'], ['Moteur thermique associé', 'EGR/FAP/courroie selon motorisation', 'P0401 / P0087']], dtc: ['U0111', 'P0AA6', 'P0D11', 'P0C00', 'C1365', 'P0562'] },
-  electrique: { issues: [['Batterie haute tension', 'Dégradation, surchauffe modules, BMS, isolation', 'P0AA6 / U0111'], ['Défaut de charge (OBC/ICCU/borne)', 'Charge lente/absente, erreurs connecteur', 'P0D11 / U0111'], ['Défaut d\'autonomie', 'Perte capacité, équilibrage cellules', 'U0111'], ['Court-circuit / isolement HV', 'Défaut isolement, sécurité coupure', 'P0AA6'], ['Batterie 12V / DC-DC', 'Non-démarrage, défaut 12V', 'P0562 / U0111'], ['Moteur électrique / onduleur', 'Perte puissance, bruit anormal', 'P0AA6'], ['Thermique batterie', 'Refroidissement, pompe LDR', 'P0C00'], ['Électronique / logiciels', 'Bugs BMS/MBUX, MAJ nécessaires', 'U0101']], dtc: ['P0AA6', 'U0111', 'P0D11', 'P0C00', 'P0562', 'U0101'] }
-};
-const UNIV = [
-  ['Airbag (campagne Takata / générateur)', 'Risque rupture générateur au déploiement — remplacement inflateur selon rappel', '', 'NHTSA / Rappel Conso'],
-  ['Ceintures de sécurité (prétensionneur/ancrage)', 'Prétensionneur pyrotechnique ou ancrage non conforme — campagne de contrôle', '', 'Safety Gate'],
-  ['Caméra recul / 360°', 'Image figée, buée, perte signal — MAJ ou remplacement caméra', '', 'Campagne constructeur'],
-  ['Caméra ADAS / radar (calibration)', 'Perte fonctions assistance, défaut calibration pare-brise', 'U0121', 'Campagne constructeur'],
-  ['Conduite autonome / ACC', 'Freinage fantôme, perte assistance direction — MAJ logicielle obligatoire', 'U0101', 'NHTSA'],
-  ['Court-circuit faisceau / 12V', 'Risque échauffement câblage, incendie — campagne inspection faisceau', '', 'NHTSA / Rappel Conso'],
-  ['Incendie compartiment moteur / batterie', 'Fuite carburant ou défaut module HV — arrêt immédiat si rappel ouvert', '', 'Safety Gate / NHTSA'],
-  ['Électronique multiplexée / gateway', 'Défauts communication multiples, écrans figés', 'U0101 / U0121', 'Campagne constructeur'],
-  ['Batterie 12V / système charge', 'Non-démarrage répétitif, contrôle SOH + alternateur/DC-DC', 'P0562', 'Campagne constructeur'],
-  ['Capteurs TPMS / pression', 'Perte signal capteur, voyant erroné', '', 'Campagne constructeur']
-];
 let db, usersData = {}, brandsData = {}, motorsCache = [], deferredPrompt = null, listenersStarted = false, ensureDone = false;
 let curBrand = null, curModelId = null, curModelName = null;
 
@@ -93,7 +189,6 @@ window.addEventListener('DOMContentLoaded', () => {
   db = firebase.database();
   setupInstall(); bindAdminTable(); boot(); checkMonthly();
 });
-
 function el(id) { return document.getElementById(id); }
 function val(id) { return el(id).value; }
 function getSession() { try { return JSON.parse(localStorage.getItem(SESSION_KEY)); } catch (e) { return null; } }
@@ -104,8 +199,8 @@ function notify(m, t) { const n = document.createElement('div'); n.className = '
 function esc(s) { const d = document.createElement('div'); d.textContent = String(s); return d.innerHTML; }
 function deviceId() { let id = localStorage.getItem('autodiag_device'); if (!id) { id = 'DEV-' + Math.random().toString(36).substr(2, 8).toUpperCase(); localStorage.setItem('autodiag_device', id); } return id; }
 function uid(p) { return p + '_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5); }
+function kwMatch(kw, motor) { if (!kw) return true; if (!motor) return false; return String(motor.name).toLowerCase().includes(String(kw).toLowerCase()); }
 
-/* ===== AUTO-RÉPARATION : modèles + fiches rappels clés ===== */
 async function ensureCatalog() {
   if (ensureDone) return;
   ensureDone = true;
@@ -129,10 +224,9 @@ async function ensureCatalog() {
     const ex = (await db.ref('data/expert').once('value')).val() || {};
     const tE = {}; Object.values(ex).forEach(x => tE[String(x.title).toLowerCase()] = 1);
     for (const k of KEY_EXPERT) if (!tE[k.title.toLowerCase()]) { await db.ref('data/expert/' + uid('key')).set(k); aI++; }
-    if (aI) notify('🔩 Rappels officiels ajoutés (Bigster ressorts AR + procédure)');
+    if (aI) notify('🔩 Rappels officiels ajoutés (Bigster ressorts AR)');
   } catch (e) { console.warn('ensure', e); }
 }
-
 async function checkMonthly() {
   const v = (await db.ref('data/version').once('value')).val();
   if (!v || !v.lastUpdate) return;
@@ -145,7 +239,6 @@ async function updateBase(manual) {
   await db.ref('data/version').set({ version: Date.now(), lastUpdate: new Date().toISOString(), updateIntervalDays: 30 });
   if (manual) notify('✅ MAJ diffusée sur toutes les APK');
 }
-
 function boot() {
   if (!listenersStarted) {
     listenersStarted = true;
@@ -182,7 +275,6 @@ function showPending(p) {
 }
 function checkStatus() { routeUser(); }
 function resetSession() { localStorage.removeItem(SESSION_KEY); el('input-prenom').value = ''; showScreen('screen-home'); }
-
 function loginAdmin() {
   if (el('admin-pwd').value === ADMIN_PASSWORD) { sessionStorage.setItem('autodiag_admin', '1'); el('admin-pwd').value = ''; boot(); showScreen('screen-admin'); renderAdmin(); fillBrandSelects(); checkMonthly(); }
   else notify('❌ Mot de passe incorrect', 'error');
@@ -224,7 +316,6 @@ function shareAPK() {
   else if (navigator.clipboard) navigator.clipboard.writeText(u).then(() => notify('🔗 Lien copié'));
   else prompt('Lien :', u);
 }
-
 function fillBrandSelects() {
   ['nm-brand', 'is-brand', 'ex-brand'].forEach(id => { const s = el(id); if (!s) return; s.innerHTML = ''; Object.entries(brandsData).sort((a, b) => a[1].name.localeCompare(b[1].name)).forEach(([k, b]) => { s.innerHTML += '<option value="' + k + '">' + esc(b.name) + '</option>'; }); });
   fillModelSelect(); fillModelSelectAdmin();
@@ -279,7 +370,6 @@ async function importJSON() {
   }
   el('import-json').value = ''; notify('✅ ' + n + ' fiches importées');
 }
-
 let expertTimer = null;
 function expertSearch() { clearTimeout(expertTimer); expertTimer = setTimeout(doExpertSearch, 300); }
 async function doExpertSearch() {
@@ -291,12 +381,21 @@ async function doExpertSearch() {
   let html = '';
   Object.values(ex).filter(e => ((e.title || '') + ' ' + (e.symptom || '') + ' ' + (e.diagnosis || '') + ' ' + (e.parts || '') + ' ' + (e.dtc || '') + ' ' + (e.motor || '') + ' ' + (e.model || '')).toLowerCase().includes(q)).slice(0, 15).forEach(e => html += expertCard(e, '🧠 '));
   Object.values(iss).filter(i => ((i.title || '') + ' ' + (i.detail || '') + ' ' + (i.dtc || '') + ' ' + (i.model || '')).toLowerCase().includes(q)).slice(0, 10).forEach(i => html += issueCard(i, ''));
+  BRAND_EXPERT.filter(e => (e[2] + ' ' + e[3] + ' ' + e[4] + ' ' + e[5] + ' ' + e[6]).toLowerCase().includes(q)).slice(0, 15).forEach(e => html += bexCard(e));
   UNIV.filter(u => (u[0] + ' ' + u[1]).toLowerCase().includes(q)).forEach(u => html += univCard(u));
   Object.entries(GENERIC).forEach(([f, g]) => g.issues.forEach(i => { if ((i[0] + ' ' + i[1]).toLowerCase().includes(q)) html += '<div class="issue-card"><strong>' + i[0] + '</strong><span class="src">Typique ' + FUELS[f] + '</span><p>' + i[1] + '</p><p style="color:#fbbf24;font-size:12px">DTC : ' + i[2] + '</p></div>'; }));
+  Object.entries(GENERIC_EXPERT).forEach(([f, list]) => list.forEach(g => { if ((g[0] + ' ' + g[1] + ' ' + g[2]).toLowerCase().includes(q)) html += genCard(g, f); }));
   box.innerHTML = html || '<p style="color:#94a3b8">Aucune fiche pour « ' + esc(q) + ' » — essayez : ressort, suspension, airbag, ceinture, caméra, ADAS, incendie, court-circuit, charge, autonomie, courroie, chaîne, FAP, EGR, injecteurs…</p>';
 }
 function srcLink(u) { return u ? '<p><a href="' + u + '" target="_blank" rel="noopener" style="color:#4ade80;font-size:12px;font-weight:600">🔗 Source officielle / spécialisée</a></p>' : ''; }
 function univCard(u) { return '<div class="issue-card" style="border-left-color:#f59e0b"><strong>🌐 ' + u[0] + '</strong><span class="src">' + u[3] + '</span><p>' + u[1] + '</p>' + (u[2] ? '<p style="color:#fbbf24;font-size:12px">DTC : ' + u[2] + '</p>' : '') + '</div>'; }
+function bexCard(e) {
+  const bn = brandsData[e[0]] ? brandsData[e[0]].name : e[0];
+  return '<div class="issue-card" style="border-left-color:#f59e0b"><strong>🧠 ' + esc(e[2]) + '</strong><span class="src">' + esc(e[7]) + '</span><span class="src">' + esc(bn) + '</span>' + (e[1] ? '<span class="src">' + esc(e[1]) + '</span>' : '') +
+    '<p><strong>⚠️ Symptômes :</strong> ' + esc(e[3]) + '</p><p><strong>🔬 Diagnostic ingénieur :</strong> ' + esc(e[4]) + '</p><p><strong>🔩 Pièces :</strong> ' + esc(e[5]) + '</p>' +
+    (e[6] ? '<p style="color:#fbbf24;font-size:12px">DTC : ' + esc(e[6]) + '</p>' : '') + '<p style="font-size:11px;color:#94a3b8">Années : ' + esc(e[8]) + ' • Tous modèles</p></div>';
+}
+function genCard(g, f) { return '<div class="issue-card" style="border-left-color:#38bdf8"><strong>🔬 ' + g[0] + '</strong><span class="src">Procédure ingénieur ' + FUELS[f] + '</span><p><strong>⚠️ Symptômes :</strong> ' + g[1] + '</p><p><strong>🧪 Protocole :</strong> ' + g[2] + '</p><p><strong>🔩 Pièces :</strong> ' + g[3] + '</p><p style="color:#fbbf24;font-size:12px">DTC : ' + g[4] + '</p></div>'; }
 function expertCard(e, prefix) {
   const bn = brandsData[e.brandId] ? brandsData[e.brandId].name : '';
   return '<div class="issue-card" style="border-left-color:#f59e0b"><strong>' + prefix + esc(e.title) + '</strong><span class="src">🧠 ' + esc(e.source || 'Expert') + '</span>' + (bn ? '<span class="src">' + esc(bn) + '</span>' : '') + (e.model ? '<span class="src">' + esc(e.model) + '</span>' : '') + (e.motor ? '<span class="src">' + esc(e.motor) + '</span>' : '') +
@@ -307,7 +406,6 @@ function expertCard(e, prefix) {
     (e.years ? '<p style="font-size:11px;color:#94a3b8">Années : ' + esc(e.years) + '</p>' : '') + srcLink(e.url) + '</div>';
 }
 function issueCard(i, prefix) { return '<div class="issue-card"><strong>' + prefix + esc(i.title) + '</strong><span class="src">' + esc(i.source || '') + '</span>' + (i.motor ? '<span class="src">' + esc(i.motor) + '</span>' : '') + '<p>' + esc(i.detail || '') + '</p>' + (i.dtc ? '<p style="color:#fbbf24;font-size:12px">DTC : ' + esc(i.dtc) + '</p>' : '') + srcLink(i.url) + '</div>'; }
-
 async function enterApp() {
   const s = getSession(); const isAdmin = sessionStorage.getItem('autodiag_admin') === '1';
   if (!isAdmin && (!s || s.status !== 'accepted')) return notify('Accès non autorisé', 'error');
@@ -316,7 +414,7 @@ async function enterApp() {
   showScreen('screen-app');
   brandsData = (await db.ref('data/brands').once('value')).val() || {};
   const sel = el('sel-marque');
-  const regions = { francaises: '🇫 Françaises', europeennes: '🇪 Européennes', asiatiques: '🌏 Asiatiques', chinoises: '🇨🇳 Chinoises', americaines: '🇺 Américaines' };
+  const regions = { francaises: '🇫 Françaises', europeennes: '🇪🇺 Européennes', asiatiques: '🌏 Asiatiques', chinoises: '🇨 Chinoises', americaines: '🇺🇸 Américaines' };
   sel.innerHTML = '<option value="">-- Choisir --</option>';
   Object.entries(regions).forEach(([r, label]) => {
     const items = Object.entries(brandsData).filter(([, b]) => b.region === r);
@@ -359,14 +457,22 @@ async function correlate() {
   if (fuel && GENERIC[fuel]) GENERIC[fuel].issues.forEach(g => { html += '<div class="issue-card"><strong>' + g[0] + '</strong><span class="src">Typique ' + FUELS[fuel] + '</span><p>' + g[1] + '</p><p style="color:#fbbf24;font-size:12px">DTC : ' + g[2] + '</p></div>'; });
   UNIV.forEach(u => html += univCard(u));
   box.innerHTML = html || '<p style="color:#94a3b8">Aucune panne — vérifiez les sites officiels.</p>';
+  /* Couche expert : fiches base + fiches marque (tous modèles) + protocoles par énergie */
   const exAll = Object.values((await db.ref('data/expert').once('value')).val() || {});
   const exHits = exAll.filter(e => e.brandId === curBrand && (!e.model || e.model === curModelName) && motorMatch(e, motor));
-  ebox.innerHTML = exHits.length ? exHits.map(e => expertCard(e, '🧠 ')).join('') : '<p style="color:#94a3b8">Aucune fiche expert spécifique — recherche par symptôme ci-dessus.</p>';
+  const bex = BRAND_EXPERT.filter(e => e[0] === curBrand && kwMatch(e[1], motor));
+  let eh = '';
+  exHits.forEach(e => eh += expertCard(e, '🧠 '));
+  bex.forEach(e => eh += bexCard(e));
+  if (fuel && GENERIC_EXPERT[fuel]) GENERIC_EXPERT[fuel].forEach(g => eh += genCard(g, fuel));
+  ebox.innerHTML = eh || '<p style="color:#94a3b8">Aucune fiche expert — recherche par symptôme ci-dessus.</p>';
   const codes = new Set();
   all.forEach(i => String(i.dtc || '').split(/[,\/\s]+/).forEach(c => { if (/^[A-Z0-9]{4,}$/i.test(c)) codes.add(c.toUpperCase()); }));
   exHits.forEach(e => String(e.dtc || '').split(/[,\/\s]+/).forEach(c => { if (/^[A-Z0-9]{4,}$/i.test(c)) codes.add(c.toUpperCase()); }));
+  bex.forEach(e => String(e[6] || '').split(/[,\/\s]+/).forEach(c => { if (/^[A-Z0-9]{4,}$/i.test(c)) codes.add(c.toUpperCase()); }));
   UNIV.forEach(u => String(u[2] || '').split(/[,\/\s]+/).forEach(c => { if (/^[A-Z0-9]{4,}$/i.test(c)) codes.add(c.toUpperCase()); }));
   if (fuel && GENERIC[fuel]) GENERIC[fuel].dtc.forEach(c => codes.add(c));
+  if (fuel && GENERIC_EXPERT[fuel]) GENERIC_EXPERT[fuel].forEach(g => String(g[4] || '').split(/[,\/\s]+/).forEach(c => { if (/^[A-Z0-9]{4,}$/i.test(c)) codes.add(c.toUpperCase()); }));
   const D = (await db.ref('data/dtc').once('value')).val() || {};
   let dh = '';
   codes.forEach(c => { const d = D[c] || D[c.replace(/[^A-Z0-9]+/g, '_')]; dh += d ? '<div class="dtc-card"><strong>' + esc(d.code) + '</strong><p>' + esc(d.description) + '</p>' + (d.cause ? '<p>🔍 ' + esc(d.cause) + '</p>' : '') + (d.solution ? '<p>🔧 ' + esc(d.solution) + '</p>' : '') + '</div>' : '<div class="dtc-card"><strong>' + esc(c) + '</strong><p>Code corrélé (détail à importer)</p></div>'; });
@@ -380,7 +486,6 @@ async function doSearchDTC() {
   const m = Object.values((await db.ref('data/dtc').once('value')).val() || {}).filter(d => (d.code || '').toUpperCase().includes(q) || (d.description || '').toLowerCase().includes(q.toLowerCase()));
   c.innerHTML = m.length ? m.slice(0, 12).map(d => '<div class="dtc-card"><strong>' + esc(d.code) + '</strong><p>' + esc(d.description) + '</p>' + (d.cause ? '<p>🔍 ' + esc(d.cause) + '</p>' : '') + (d.solution ? '<p>🔧 ' + esc(d.solution) + '</p>' : '') + '</div>').join('') : '<p style="color:#94a3b8">Aucun DTC trouvé</p>';
 }
-
 function setupInstall() {
   window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); deferredPrompt = e; el('install-btn').classList.remove('hidden'); });
   window.addEventListener('appinstalled', () => { el('install-btn').classList.add('hidden'); notify('🎉 APK installée !'); });
