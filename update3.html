@@ -1,0 +1,93 @@
+<!DOCTYPE html><html><head><title>Update 3</title></head>
+<body style="background:#000;color:#fff;padding:20px;font-family:sans-serif">
+<h1>🚗 MAJ 3 : R4 E-Tech, Bigster, rappels massifs</h1>
+<button onclick="run()" style="padding:18px;font-size:18px;background:#4ade80;border:none;border-radius:10px;cursor:pointer">LANCER</button>
+<pre id="log" style="font-size:12px"></pre>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
+<script src="./firebase-config.js"></script>
+<script>
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
+const log = m => document.getElementById('log').textContent += m + '\n';
+const NEW = [
+ ['renault','Renault R4 E-Tech','2024-2026',[['Electrique 120','electrique','120 ch'],['Electrique 150','electrique','150 ch']]],
+ ['dacia','Dacia Bigster','2025-2026',[['1.2 TCe 130','essence','130 ch'],['1.2 TCe 140 4x4','essence','140 ch'],['Hybrid 155','hybride','155 ch']]]
+];
+/* [brand, model('' = tous modèles), motor('' = tous), title, detail, source, dtc] */
+const ISS = [
+ ['toyota','','','Airbag Takata (générateur)','Risque rupture générateur au déploiement — remplacement inflateur selon rappel','NHTSA / Rappel Conso',''],
+ ['honda','','','Airbag Takata','Idem — campagne remplacement inflateur','NHTSA',''],
+ ['nissan','','','Airbag Takata','Idem — campagne remplacement inflateur','NHTSA',''],
+ ['mazda','','','Airbag Takata','Idem — campagne remplacement inflateur','NHTSA',''],
+ ['mitsubishi','','','Airbag Takata','Idem — campagne remplacement inflateur','NHTSA',''],
+ ['subaru','','','Airbag Takata','Idem — campagne remplacement inflateur','NHTSA',''],
+ ['lexus','','','Airbag Takata','Idem — campagne remplacement inflateur','NHTSA',''],
+ ['renault','','','Prétensionneur ceinture sécurité','Contrôle/remplacement prétensionneur pyrotechnique non conforme','Safety Gate',''],
+ ['peugeot','','','Ancrage ceinture sécurité','Contrôle ancrage/sangle selon campagne','Safety Gate',''],
+ ['volvo','','','Prétensionneur ceinture','Campagne contrôle prétensionneurs','Safety Gate',''],
+ ['mercedes','','','Boucle ceinture / capteur','Contrôle capteur boucle conducteur','Campagne constructeur',''],
+ ['tesla','','','Caméra habitacle / Autopilot','Perte signal caméra, défaut conduite autonome — MAJ + recalibration','NHTSA','U0101'],
+ ['bmw','','','Caméra recul','Image figée/buée — remplacement caméra','Campagne constructeur',''],
+ ['mercedes','','','Caméra 360°','Perte signal, image noire — MAJ ou remplacement','Campagne constructeur',''],
+ ['volvo','','','Caméra ADAS pare-brise','Défaut calibration après remplacement pare-brise','Campagne constructeur','U0121'],
+ ['toyota','','','Caméra recul','Perte image — campagne remplacement','Campagne constructeur',''],
+ ['tesla','','','Conduite autonome (ACC/direction)','Freinage fantôme, perte assistance — MAJ obligatoire','NHTSA','U0101'],
+ ['volvo','','','Pilot Assist','Désengagement direction inopiné — MAJ','NHTSA','U0101'],
+ ['bmw','','','Driving Assistant','Défaut radar/caméra — recalibration','Campagne constructeur','U0121'],
+ ['mercedes','','','Drive Pilot','Limitation fonctions — MAJ logicielle','Campagne constructeur','U0101'],
+ ['ford','','','BlueCruise','Défaut détection mains — MAJ','NHTSA','U0101'],
+ ['nissan','','','ProPilot','Freinage inopiné — MAJ','NHTSA','U0101'],
+ ['hyundai','','Kona EV','Incendie batterie HV / court-circuit','Risque incendie modules — BMS + remplacement batterie','Safety Gate / NHTSA','P0AA6'],
+ ['kia','','Niro EV','Incendie batterie HV','Idem — campagne batterie','Safety Gate','P0AA6'],
+ ['tesla','','','Court-circuit câblage HV','Inspection faisceau HV selon campagne','NHTSA','P0AA6'],
+ ['volvo','','EX30','Surchauffe module batterie','Campagne logicielle + contrôle modules','Safety Gate','P0AA6, P0C00'],
+ ['mg','','MG4','Court-circuit 12V / DC-DC','Contrôle faisceau 12V, MAJ','Campagne constructeur','U0111'],
+ ['byd','','','BMS / équilibrage batterie','Perte autonomie, delta cellules — MAJ BMS','Campagne constructeur','P0AA6, U0111'],
+ ['bmw','','dCi/TDI','Pompe haute pression','Perte pression rail, démarrage difficile — remplacement pompe','Campagne constructeur','P0087'],
+ ['mercedes','','CDI','Injecteurs / pompe HP','Claquement, fumée — test débits, remplacement','Campagne constructeur','P0201-P0204'],
+ ['volkswagen','','TDI','Injecteurs pompe-injecteur / rampe','Ratés diesel, fuite interne — test retour','TSB','P0201-P0204'],
+ ['renault','','dCi','Injecteurs / pompe HP','Claquement froid, surconso — test retour injecteurs','Campagne constructeur','P0087, P0201'],
+ ['fiat','','MultiJet','Injecteurs encrassement','Ratés, démarrage difficile — remplacement injecteurs','TSB','P0201-P0204'],
+ ['mazda','','Skyactiv-D','Injecteurs / calamine','Perte puissance, fumée — décalaminage, test injecteurs','TSB','P0201'],
+ ['bmw','','N47/N57','Chaîne de distribution','Claquement froid, casse tendeur — kit chaîne','NHTSA / TSB','P0016'],
+ ['mercedes','','OM651','Chaîne de distribution','Usure patins, décalage — kit chaîne','TSB','P0016'],
+ ['volkswagen','','TSI','Chaîne de distribution','Tendeur défaillant, saut de dent — kit chaîne','TSB','P0016'],
+ ['mini','','N13/N18','Chaîne de distribution','Claquement, casse — kit chaîne complet','TSB','P0016'],
+ ['ford','','EcoBoost','Courroie humide','Débris courroie, pompe à huile — kit courroie','TSB','P0087'],
+ ['volkswagen','','TDI','FAP / EGR','Colmatage FAP, EGR grippée — régénération/nettoyage','Campagne constructeur','P2002, P0401'],
+ ['mercedes','','OM654','FAP / AdBlue','Colmatage FAP, cristallisation AdBlue','Campagne constructeur','P2002, P20EE'],
+ ['bmw','','d','FAP / EGR','Régénérations fréquentes, EGR grippée','Campagne constructeur','P2002, P0401'],
+ ['ford','','EcoBlue','FAP','Colmatage courts trajets — régénération forcée','TSB','P2002, P2463'],
+ ['jeep','','MultiJet','FAP / EGR','Colmatage, vanne EGR grippée','TSB','P2002, P0401'],
+ ['nissan','','Leaf','Défaut autonomie / SOH batterie','Perte capacité — garantie si SOH <70%, équilibrage','Campagne constructeur','P0AA6'],
+ ['renault','','Zoe','Défaut charge / chargeur','Charge lente ou absente — chargeur Caméléon','Campagne constructeur','P0D11'],
+ ['peugeot','','e-208/e-2008','Défaut charge OBC','Non-charge AC — remplacement OBC','Campagne constructeur','P0D11'],
+ ['volkswagen','','ID.','Défaut charge / 12V','Non-charge, décharge 12V — MAJ ICU + 12V','Campagne constructeur','P0D11, U0111'],
+ ['opel','','','Multimédia / écran','Figements, reboots — MAJ logiciel','Campagne constructeur','U0101'],
+ ['fiat','','','Uconnect','Écran noir, perte Bluetooth — MAJ','TSB','U0101'],
+ ['jeep','','','Uconnect','Reboots, perte caméra — MAJ','NHTSA','U0101'],
+ ['skoda','','','Infotainment','Figements, perte CarPlay — MAJ','Campagne constructeur','U0101'],
+ ['audi','','','MMI','Écran noir, reboots — MAJ','TSB','U0101']
+];
+async function run() {
+  const existing = (await db.ref('data/models').once('value')).val() || {};
+  const names = {}; Object.values(existing).forEach(m => { names[m.brandId + '|' + m.name.toLowerCase()] = 1; });
+  let added = 0;
+  for (let i = 0; i < NEW.length; i++) {
+    const [bid, name, years, motors] = NEW[i];
+    if (names[bid + '|' + name.toLowerCase()]) { log('⏭️ Déjà présent : ' + name); continue; }
+    const id = 'y_' + bid + '_' + Date.now() + '_' + i;
+    await db.ref('data/models/' + id).set({ brandId: bid, name: name, years: years });
+    await db.ref('data/motors/' + id).set(motors.map(m => ({ name: m[0], fuel: m[1], power: m[2] })));
+    added++; log('✅ Ajouté : ' + name);
+  }
+  log('✅ ' + added + ' modèles ajoutés');
+  for (let i = 0; i < ISS.length; i++) {
+    await db.ref('data/issues/m3_' + i).set({ brandId: ISS[i][0], model: ISS[i][1], motor: ISS[i][2], title: ISS[i][3], detail: ISS[i][4], source: ISS[i][5], dtc: ISS[i][6] });
+  }
+  log('✅ ' + ISS.length + ' pannes/rappels par marque (tous modèles)');
+  await db.ref('data/version').set({ version: Date.now(), lastUpdate: new Date().toISOString(), updateIntervalDays: 30 });
+  log('\n🎉 TERMINÉ — supprimez update3.html de GitHub !');
+}
+</script></body></html>
