@@ -1,9 +1,18 @@
-/* APP.JS v6 — AUTO-RÉPARATION catalogue (R4 E-Tech, Bigster, récents) + expert + mensuel */
+/* APP.JS v7 — Rappel Bigster ressorts AR auto + sources officielles cliquables + expert + mensuel */
 const ADMIN_PASSWORD = 'Kevin83600';
 const SESSION_KEY = 'autodiag_session';
 const MONTHLY_MS = 30 * 24 * 60 * 60 * 1000;
 const FUELS = { essence: '⛽ Essence', diesel: '🛢️ Diesel', hybride: '🔋 Hybride', electrique: '⚡ Électrique' };
-/* Modèles récents GARANTIS : ajoutés automatiquement s'ils manquent en base */
+/* ===== FICHES CLÉS AUTO-AJOUTÉES (rappels officiels) ===== */
+const KEY_ISSUES = [
+ { brand:'dacia', model:'Bigster', motor:'', title:'Ressorts suspension AR : rupture (diamètre fil insuffisant)', detail:'Campagne de rappel : remplacement des 2 ressorts de suspension arrière suite à risque de rupture (diamètre de fil insuffisant). Contrôle visuel + mesure du diamètre, remplacement préventif selon VIN. Intervention gratuite en concession.', source:'Rappel Conso / Safety Gate', dtc:'', url:'https://www.rappel.conso.gouv.fr/' },
+ { brand:'dacia', model:'Bigster', motor:'', title:'Ressorts AR : alerte UE (contrôle obligatoire)', detail:'Alerte Safety Gate : risque de rupture des ressorts arrière — vérification obligatoire en concession, remplacement gratuit des ressorts non conformes.', source:'Safety Gate', dtc:'', url:'https://ec.europa.eu/safety-gate-alerts/screen/webReport/searchAdvanced' },
+ { brand:'dacia', model:'Bigster', motor:'', title:'Ressorts AR : suivi presse spécialisée', detail:'Articles et retours d\'utilisateurs sur la campagne ressorts arrière du Bigster (symptômes, délais de prise en charge).', source:'L\'Argus / Caradisiac', dtc:'', url:'https://www.largus.fr/' }
+];
+const KEY_EXPERT = [
+ { brand:'dacia', model:'Bigster', motor:'', title:'Procédure remplacement ressorts suspension AR (rappel)', symptom:'Claquement ou bruit de détente à l\'arrière, véhicule penché d\'un côté, fissure ou casse visible du ressort AR', diagnosis:'1) Vérifier le VIN sur rappel.conso.gouv.fr / Safety Gate 2) Lever le véhicule, roues AR suspendues 3) Inspecter les 2 ressorts AR : fissures, corrosion, diamètre de fil vs spécification constructeur 4) Remplacer les 2 ressorts + coupelles/butées 5) Serrer aux couples constructeur 6) Contrôle géométrie + essai routier', parts:'Ressorts AR x2, coupelles, butées', dtc:'', source:'Rappel Conso / Safety Gate', years:'2025-2026', url:'https://www.rappel.conso.gouv.fr/' }
+];
+/* ===== Modèles récents GARANTIS ===== */
 const ENSURE = [
  ['renault','R4 E-Tech','2024-2026',[['Electrique 120','electrique','120 ch'],['Electrique 150','electrique','150 ch']]],
  ['renault','Twingo E-Tech','2026-2026',[['Electrique 82','electrique','82 ch']]],
@@ -94,8 +103,9 @@ function screenIsActive(id) { return el(id).classList.contains('active'); }
 function notify(m, t) { const n = document.createElement('div'); n.className = 'notification' + (t === 'error' ? ' error' : ''); n.textContent = m; document.body.appendChild(n); setTimeout(() => n.remove(), 3500); }
 function esc(s) { const d = document.createElement('div'); d.textContent = String(s); return d.innerHTML; }
 function deviceId() { let id = localStorage.getItem('autodiag_device'); if (!id) { id = 'DEV-' + Math.random().toString(36).substr(2, 8).toUpperCase(); localStorage.setItem('autodiag_device', id); } return id; }
+function uid(p) { return p + '_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5); }
 
-/* ===== AUTO-RÉPARATION CATALOGUE ===== */
+/* ===== AUTO-RÉPARATION : modèles + fiches rappels clés ===== */
 async function ensureCatalog() {
   if (ensureDone) return;
   ensureDone = true;
@@ -111,7 +121,15 @@ async function ensureCatalog() {
       await db.ref('data/motors/' + id).set(e[3].map(m => ({ name: m[0], fuel: m[1], power: m[2] })));
       added++;
     }
-    if (added) notify('🚗 ' + added + ' modèles récents ajoutés automatiquement (R4 E-Tech, Bigster…)');
+    if (added) notify('🚗 ' + added + ' modèles récents ajoutés automatiquement');
+    const iss = (await db.ref('data/issues').once('value')).val() || {};
+    const tI = {}; Object.values(iss).forEach(x => tI[String(x.title).toLowerCase()] = 1);
+    let aI = 0;
+    for (const k of KEY_ISSUES) if (!tI[k.title.toLowerCase()]) { await db.ref('data/issues/' + uid('key')).set(k); aI++; }
+    const ex = (await db.ref('data/expert').once('value')).val() || {};
+    const tE = {}; Object.values(ex).forEach(x => tE[String(x.title).toLowerCase()] = 1);
+    for (const k of KEY_EXPERT) if (!tE[k.title.toLowerCase()]) { await db.ref('data/expert/' + uid('key')).set(k); aI++; }
+    if (aI) notify('🔩 Rappels officiels ajoutés (Bigster ressorts AR + procédure)');
   } catch (e) { console.warn('ensure', e); }
 }
 
@@ -228,12 +246,12 @@ async function addMotor() {
 }
 async function addIssue() {
   const t = el('is-title').value.trim(); if (!t) return notify('Titre requis', 'error');
-  await db.ref('data/issues/iss_' + Date.now()).set({ brandId: val('is-brand'), model: val('is-model'), title: t, detail: el('is-detail').value.trim(), source: val('is-source'), dtc: el('is-dtc').value.trim() });
+  await db.ref('data/issues/iss_' + Date.now()).set({ brandId: val('is-brand'), model: val('is-model'), title: t, detail: el('is-detail').value.trim(), source: val('is-source'), dtc: el('is-dtc').value.trim(), url: el('is-url') ? el('is-url').value.trim() : '' });
   el('is-title').value = ''; el('is-detail').value = ''; notify('✅ Panne ajoutée');
 }
 async function addExpert() {
   const t = el('ex-title').value.trim(); if (!t) return notify('Titre requis', 'error');
-  await db.ref('data/expert/ex_' + Date.now()).set({ brandId: val('ex-brand'), model: el('ex-model').value.trim(), motor: el('ex-motor').value.trim(), title: t, symptom: el('ex-symptom').value.trim(), diagnosis: el('ex-diag').value.trim(), parts: el('ex-parts').value.trim(), dtc: el('ex-dtc').value.trim(), years: el('ex-years').value.trim(), source: val('ex-source') });
+  await db.ref('data/expert/ex_' + Date.now()).set({ brandId: val('ex-brand'), model: el('ex-model').value.trim(), motor: el('ex-motor').value.trim(), title: t, symptom: el('ex-symptom').value.trim(), diagnosis: el('ex-diag').value.trim(), parts: el('ex-parts').value.trim(), dtc: el('ex-dtc').value.trim(), years: el('ex-years').value.trim(), source: val('ex-source'), url: el('ex-url') ? el('ex-url').value.trim() : '' });
   el('ex-title').value = ''; el('ex-diag').value = ''; notify('🧠 Fiche expert ajoutée');
 }
 async function addDTC() {
@@ -252,9 +270,9 @@ async function importJSON() {
       const e2 = Object.entries(ms).find(([k, m]) => m.brandId === it.brand && m.name.toLowerCase() === String(it.model).toLowerCase());
       if (e2) { const ref = db.ref('data/motors/' + e2[0]); const s = await ref.once('value'); const a = s.val() || []; a.push({ name: it.name, fuel: it.fuel || 'essence', power: it.power || '' }); await ref.set(a); n++; }
     } else if (it.type === 'issue' && it.brand && it.title) {
-      await db.ref('data/issues/imp_' + Date.now() + '_' + n).set({ brandId: it.brand, model: it.model || '', motor: it.motor || '', title: it.title, detail: it.detail || '', source: it.source || 'Import', dtc: it.dtc || '' }); n++;
+      await db.ref('data/issues/' + uid('imp')).set({ brandId: it.brand, model: it.model || '', motor: it.motor || '', title: it.title, detail: it.detail || '', source: it.source || 'Import', dtc: it.dtc || '', url: it.url || '' }); n++;
     } else if (it.type === 'expert' && it.brand && it.title) {
-      await db.ref('data/expert/imp_' + Date.now() + '_' + n).set({ brandId: it.brand, model: it.model || '', motor: it.motor || '', title: it.title, symptom: it.symptom || '', diagnosis: it.diagnosis || '', parts: it.parts || '', dtc: it.dtc || '', years: it.years || '', source: it.source || 'Import' }); n++;
+      await db.ref('data/expert/' + uid('imp')).set({ brandId: it.brand, model: it.model || '', motor: it.motor || '', title: it.title, symptom: it.symptom || '', diagnosis: it.diagnosis || '', parts: it.parts || '', dtc: it.dtc || '', years: it.years || '', source: it.source || 'Import', url: it.url || '' }); n++;
     } else if (it.type === 'dtc' && it.code) {
       await db.ref('data/dtc/' + String(it.code).toUpperCase().replace(/[^A-Z0-9]+/g, '_')).set({ code: String(it.code).toUpperCase(), description: it.description || '', cause: it.cause || '', solution: it.solution || '' }); n++;
     }
@@ -275,8 +293,9 @@ async function doExpertSearch() {
   Object.values(iss).filter(i => ((i.title || '') + ' ' + (i.detail || '') + ' ' + (i.dtc || '') + ' ' + (i.model || '')).toLowerCase().includes(q)).slice(0, 10).forEach(i => html += issueCard(i, ''));
   UNIV.filter(u => (u[0] + ' ' + u[1]).toLowerCase().includes(q)).forEach(u => html += univCard(u));
   Object.entries(GENERIC).forEach(([f, g]) => g.issues.forEach(i => { if ((i[0] + ' ' + i[1]).toLowerCase().includes(q)) html += '<div class="issue-card"><strong>' + i[0] + '</strong><span class="src">Typique ' + FUELS[f] + '</span><p>' + i[1] + '</p><p style="color:#fbbf24;font-size:12px">DTC : ' + i[2] + '</p></div>'; }));
-  box.innerHTML = html || '<p style="color:#94a3b8">Aucune fiche pour « ' + esc(q) + ' » — essayez : airbag, ceinture, caméra, ADAS, incendie, court-circuit, charge, autonomie, courroie, chaîne, FAP, EGR, injecteurs…</p>';
+  box.innerHTML = html || '<p style="color:#94a3b8">Aucune fiche pour « ' + esc(q) + ' » — essayez : ressort, suspension, airbag, ceinture, caméra, ADAS, incendie, court-circuit, charge, autonomie, courroie, chaîne, FAP, EGR, injecteurs…</p>';
 }
+function srcLink(u) { return u ? '<p><a href="' + u + '" target="_blank" rel="noopener" style="color:#4ade80;font-size:12px;font-weight:600">🔗 Source officielle / spécialisée</a></p>' : ''; }
 function univCard(u) { return '<div class="issue-card" style="border-left-color:#f59e0b"><strong>🌐 ' + u[0] + '</strong><span class="src">' + u[3] + '</span><p>' + u[1] + '</p>' + (u[2] ? '<p style="color:#fbbf24;font-size:12px">DTC : ' + u[2] + '</p>' : '') + '</div>'; }
 function expertCard(e, prefix) {
   const bn = brandsData[e.brandId] ? brandsData[e.brandId].name : '';
@@ -285,9 +304,9 @@ function expertCard(e, prefix) {
     (e.diagnosis ? '<p><strong>🔬 Diagnostic ingénieur :</strong> ' + esc(e.diagnosis) + '</p>' : '') +
     (e.parts ? '<p><strong>🔩 Pièces :</strong> ' + esc(e.parts) + '</p>' : '') +
     (e.dtc ? '<p style="color:#fbbf24;font-size:12px">DTC : ' + esc(e.dtc) + '</p>' : '') +
-    (e.years ? '<p style="font-size:11px;color:#94a3b8">Années : ' + esc(e.years) + '</p>' : '') + '</div>';
+    (e.years ? '<p style="font-size:11px;color:#94a3b8">Années : ' + esc(e.years) + '</p>' : '') + srcLink(e.url) + '</div>';
 }
-function issueCard(i, prefix) { return '<div class="issue-card"><strong>' + prefix + esc(i.title) + '</strong><span class="src">' + esc(i.source || '') + '</span>' + (i.motor ? '<span class="src">' + esc(i.motor) + '</span>' : '') + '<p>' + esc(i.detail || '') + '</p>' + (i.dtc ? '<p style="color:#fbbf24;font-size:12px">DTC : ' + esc(i.dtc) + '</p>' : '') + '</div>'; }
+function issueCard(i, prefix) { return '<div class="issue-card"><strong>' + prefix + esc(i.title) + '</strong><span class="src">' + esc(i.source || '') + '</span>' + (i.motor ? '<span class="src">' + esc(i.motor) + '</span>' : '') + '<p>' + esc(i.detail || '') + '</p>' + (i.dtc ? '<p style="color:#fbbf24;font-size:12px">DTC : ' + esc(i.dtc) + '</p>' : '') + srcLink(i.url) + '</div>'; }
 
 async function enterApp() {
   const s = getSession(); const isAdmin = sessionStorage.getItem('autodiag_admin') === '1';
@@ -297,7 +316,7 @@ async function enterApp() {
   showScreen('screen-app');
   brandsData = (await db.ref('data/brands').once('value')).val() || {};
   const sel = el('sel-marque');
-  const regions = { francaises: '🇫🇷 Françaises', europeennes: '🇪🇺 Européennes', asiatiques: '🌏 Asiatiques', chinoises: '🇨🇳 Chinoises', americaines: '🇺🇸 Américaines' };
+  const regions = { francaises: '🇫 Françaises', europeennes: '🇪 Européennes', asiatiques: '🌏 Asiatiques', chinoises: '🇨🇳 Chinoises', americaines: '🇺 Américaines' };
   sel.innerHTML = '<option value="">-- Choisir --</option>';
   Object.entries(regions).forEach(([r, label]) => {
     const items = Object.entries(brandsData).filter(([, b]) => b.region === r);
