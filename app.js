@@ -1,9 +1,10 @@
-/* APP.JS v8 — EXPERT UNIVERSEL : toutes marques/modèles/motorisations */
+/* APP.JS v9 — Clio 6 + recherche MULTI-SOURCES + expert universel + fond géré CSS */
 const ADMIN_PASSWORD = 'Kevin83600';
 const SESSION_KEY = 'autodiag_session';
 const MONTHLY_MS = 30 * 24 * 60 * 60 * 1000;
 const FUELS = { essence: '⛽ Essence', diesel: '🛢️ Diesel', hybride: '🔋 Hybride', electrique: '⚡ Électrique' };
-/* ===== Fiches clés auto-ajoutées en base (Bigster) ===== */
+/* Domaines officiels constructeurs (recherche rappel) */
+const BRAND_SITE = { renault:'renault.fr', peugeot:'peugeot.fr', citroen:'citroen.fr', ds:'dsautomobiles.fr', dacia:'dacia.fr', volkswagen:'volkswagen.fr', audi:'audi.fr', bmw:'bmw.fr', mercedes:'mercedes-benz.fr', opel:'opel.fr', fiat:'fiat.fr', seat:'seat.fr', skoda:'skoda.fr', volvo:'volvo.fr', porsche:'porsche.fr', mini:'mini.fr', alfa:'alfaromeo.fr', toyota:'toyota.fr', honda:'honda.fr', nissan:'nissan.fr', mazda:'mazda.fr', mitsubishi:'mitsubishi-motors.fr', subaru:'subaru.fr', suzuki:'suzuki.fr', hyundai:'hyundai.fr', kia:'kia.fr', lexus:'lexus.fr', byd:'byd.com', mg:'mgmotor.eu', lynkco:'lynkco.com', nio:'nio.com', xpeng:'xpeng.com', aiways:'aiways.com', seres:'seres.com', omoda:'omoda.com', jaecoo:'jaecoo.com', leapmotor:'leapmotor.com', ora:'ora-ev.com', ford:'ford.fr', chevrolet:'chevrolet.com', jeep:'jeep.fr', dodge:'dodge.com', cadillac:'cadillac.com', tesla:'tesla.com' };
 const KEY_ISSUES = [
  { brand:'dacia', model:'Bigster', motor:'', title:'Ressorts suspension AR : rupture (diamètre fil insuffisant)', detail:'Campagne de rappel : remplacement des 2 ressorts de suspension arrière suite à risque de rupture (diamètre de fil insuffisant). Contrôle visuel + mesure du diamètre, remplacement préventif selon VIN. Intervention gratuite en concession.', source:'Rappel Conso / Safety Gate', dtc:'', url:'https://www.rappel.conso.gouv.fr/' },
  { brand:'dacia', model:'Bigster', motor:'', title:'Ressorts AR : alerte UE (contrôle obligatoire)', detail:'Alerte Safety Gate : risque de rupture des ressorts arrière — vérification obligatoire en concession, remplacement gratuit des ressorts non conformes.', source:'Safety Gate', dtc:'', url:'https://ec.europa.eu/safety-gate-alerts/screen/webReport/searchAdvanced' }
@@ -11,7 +12,6 @@ const KEY_ISSUES = [
 const KEY_EXPERT = [
  { brand:'dacia', model:'Bigster', motor:'', title:'Procédure remplacement ressorts suspension AR (rappel)', symptom:'Claquement ou bruit de détente à l\'arrière, véhicule penché, fissure ou casse visible du ressort AR', diagnosis:'1) Vérifier le VIN sur rappel.conso.gouv.fr / Safety Gate 2) Lever le véhicule, roues AR suspendues 3) Inspecter les 2 ressorts AR : fissures, corrosion, diamètre de fil vs spécification 4) Remplacer les 2 ressorts + coupelles/butées 5) Serrer aux couples constructeur 6) Contrôle géométrie + essai routier', parts:'Ressorts AR x2, coupelles, butées', dtc:'', source:'Rappel Conso / Safety Gate', years:'2025-2026', url:'https://www.rappel.conso.gouv.fr/' }
 ];
-/* ===== FICHES EXPERT PAR MARQUE (tous modèles) : [brand, motorKey, title, symptom, diagnosis, parts, dtc, source, years] ===== */
 const BRAND_EXPERT = [
  ['renault','dCi','EGR/FAP diesel Renault','Perte puissance, voyant, régénérations fréquentes','1) Lire P0401/P2002 au diag 2) Test ouverture EGR consigne/réel 3) Mesure ΔP FAP 4) Nettoyage/remplacement + adaptation','EGR, FAP','P0401, P2002','Campagne constructeur','2017-2026'],
  ['renault','TCe','GPF essence (filtre à particules)','Perte puissance courts trajets, voyant','1) Lire P2463 2) Régénération forcée 3) Contrôle GPF 4) Remplacement si colmaté','GPF','P2463','TSB','2018-2026'],
@@ -86,7 +86,6 @@ const BRAND_EXPERT = [
  ['cadillac','Lyriq','Batterie HV Lyriq (campagne)','Défaut batterie, limitation','1) Codes BMS 2) Campagne 3) Module','Module batterie','P0AA6','NHTSA','2024-2026'],
  ['dacia','','Campagnes sécurité Dacia','Airbag/ceintures selon VIN','1) VIN Rappel Conso 2) Campagne 3) Remplacement','—','','Rappel Conso','2017-2026']
 ];
-/* ===== PROCÉDURES INGÉNIEUR PAR ÉNERGIE (toutes marques) : [title, symptom, diagnosis, parts, dtc] ===== */
 const GENERIC_EXPERT = {
  diesel: [
   ['Diagnostic EGR complet','Voyant moteur, perte puissance, ralenti instable','1) Lire P0401/P0490 2) Test position EGR au diag (consigne vs réel) 3) Mesure encrassement refroidisseur (ΔP) 4) Nettoyage ou remplacement + adaptation','Vanne EGR, refroidisseur EGR','P0401, P0490'],
@@ -128,6 +127,7 @@ const GENERIC = {
   electrique: { issues: [['Batterie haute tension', 'Dégradation, surchauffe modules, BMS, isolation', 'P0AA6 / U0111'], ['Défaut de charge (OBC/ICCU/borne)', 'Charge lente/absente, erreurs connecteur', 'P0D11 / U0111'], ['Défaut d\'autonomie', 'Perte capacité, équilibrage cellules', 'U0111'], ['Court-circuit / isolement HV', 'Défaut isolement, sécurité coupure', 'P0AA6'], ['Batterie 12V / DC-DC', 'Non-démarrage, défaut 12V', 'P0562 / U0111'], ['Moteur électrique / onduleur', 'Perte puissance, bruit anormal', 'P0AA6'], ['Thermique batterie', 'Refroidissement, pompe LDR', 'P0C00'], ['Électronique / logiciels', 'Bugs BMS/MBUX, MAJ nécessaires', 'U0101']], dtc: ['P0AA6', 'U0111', 'P0D11', 'P0C00', 'P0562', 'U0101'] }
 };
 const ENSURE = [
+ ['renault','Clio 6','2025-2026',[['1.0 TCe 90','essence','90 ch'],['1.0 TCe 110','essence','110 ch'],['E-Tech 140','hybride','140 ch'],['E-Tech 160','hybride','160 ch']]],
  ['renault','R4 E-Tech','2024-2026',[['Electrique 120','electrique','120 ch'],['Electrique 150','electrique','150 ch']]],
  ['renault','Twingo E-Tech','2026-2026',[['Electrique 82','electrique','82 ch']]],
  ['peugeot','3008 III','2023-2026',[['1.2 Hybrid 136','hybride','136 ch'],['Hybrid 195','hybride','195 ch'],['Hybrid 230','hybride','230 ch']]],
@@ -201,6 +201,27 @@ function deviceId() { let id = localStorage.getItem('autodiag_device'); if (!id)
 function uid(p) { return p + '_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5); }
 function kwMatch(kw, motor) { if (!kw) return true; if (!motor) return false; return String(motor.name).toLowerCase().includes(String(kw).toLowerCase()); }
 
+/* ===== BLOC MULTI-SOURCES (constructeur + officiel + presse + internet) ===== */
+function sourceLinks(q) {
+  const e = encodeURIComponent(q);
+  const S = 'display:inline-block;background:#1e293b;color:#4ade80;padding:6px 10px;border-radius:8px;margin:3px;font-size:12px;font-weight:600;text-decoration:none';
+  const dom = BRAND_SITE[curBrand] || '';
+  let h = '<div class="issue-card" style="border-left-color:#38bdf8"><strong>🌐 Sources à consulter : « ' + esc(q) + ' »</strong><p style="margin:8px 0 4px">';
+  if (dom) h += '<a style="' + S + '" target="_blank" rel="noopener" href="https://www.google.com/search?q=site:' + dom + '+rappel+' + e + '">🏭 Constructeur</a>';
+  h += '<a style="' + S + '" target="_blank" rel="noopener" href="https://www.google.com/search?q=site:rappel.conso.gouv.fr+' + e + '">🇫🇷 Rappel Conso</a>';
+  h += '<a style="' + S + '" target="_blank" rel="noopener" href="https://ec.europa.eu/safety-gate-alerts/screen/webReport/searchAdvanced">🇪 Safety Gate</a>';
+  h += '<a style="' + S + '" target="_blank" rel="noopener" href="https://www.google.com/search?q=site:ec.europa.eu+safety+gate+' + e + '">🇪 Safety Gate (recherche)</a>';
+  h += '<a style="' + S + '" target="_blank" rel="noopener" href="https://www.nhtsa.gov/recalls">🇺🇸 NHTSA</a>';
+  h += '<a style="' + S + '" target="_blank" rel="noopener" href="https://www.google.com/search?q=site:nhtsa.gov+recalls+' + e + '">🇺 NHTSA (recherche)</a>';
+  h += '<a style="' + S + '" target="_blank" rel="noopener" href="https://www.google.com/search?q=site:largus.fr+' + e + '">📰 L\'Argus</a>';
+  h += '<a style="' + S + '" target="_blank" rel="noopener" href="https://www.google.com/search?q=site:caradisiac.com+' + e + '">📰 Caradisiac</a>';
+  h += '<a style="' + S + '" target="_blank" rel="noopener" href="https://www.google.com/search?q=site:que-choisir.org+' + e + '">⚖️ Que Choisir</a>';
+  h += '<a style="' + S + '" target="_blank" rel="noopener" href="https://www.google.com/search?q=site:forum-auto.caradisiac.com+' + e + '">💬 Forum Auto</a>';
+  h += '<a style="' + S + '" target="_blank" rel="noopener" href="https://www.google.com/search?q=' + e + '+rappel+panne+avis+proprietaires">🔎 Internet (avis/pannes)</a>';
+  h += '</p></div>';
+  return h;
+}
+
 async function ensureCatalog() {
   if (ensureDone) return;
   ensureDone = true;
@@ -216,7 +237,7 @@ async function ensureCatalog() {
       await db.ref('data/motors/' + id).set(e[3].map(m => ({ name: m[0], fuel: m[1], power: m[2] })));
       added++;
     }
-    if (added) notify('🚗 ' + added + ' modèles récents ajoutés automatiquement');
+    if (added) notify('🚗 ' + added + ' modèles ajoutés automatiquement (Clio 6, R4, Bigster…)');
     const iss = (await db.ref('data/issues').once('value')).val() || {};
     const tI = {}; Object.values(iss).forEach(x => tI[String(x.title).toLowerCase()] = 1);
     let aI = 0;
@@ -385,7 +406,8 @@ async function doExpertSearch() {
   UNIV.filter(u => (u[0] + ' ' + u[1]).toLowerCase().includes(q)).forEach(u => html += univCard(u));
   Object.entries(GENERIC).forEach(([f, g]) => g.issues.forEach(i => { if ((i[0] + ' ' + i[1]).toLowerCase().includes(q)) html += '<div class="issue-card"><strong>' + i[0] + '</strong><span class="src">Typique ' + FUELS[f] + '</span><p>' + i[1] + '</p><p style="color:#fbbf24;font-size:12px">DTC : ' + i[2] + '</p></div>'; }));
   Object.entries(GENERIC_EXPERT).forEach(([f, list]) => list.forEach(g => { if ((g[0] + ' ' + g[1] + ' ' + g[2]).toLowerCase().includes(q)) html += genCard(g, f); }));
-  box.innerHTML = html || '<p style="color:#94a3b8">Aucune fiche pour « ' + esc(q) + ' » — essayez : ressort, suspension, airbag, ceinture, caméra, ADAS, incendie, court-circuit, charge, autonomie, courroie, chaîne, FAP, EGR, injecteurs…</p>';
+  html += sourceLinks(q);
+  box.innerHTML = html || '<p style="color:#94a3b8">Aucune fiche pour « ' + esc(q) + ' »</p>';
 }
 function srcLink(u) { return u ? '<p><a href="' + u + '" target="_blank" rel="noopener" style="color:#4ade80;font-size:12px;font-weight:600">🔗 Source officielle / spécialisée</a></p>' : ''; }
 function univCard(u) { return '<div class="issue-card" style="border-left-color:#f59e0b"><strong>🌐 ' + u[0] + '</strong><span class="src">' + u[3] + '</span><p>' + u[1] + '</p>' + (u[2] ? '<p style="color:#fbbf24;font-size:12px">DTC : ' + u[2] + '</p>' : '') + '</div>'; }
@@ -414,7 +436,7 @@ async function enterApp() {
   showScreen('screen-app');
   brandsData = (await db.ref('data/brands').once('value')).val() || {};
   const sel = el('sel-marque');
-  const regions = { francaises: '🇫 Françaises', europeennes: '🇪🇺 Européennes', asiatiques: '🌏 Asiatiques', chinoises: '🇨 Chinoises', americaines: '🇺🇸 Américaines' };
+  const regions = { francaises: '🇫🇷 Françaises', europeennes: '🇪 Européennes', asiatiques: '🌏 Asiatiques', chinoises: '🇨 Chinoises', americaines: '🇺🇸 Américaines' };
   sel.innerHTML = '<option value="">-- Choisir --</option>';
   Object.entries(regions).forEach(([r, label]) => {
     const items = Object.entries(brandsData).filter(([, b]) => b.region === r);
@@ -456,8 +478,9 @@ async function correlate() {
   general.forEach(i => html += issueCard(i, ''));
   if (fuel && GENERIC[fuel]) GENERIC[fuel].issues.forEach(g => { html += '<div class="issue-card"><strong>' + g[0] + '</strong><span class="src">Typique ' + FUELS[fuel] + '</span><p>' + g[1] + '</p><p style="color:#fbbf24;font-size:12px">DTC : ' + g[2] + '</p></div>'; });
   UNIV.forEach(u => html += univCard(u));
+  const bn = brandsData[curBrand] ? brandsData[curBrand].name : curBrand;
+  html += sourceLinks(bn + ' ' + curModelName + (motor ? ' ' + motor.name : '') + ' rappel panne');
   box.innerHTML = html || '<p style="color:#94a3b8">Aucune panne — vérifiez les sites officiels.</p>';
-  /* Couche expert : fiches base + fiches marque (tous modèles) + protocoles par énergie */
   const exAll = Object.values((await db.ref('data/expert').once('value')).val() || {});
   const exHits = exAll.filter(e => e.brandId === curBrand && (!e.model || e.model === curModelName) && motorMatch(e, motor));
   const bex = BRAND_EXPERT.filter(e => e[0] === curBrand && kwMatch(e[1], motor));
