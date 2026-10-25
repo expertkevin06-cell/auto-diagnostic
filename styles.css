@@ -4,11 +4,11 @@ body {
   background: linear-gradient(rgba(10,14,39,.25), rgba(10,14,39,.32)) , #0b1020;
   color: #fff; min-height: 100vh; padding: 16px; padding-bottom: 100px;
 }
-/* ===== FOND CONSTANT : véhicule sportif 360°, opacité 50% ===== */
+/* ===== FOND FIXE PERMANENT : véhicule moderne sportif réaliste ===== */
 .bg3d {
   position: fixed; inset: 0; z-index: -1;
   display: flex; align-items: center; justify-content: center;
-  perspective: 1400px; pointer-events: none; overflow: hidden;
+  pointer-events: none; overflow: hidden;
 }
 .bg3d::before {
   content: ''; position: absolute; inset: 0;
@@ -16,15 +16,11 @@ body {
               radial-gradient(ellipse at 50% 110%, rgba(30,41,59,.85), transparent 70%);
 }
 .bg3d-car {
-  width: min(94vw, 900px); height: min(56vw, 490px);
-  background: url('https://images.unsplash.com/photo-1552519507-da3b142c6e3d?auto=format&fit=crop&w=1400&q=60') center/contain no-repeat;
+  width: min(96vw, 940px); height: min(58vw, 500px);
+  background: url('https://images.unsplash.com/photo-1552519507-da3b142c6e3d?auto=format&fit=crop&w=1600&q=70') center/contain no-repeat;
   opacity: .50;
-  transform-style: preserve-3d;
-  animation: spin360 16s linear infinite;
-  filter: drop-shadow(0 30px 45px rgba(0,0,0,.6)) saturate(1.15);
+  filter: drop-shadow(0 30px 45px rgba(0,0,0,.65)) saturate(1.2);
 }
-@keyframes spin360 { from { transform: rotateY(0deg); } to { transform: rotateY(360deg); } }
-@media (prefers-reduced-motion: reduce) { .bg3d-car { animation: none; } }
 /* ===== Interface ===== */
 .container { max-width: 760px; margin: 0 auto; position: relative; }
 header { text-align: center; padding: 16px 0; }
