@@ -1,10 +1,16 @@
-/* APP.JS v9 — Clio 6 + recherche MULTI-SOURCES + expert universel + fond géré CSS */
+/* APP.JS v10 — Auto-vérification motorisations/puissances + corrélation stricte + fond fixe */
 const ADMIN_PASSWORD = 'Kevin83600';
 const SESSION_KEY = 'autodiag_session';
 const MONTHLY_MS = 30 * 24 * 60 * 60 * 1000;
 const FUELS = { essence: '⛽ Essence', diesel: '🛢️ Diesel', hybride: '🔋 Hybride', electrique: '⚡ Électrique' };
-/* Domaines officiels constructeurs (recherche rappel) */
 const BRAND_SITE = { renault:'renault.fr', peugeot:'peugeot.fr', citroen:'citroen.fr', ds:'dsautomobiles.fr', dacia:'dacia.fr', volkswagen:'volkswagen.fr', audi:'audi.fr', bmw:'bmw.fr', mercedes:'mercedes-benz.fr', opel:'opel.fr', fiat:'fiat.fr', seat:'seat.fr', skoda:'skoda.fr', volvo:'volvo.fr', porsche:'porsche.fr', mini:'mini.fr', alfa:'alfaromeo.fr', toyota:'toyota.fr', honda:'honda.fr', nissan:'nissan.fr', mazda:'mazda.fr', mitsubishi:'mitsubishi-motors.fr', subaru:'subaru.fr', suzuki:'suzuki.fr', hyundai:'hyundai.fr', kia:'kia.fr', lexus:'lexus.fr', byd:'byd.com', mg:'mgmotor.eu', lynkco:'lynkco.com', nio:'nio.com', xpeng:'xpeng.com', aiways:'aiways.com', seres:'seres.com', omoda:'omoda.com', jaecoo:'jaecoo.com', leapmotor:'leapmotor.com', ora:'ora-ev.com', ford:'ford.fr', chevrolet:'chevrolet.com', jeep:'jeep.fr', dodge:'dodge.com', cadillac:'cadillac.com', tesla:'tesla.com' };
+/* Mots-clés carburant pour corrélation stricte pannes↔motorisations */
+const FUEL_KW = {
+ diesel: ['adblue','fap','egr','dci','tdi','bluehdi','diesel','multijet','crdi','ecoblue','skyactiv-d','préchauffage','prechauffage','jtd','d-4d'],
+ essence: ['puretech','tce','tsi','ecoboost','gdi','thp','vtec','essence','courroie','chaîne','chaine','allumage','bougies','catalyseur','gpf','turbo essence'],
+ hybride: ['hybrid','hybride','phev','e:hev','e-tech','onduleur','régénératif','regeneratif','e:hev'],
+ electrique: ['électrique','electrique',' ev','iccu','obc','bms','batterie hv','charge','isolement','dc-dc','12v','e-208','zoe']
+};
 const KEY_ISSUES = [
  { brand:'dacia', model:'Bigster', motor:'', title:'Ressorts suspension AR : rupture (diamètre fil insuffisant)', detail:'Campagne de rappel : remplacement des 2 ressorts de suspension arrière suite à risque de rupture (diamètre de fil insuffisant). Contrôle visuel + mesure du diamètre, remplacement préventif selon VIN. Intervention gratuite en concession.', source:'Rappel Conso / Safety Gate', dtc:'', url:'https://www.rappel.conso.gouv.fr/' },
  { brand:'dacia', model:'Bigster', motor:'', title:'Ressorts AR : alerte UE (contrôle obligatoire)', detail:'Alerte Safety Gate : risque de rupture des ressorts arrière — vérification obligatoire en concession, remplacement gratuit des ressorts non conformes.', source:'Safety Gate', dtc:'', url:'https://ec.europa.eu/safety-gate-alerts/screen/webReport/searchAdvanced' }
@@ -126,10 +132,13 @@ const GENERIC = {
   hybride: { issues: [['Batterie haute tension', 'Vieillissement cellules, équilibrage, isolation', 'U0111 / P0AA6'], ['Onduleur / convertisseur', 'Perte puissance, défaut isolement', 'P0AA6'], ['Défaut de charge', 'Charge lente/absente (OBC/ICCU)', 'P0D11 / U0111'], ['Défaut d\'autonomie', 'Perte capacité, estimation erronée', 'U0111'], ['Freinage régénératif', 'À-coups, capteur pédale', 'C1365'], ['Batterie 12V / DC-DC', 'Non-démarrage, défaut circuit charge', 'P0562 / U0111'], ['Thermique batterie', 'Refroidissement, surchauffe modules', 'P0C00'], ['Moteur thermique associé', 'EGR/FAP/courroie selon motorisation', 'P0401 / P0087']], dtc: ['U0111', 'P0AA6', 'P0D11', 'P0C00', 'C1365', 'P0562'] },
   electrique: { issues: [['Batterie haute tension', 'Dégradation, surchauffe modules, BMS, isolation', 'P0AA6 / U0111'], ['Défaut de charge (OBC/ICCU/borne)', 'Charge lente/absente, erreurs connecteur', 'P0D11 / U0111'], ['Défaut d\'autonomie', 'Perte capacité, équilibrage cellules', 'U0111'], ['Court-circuit / isolement HV', 'Défaut isolement, sécurité coupure', 'P0AA6'], ['Batterie 12V / DC-DC', 'Non-démarrage, défaut 12V', 'P0562 / U0111'], ['Moteur électrique / onduleur', 'Perte puissance, bruit anormal', 'P0AA6'], ['Thermique batterie', 'Refroidissement, pompe LDR', 'P0C00'], ['Électronique / logiciels', 'Bugs BMS/MBUX, MAJ nécessaires', 'U0101']], dtc: ['P0AA6', 'U0111', 'P0D11', 'P0C00', 'P0562', 'U0101'] }
 };
+/* Référence de vérification : [brand, model, years, motors[[name,fuel,power]…]] */
 const ENSURE = [
  ['renault','Clio 6','2025-2026',[['1.0 TCe 90','essence','90 ch'],['1.0 TCe 110','essence','110 ch'],['E-Tech 140','hybride','140 ch'],['E-Tech 160','hybride','160 ch']]],
+ ['renault','Clio V','2019-2026',[['1.0 SCe 65','essence','65 ch'],['1.0 TCe 90','essence','90 ch'],['1.0 TCe 100','essence','100 ch'],['1.3 TCe 130','essence','130 ch'],['1.5 Blue dCi 85','diesel','85 ch'],['1.5 Blue dCi 100','diesel','100 ch'],['1.5 Blue dCi 115','diesel','115 ch'],['E-Tech 140','hybride','140 ch']]],
  ['renault','R4 E-Tech','2024-2026',[['Electrique 120','electrique','120 ch'],['Electrique 150','electrique','150 ch']]],
  ['renault','Twingo E-Tech','2026-2026',[['Electrique 82','electrique','82 ch']]],
+ ['peugeot','208 II','2019-2026',[['1.2 PureTech 75','essence','75 ch'],['1.2 PureTech 100','essence','100 ch'],['1.2 PureTech 130','essence','130 ch'],['1.5 BlueHDi 100','diesel','100 ch']]],
  ['peugeot','3008 III','2023-2026',[['1.2 Hybrid 136','hybride','136 ch'],['Hybrid 195','hybride','195 ch'],['Hybrid 230','hybride','230 ch']]],
  ['peugeot','E-3008','2024-2026',[['Electrique 210','electrique','210 ch'],['Electrique 230','electrique','230 ch'],['Electrique 320','electrique','320 ch']]],
  ['peugeot','5008 III','2024-2026',[['1.2 Hybrid 136','hybride','136 ch'],['Hybrid 195','hybride','195 ch']]],
@@ -140,45 +149,25 @@ const ENSURE = [
  ['ds','DS N°4','2025-2026',[['Hybrid 136','hybride','136 ch'],['E-Tense 210','electrique','210 ch']]],
  ['ds','DS N°8','2025-2026',[['E-Tense 230','electrique','230 ch'],['E-Tense 350','electrique','350 ch']]],
  ['dacia','Bigster','2025-2026',[['1.2 TCe 130','essence','130 ch'],['1.2 TCe 140 4x4','essence','140 ch'],['Hybrid 155','hybride','155 ch']]],
+ ['dacia','Duster III','2024-2026',[['1.2 TCe 130','essence','130 ch'],['1.2 TCe 140 4x4','essence','140 ch'],['Hybrid 140','hybride','140 ch'],['1.5 Blue dCi 115','diesel','115 ch']]],
+ ['volkswagen','Golf VIII','2020-2026',[['1.0 TSI 90','essence','90 ch'],['1.0 TSI 110','essence','110 ch'],['1.5 TSI 130','essence','130 ch'],['1.5 TSI 150','essence','150 ch'],['2.0 TDI 115','diesel','115 ch'],['2.0 TDI 150','diesel','150 ch'],['GTI 245','essence','245 ch']]],
  ['volkswagen','Tiguan III','2024-2026',[['1.5 TSI 130','essence','130 ch'],['1.5 TSI 150','essence','150 ch'],['2.0 TDI 150','diesel','150 ch'],['2.0 TDI 193','diesel','193 ch'],['eHybrid 204','hybride','204 ch'],['eHybrid 272','hybride','272 ch']]],
- ['volkswagen','Passat B9','2024-2026',[['1.5 TSI 150','essence','150 ch'],['2.0 TDI 122','diesel','122 ch'],['2.0 TDI 150','diesel','150 ch'],['2.0 TDI 193','diesel','193 ch'],['eHybrid 204','hybride','204 ch']]],
+ ['volkswagen','ID.4','2021-2026',[['Electrique 170','electrique','170 ch'],['Electrique 204','electrique','204 ch'],['Electrique 265','electrique','265 ch'],['Electrique 286','electrique','286 ch'],['GTX 299','electrique','299 ch']]],
  ['volkswagen','ID.7','2023-2026',[['Electrique 286','electrique','286 ch'],['Electrique 340','electrique','340 ch']]],
  ['audi','Q6 e-tron','2024-2026',[['Electrique 252','electrique','252 ch'],['Electrique 388','electrique','388 ch'],['SQ6 490','electrique','490 ch']]],
- ['audi','A5 B10','2024-2026',[['2.0 TSI 150','essence','150 ch'],['2.0 TSI 204','essence','204 ch'],['2.0 TDI 204','diesel','204 ch']]],
  ['bmw','X3 G45','2024-2026',[['20 208','essence','208 ch'],['20d 197','diesel','197 ch'],['30e 299','hybride','299 ch'],['M50 398','essence','398 ch']]],
- ['bmw','i5','2023-2026',[['eDrive40 340','electrique','340 ch'],['M60 601','electrique','601 ch']]],
  ['mercedes','Classe E W214','2024-2026',[['E200 204','essence','204 ch'],['E220d 197','diesel','197 ch'],['E300e 313','hybride','313 ch'],['E400e 381','hybride','381 ch']]],
- ['mercedes','CLA C174','2025-2026',[['Electrique 272','electrique','272 ch'],['Electrique 354','electrique','354 ch']]],
- ['opel','Grandland II','2024-2026',[['1.2 Hybrid 136','hybride','136 ch'],['1.2 Hybrid 145','hybride','145 ch'],['Electrique 210','electrique','210 ch'],['Electrique 230','electrique','230 ch']]],
- ['fiat','Grande Panda','2024-2026',[['1.2 Hybrid 100','hybride','100 ch'],['1.2 100','essence','100 ch'],['Electrique 113','electrique','113 ch']]],
- ['fiat','600','2023-2026',[['1.2 Hybrid 100','hybride','100 ch'],['Electrique 156','electrique','156 ch']]],
- ['fiat','Topolino','2023-2026',[['Electrique 42','electrique','42 ch']]],
- ['skoda','Kodiaq II','2024-2026',[['1.5 TSI 150','essence','150 ch'],['2.0 TDI 150','diesel','150 ch'],['2.0 TDI 193','diesel','193 ch']]],
- ['skoda','Superb IV','2024-2026',[['1.5 TSI 150','essence','150 ch'],['2.0 TDI 150','diesel','150 ch'],['2.0 TSI 204','essence','204 ch'],['iV 204','hybride','204 ch']]],
- ['volvo','EX90','2024-2026',[['Electrique 449','electrique','449 ch'],['Electrique 517','electrique','517 ch']]],
- ['volvo','ES90','2025-2026',[['Electrique 333','electrique','333 ch'],['Electrique 680','electrique','680 ch']]],
- ['porsche','Macan EV','2024-2026',[['Electrique 360','electrique','360 ch'],['Electrique 639','electrique','639 ch']]],
- ['porsche','Taycan II','2024-2026',[['Electrique 408','electrique','408 ch'],['Electrique 544','electrique','544 ch'],['Turbo GT 1108','electrique','1108 ch']]],
- ['toyota','C-HR II','2023-2026',[['1.8 Hybrid 140','hybride','140 ch'],['2.0 Hybrid 200','hybride','200 ch'],['2.0 PHEV 223','hybride','223 ch']]],
- ['toyota','Land Cruiser 250','2024-2026',[['2.8 D-4D 204','diesel','204 ch'],['2.8 Mild Hybrid 204','hybride','204 ch']]],
- ['hyundai','Inster','2024-2026',[['Electrique 97','electrique','97 ch'],['Electrique 115','electrique','115 ch']]],
- ['hyundai','Santa Fe MX5','2024-2026',[['1.6 T-GDI Hybrid 215','hybride','215 ch'],['1.6 T-GDI PHEV 253','hybride','253 ch']]],
- ['hyundai','Ioniq 9','2025-2026',[['Electrique 218','electrique','218 ch'],['Electrique 435','electrique','435 ch']]],
- ['kia','EV3','2024-2026',[['Electrique 204','electrique','204 ch']]],
- ['kia','EV4','2025-2026',[['Electrique 204','electrique','204 ch']]],
- ['kia','EV5','2025-2026',[['Electrique 218','electrique','218 ch'],['Electrique 313','electrique','313 ch']]],
- ['byd','Dolphin Surf','2025-2026',[['Electrique 88','electrique','88 ch'],['Electrique 156','electrique','156 ch']]],
- ['byd','Seal 6','2025-2026',[['DM-i 218','hybride','218 ch']]],
- ['mg','S5 EV','2024-2026',[['Electrique 170','electrique','170 ch'],['Electrique 204','electrique','204 ch']]],
- ['omoda','7','2025-2026',[['1.6 156','essence','156 ch'],['PHEV 347','hybride','347 ch']]],
- ['jaecoo','5','2025-2026',[['1.6 147','essence','147 ch'],['Electrique 204','electrique','204 ch']]],
- ['jaecoo','8','2025-2026',[['PHEV 530','hybride','530 ch']]],
- ['leapmotor','B10','2025-2026',[['Electrique 218','electrique','218 ch']]],
- ['ford','Puma Gen-E','2025-2026',[['Electrique 168','electrique','168 ch']]],
- ['mini','Countryman U25','2024-2026',[['1.5 156','essence','156 ch'],['2.0 204','essence','204 ch'],['SE 313','electrique','313 ch']]],
- ['mini','Aceman','2024-2026',[['E 184','electrique','184 ch'],['SE 258','electrique','258 ch']]],
- ['tesla','Model 3 Highland','2023-2026',[['Propulsion 264','electrique','264 ch'],['Grande Autonomie 498','electrique','498 ch']]],
- ['tesla','Cybertruck','2024-2026',[['Electrique 600','electrique','600 ch'],['Electrique 845','electrique','845 ch']]]
+ ['skoda','Enyaq','2021-2026',[['Electrique 179','electrique','179 ch'],['Electrique 204','electrique','204 ch'],['Electrique 265','electrique','265 ch'],['Electrique 286','electrique','286 ch'],['RS 340','electrique','340 ch']]],
+ ['skoda','Elroq','2024-2026',[['Electrique 170','electrique','170 ch'],['Electrique 204','electrique','204 ch'],['Electrique 286','electrique','286 ch']]],
+ ['toyota','Yaris','2017-2026',[['1.0 72','essence','72 ch'],['1.5 Hybrid 116','hybride','116 ch'],['1.5 Hybrid 130','hybride','130 ch']]],
+ ['toyota','RAV4','2019-2026',[['2.5 Hybrid 218','hybride','218 ch'],['2.5 Hybrid AWD 222','hybride','222 ch'],['2.5 PHEV 306','hybride','306 ch']]],
+ ['hyundai','Tucson','2020-2026',[['1.6 T-GDI 150','essence','150 ch'],['1.6 T-GDI 180','essence','180 ch'],['1.6 CRDi 136','diesel','136 ch'],['Hybrid 230','hybride','230 ch'],['PHEV 265','hybride','265 ch']]],
+ ['kia','Sportage','2021-2026',[['1.6 T-GDI 150','essence','150 ch'],['1.6 CRDi 136','diesel','136 ch'],['Hybrid 230','hybride','230 ch'],['PHEV 265','hybride','265 ch']]],
+ ['tesla','Model 3','2019-2026',[['Propulsion 283','electrique','283 ch'],['Grande Autonomie 498','electrique','498 ch'],['Performance 513','electrique','513 ch']]],
+ ['tesla','Model Y','2021-2026',[['Propulsion 299','electrique','299 ch'],['Grande Autonomie 498','electrique','498 ch'],['Performance 514','electrique','514 ch']]],
+ ['byd','Atto 3','2022-2026',[['Electrique 204','electrique','204 ch']]],
+ ['mg','MG4','2022-2026',[['Electrique 170','electrique','170 ch'],['Electrique 204','electrique','204 ch'],['XPower 435','electrique','435 ch']]],
+ ['ford','Puma','2019-2026',[['1.0 EcoBoost 95','essence','95 ch'],['1.0 EcoBoost 125','essence','125 ch'],['1.0 EcoBoost 155','essence','155 ch'],['1.5 EcoBlue 120','diesel','120 ch']]]
 ];
 let db, usersData = {}, brandsData = {}, motorsCache = [], deferredPrompt = null, listenersStarted = false, ensureDone = false;
 let curBrand = null, curModelId = null, curModelName = null;
@@ -200,44 +189,43 @@ function esc(s) { const d = document.createElement('div'); d.textContent = Strin
 function deviceId() { let id = localStorage.getItem('autodiag_device'); if (!id) { id = 'DEV-' + Math.random().toString(36).substr(2, 8).toUpperCase(); localStorage.setItem('autodiag_device', id); } return id; }
 function uid(p) { return p + '_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5); }
 function kwMatch(kw, motor) { if (!kw) return true; if (!motor) return false; return String(motor.name).toLowerCase().includes(String(kw).toLowerCase()); }
+function guessFuel(n) { n = String(n).toLowerCase(); if (/électrique|electrique|ev\b|e-|zero emi|electri/.test(n)) return 'electrique'; if (/hybrid|hybride|phev|e:hev|e-tech|e:h/.test(n)) return 'hybride'; if (/dci|tdi|bluehdi|diesel|crdi|multijet|ecoblue|jtd|d-4d|\bd\b/.test(n)) return 'diesel'; return 'essence'; }
+function guessPower(n) { const m = String(n).match(/(\d{2,4})\s*ch\b/i) || String(n).match(/(\d{2,4})$/); return m ? m[1] + ' ch' : ''; }
+function issueFuel(i) { const t = ((i.title || '') + ' ' + (i.detail || '') + ' ' + (i.motor || '')).toLowerCase(); for (const f of ['diesel', 'essence', 'hybride', 'electrique']) if (FUEL_KW[f].some(k => t.includes(k))) return f; return null; }
 
-/* ===== BLOC MULTI-SOURCES (constructeur + officiel + presse + internet) ===== */
-function sourceLinks(q) {
-  const e = encodeURIComponent(q);
-  const S = 'display:inline-block;background:#1e293b;color:#4ade80;padding:6px 10px;border-radius:8px;margin:3px;font-size:12px;font-weight:600;text-decoration:none';
-  const dom = BRAND_SITE[curBrand] || '';
-  let h = '<div class="issue-card" style="border-left-color:#38bdf8"><strong>🌐 Sources à consulter : « ' + esc(q) + ' »</strong><p style="margin:8px 0 4px">';
-  if (dom) h += '<a style="' + S + '" target="_blank" rel="noopener" href="https://www.google.com/search?q=site:' + dom + '+rappel+' + e + '">🏭 Constructeur</a>';
-  h += '<a style="' + S + '" target="_blank" rel="noopener" href="https://www.google.com/search?q=site:rappel.conso.gouv.fr+' + e + '">🇫🇷 Rappel Conso</a>';
-  h += '<a style="' + S + '" target="_blank" rel="noopener" href="https://ec.europa.eu/safety-gate-alerts/screen/webReport/searchAdvanced">🇪 Safety Gate</a>';
-  h += '<a style="' + S + '" target="_blank" rel="noopener" href="https://www.google.com/search?q=site:ec.europa.eu+safety+gate+' + e + '">🇪 Safety Gate (recherche)</a>';
-  h += '<a style="' + S + '" target="_blank" rel="noopener" href="https://www.nhtsa.gov/recalls">🇺🇸 NHTSA</a>';
-  h += '<a style="' + S + '" target="_blank" rel="noopener" href="https://www.google.com/search?q=site:nhtsa.gov+recalls+' + e + '">🇺 NHTSA (recherche)</a>';
-  h += '<a style="' + S + '" target="_blank" rel="noopener" href="https://www.google.com/search?q=site:largus.fr+' + e + '">📰 L\'Argus</a>';
-  h += '<a style="' + S + '" target="_blank" rel="noopener" href="https://www.google.com/search?q=site:caradisiac.com+' + e + '">📰 Caradisiac</a>';
-  h += '<a style="' + S + '" target="_blank" rel="noopener" href="https://www.google.com/search?q=site:que-choisir.org+' + e + '">⚖️ Que Choisir</a>';
-  h += '<a style="' + S + '" target="_blank" rel="noopener" href="https://www.google.com/search?q=site:forum-auto.caradisiac.com+' + e + '">💬 Forum Auto</a>';
-  h += '<a style="' + S + '" target="_blank" rel="noopener" href="https://www.google.com/search?q=' + e + '+rappel+panne+avis+proprietaires">🔎 Internet (avis/pannes)</a>';
-  h += '</p></div>';
-  return h;
-}
-
+/* ===== AUTO-VÉRIFICATION RÉELLE : modèles + motorisations + puissances ===== */
 async function ensureCatalog() {
   if (ensureDone) return;
   ensureDone = true;
   try {
-    const existing = (await db.ref('data/models').once('value')).val() || {};
-    const set = {}; Object.values(existing).forEach(m => set[m.brandId + '|' + String(m.name).toLowerCase()] = 1);
+    const models = (await db.ref('data/models').once('value')).val() || {};
+    const byName = {}; Object.entries(models).forEach(([id, m]) => byName[m.brandId + '|' + String(m.name).toLowerCase()] = id);
     let added = 0;
     for (let i = 0; i < ENSURE.length; i++) {
       const e = ENSURE[i];
-      if (set[e[0] + '|' + e[1].toLowerCase()]) continue;
+      if (byName[e[0] + '|' + e[1].toLowerCase()]) continue;
       const id = 'e_' + e[0] + '_' + i;
       await db.ref('data/models/' + id).set({ brandId: e[0], name: e[1], years: e[2] });
       await db.ref('data/motors/' + id).set(e[3].map(m => ({ name: m[0], fuel: m[1], power: m[2] })));
-      added++;
+      byName[e[0] + '|' + e[1].toLowerCase()] = id; added++;
     }
-    if (added) notify('🚗 ' + added + ' modèles ajoutés automatiquement (Clio 6, R4, Bigster…)');
+    if (added) notify('🚗 ' + added + ' modèles ajoutés (Clio 6, R4, Bigster…)');
+    /* Vérification motorisations/puissances sur modèles de référence */
+    let fixed = 0;
+    for (const e of ENSURE) {
+      const id = byName[e[0] + '|' + e[1].toLowerCase()];
+      if (!id) continue;
+      const cur = ((await db.ref('data/motors/' + id).once('value')).val() || []).slice();
+      let changed = false;
+      e[3].forEach(n => { if (!cur.some(x => String(x.name).toLowerCase() === n[0].toLowerCase())) { cur.push({ name: n[0], fuel: n[1], power: n[2] }); changed = true; } });
+      for (let i = 0; i < cur.length; i++) {
+        const x = cur[i];
+        if (!x.fuel || !['essence', 'diesel', 'hybride', 'electrique'].includes(x.fuel)) { x.fuel = guessFuel(x.name); changed = true; }
+        if (!x.power || !/\d/.test(String(x.power))) { x.power = guessPower(x.name) || guessPower(e[3].find(r => r[0] === x.name) ? x.name : x.name); changed = true; }
+      }
+      if (changed) { await db.ref('data/motors/' + id).set(cur); fixed++; }
+    }
+    if (fixed) notify('🔧 Auto-vérification : ' + fixed + ' motorisations/puissances corrigées');
     const iss = (await db.ref('data/issues').once('value')).val() || {};
     const tI = {}; Object.values(iss).forEach(x => tI[String(x.title).toLowerCase()] = 1);
     let aI = 0;
@@ -245,7 +233,7 @@ async function ensureCatalog() {
     const ex = (await db.ref('data/expert').once('value')).val() || {};
     const tE = {}; Object.values(ex).forEach(x => tE[String(x.title).toLowerCase()] = 1);
     for (const k of KEY_EXPERT) if (!tE[k.title.toLowerCase()]) { await db.ref('data/expert/' + uid('key')).set(k); aI++; }
-    if (aI) notify('🔩 Rappels officiels ajoutés (Bigster ressorts AR)');
+    if (aI) notify('🔩 Rappels officiels vérifiés (Bigster ressorts AR)');
   } catch (e) { console.warn('ensure', e); }
 }
 async function checkMonthly() {
@@ -353,8 +341,10 @@ async function addModel() { const b = val('nm-brand'), n = el('nm-name').value.t
 async function addMotor() {
   const mid = val('mo-model'), n = el('mo-name').value.trim(); if (!mid || !n) return notify('Infos requises', 'error');
   const ref = db.ref('data/motors/' + mid); const s = await ref.once('value'); const a = s.val() || [];
-  a.push({ name: n, fuel: val('mo-fuel'), power: el('mo-power').value.trim() }); await ref.set(a);
-  el('mo-name').value = ''; notify('✅ Motorisation ajoutée');
+  let fuel = val('mo-fuel'), power = el('mo-power').value.trim();
+  if (!power) power = guessPower(n);
+  a.push({ name: n, fuel: fuel, power: power }); await ref.set(a);
+  el('mo-name').value = ''; notify('✅ Motorisation ajoutée (vérifiée)');
 }
 async function addIssue() {
   const t = el('is-title').value.trim(); if (!t) return notify('Titre requis', 'error');
@@ -380,7 +370,7 @@ async function importJSON() {
   for (const it of arr) {
     if (it.type === 'motor' && it.brand && it.model && it.name) {
       const e2 = Object.entries(ms).find(([k, m]) => m.brandId === it.brand && m.name.toLowerCase() === String(it.model).toLowerCase());
-      if (e2) { const ref = db.ref('data/motors/' + e2[0]); const s = await ref.once('value'); const a = s.val() || []; a.push({ name: it.name, fuel: it.fuel || 'essence', power: it.power || '' }); await ref.set(a); n++; }
+      if (e2) { const ref = db.ref('data/motors/' + e2[0]); const s = await ref.once('value'); const a = s.val() || []; a.push({ name: it.name, fuel: it.fuel || guessFuel(it.name), power: it.power || guessPower(it.name) }); await ref.set(a); n++; }
     } else if (it.type === 'issue' && it.brand && it.title) {
       await db.ref('data/issues/' + uid('imp')).set({ brandId: it.brand, model: it.model || '', motor: it.motor || '', title: it.title, detail: it.detail || '', source: it.source || 'Import', dtc: it.dtc || '', url: it.url || '' }); n++;
     } else if (it.type === 'expert' && it.brand && it.title) {
@@ -390,6 +380,25 @@ async function importJSON() {
     }
   }
   el('import-json').value = ''; notify('✅ ' + n + ' fiches importées');
+}
+function sourceLinks(q) {
+  const e = encodeURIComponent(q);
+  const S = 'display:inline-block;background:#1e293b;color:#4ade80;padding:6px 10px;border-radius:8px;margin:3px;font-size:12px;font-weight:600;text-decoration:none';
+  const dom = BRAND_SITE[curBrand] || '';
+  let h = '<div class="issue-card" style="border-left-color:#38bdf8"><strong>🌐 Sources à consulter : « ' + esc(q) + ' »</strong><p style="margin:8px 0 4px">';
+  if (dom) h += '<a style="' + S + '" target="_blank" rel="noopener" href="https://www.google.com/search?q=site:' + dom + '+rappel+' + e + '">🏭 Constructeur</a>';
+  h += '<a style="' + S + '" target="_blank" rel="noopener" href="https://www.google.com/search?q=site:rappel.conso.gouv.fr+' + e + '">🇫🇷 Rappel Conso</a>';
+  h += '<a style="' + S + '" target="_blank" rel="noopener" href="https://ec.europa.eu/safety-gate-alerts/screen/webReport/searchAdvanced">🇪 Safety Gate</a>';
+  h += '<a style="' + S + '" target="_blank" rel="noopener" href="https://www.google.com/search?q=site:ec.europa.eu+safety+gate+' + e + '">🇪 Safety Gate (recherche)</a>';
+  h += '<a style="' + S + '" target="_blank" rel="noopener" href="https://www.nhtsa.gov/recalls">🇺🇸 NHTSA</a>';
+  h += '<a style="' + S + '" target="_blank" rel="noopener" href="https://www.google.com/search?q=site:nhtsa.gov+recalls+' + e + '">🇺 NHTSA (recherche)</a>';
+  h += '<a style="' + S + '" target="_blank" rel="noopener" href="https://www.google.com/search?q=site:largus.fr+' + e + '">📰 L\'Argus</a>';
+  h += '<a style="' + S + '" target="_blank" rel="noopener" href="https://www.google.com/search?q=site:caradisiac.com+' + e + '">📰 Caradisiac</a>';
+  h += '<a style="' + S + '" target="_blank" rel="noopener" href="https://www.google.com/search?q=site:que-choisir.org+' + e + '">⚖️ Que Choisir</a>';
+  h += '<a style="' + S + '" target="_blank" rel="noopener" href="https://www.google.com/search?q=site:forum-auto.caradisiac.com+' + e + '">💬 Forum Auto</a>';
+  h += '<a style="' + S + '" target="_blank" rel="noopener" href="https://www.google.com/search?q=' + e + '+rappel+panne+avis+proprietaires">🔎 Internet (avis/pannes)</a>';
+  h += '</p></div>';
+  return h;
 }
 let expertTimer = null;
 function expertSearch() { clearTimeout(expertTimer); expertTimer = setTimeout(doExpertSearch, 300); }
@@ -436,7 +445,7 @@ async function enterApp() {
   showScreen('screen-app');
   brandsData = (await db.ref('data/brands').once('value')).val() || {};
   const sel = el('sel-marque');
-  const regions = { francaises: '🇫🇷 Françaises', europeennes: '🇪 Européennes', asiatiques: '🌏 Asiatiques', chinoises: '🇨 Chinoises', americaines: '🇺🇸 Américaines' };
+  const regions = { francaises: '🇫🇷 Françaises', europeennes: '🇪🇺 Européennes', asiatiques: '🌏 Asiatiques', chinoises: '🇨 Chinoises', americaines: '🇺🇸 Américaines' };
   sel.innerHTML = '<option value="">-- Choisir --</option>';
   Object.entries(regions).forEach(([r, label]) => {
     const items = Object.entries(brandsData).filter(([, b]) => b.region === r);
@@ -465,6 +474,7 @@ async function loadMotors() {
   correlate();
 }
 function motorMatch(e, motor) { if (!e.motor) return true; if (!motor) return false; const a = String(e.motor).toLowerCase(), b = String(motor.name).toLowerCase(); return b.includes(a) || a.includes(b); }
+/* ===== CORRÉLATION STRICTE pannes ↔ modèle ↔ motorisation ===== */
 async function correlate() {
   const box = el('issues-box'), dbox = el('dtc-box'), ebox = el('expert-box');
   if (!curBrand || !curModelName) { box.innerHTML = dbox.innerHTML = ebox.innerHTML = '<p style="color:#94a3b8">Sélectionnez un véhicule…</p>'; return; }
@@ -473,9 +483,14 @@ async function correlate() {
   const all = Object.values((await db.ref('data/issues').once('value')).val() || {}).filter(i => i.brandId === curBrand && (!i.model || i.model === curModelName));
   const specific = motor ? all.filter(i => i.motor && String(motor.name).toLowerCase().includes(String(i.motor).toLowerCase())) : [];
   const general = all.filter(i => !specific.includes(i));
-  let html = '';
+  let html = '', hidden = 0;
   specific.forEach(i => html += issueCard(i, '🎯 '));
-  general.forEach(i => html += issueCard(i, ''));
+  if (motor) {
+    general.forEach(i => { const f = issueFuel(i); if (!f || f === fuel) html += issueCard(i, ''); else hidden++; });
+    if (hidden) html += '<p style="font-size:12px;color:#94a3b8">🔎 ' + hidden + ' panne(s) d\'autres motorisations masquée(s) — filtre actif : ' + FUELS[fuel] + ' (' + esc(motor.name) + ')</p>';
+  } else {
+    general.forEach(i => html += issueCard(i, ''));
+  }
   if (fuel && GENERIC[fuel]) GENERIC[fuel].issues.forEach(g => { html += '<div class="issue-card"><strong>' + g[0] + '</strong><span class="src">Typique ' + FUELS[fuel] + '</span><p>' + g[1] + '</p><p style="color:#fbbf24;font-size:12px">DTC : ' + g[2] + '</p></div>'; });
   UNIV.forEach(u => html += univCard(u));
   const bn = brandsData[curBrand] ? brandsData[curBrand].name : curBrand;
@@ -490,7 +505,7 @@ async function correlate() {
   if (fuel && GENERIC_EXPERT[fuel]) GENERIC_EXPERT[fuel].forEach(g => eh += genCard(g, fuel));
   ebox.innerHTML = eh || '<p style="color:#94a3b8">Aucune fiche expert — recherche par symptôme ci-dessus.</p>';
   const codes = new Set();
-  all.forEach(i => String(i.dtc || '').split(/[,\/\s]+/).forEach(c => { if (/^[A-Z0-9]{4,}$/i.test(c)) codes.add(c.toUpperCase()); }));
+  all.forEach(i => { const f = issueFuel(i); if (motor && f && f !== fuel) return; String(i.dtc || '').split(/[,\/\s]+/).forEach(c => { if (/^[A-Z0-9]{4,}$/i.test(c)) codes.add(c.toUpperCase()); }); });
   exHits.forEach(e => String(e.dtc || '').split(/[,\/\s]+/).forEach(c => { if (/^[A-Z0-9]{4,}$/i.test(c)) codes.add(c.toUpperCase()); }));
   bex.forEach(e => String(e[6] || '').split(/[,\/\s]+/).forEach(c => { if (/^[A-Z0-9]{4,}$/i.test(c)) codes.add(c.toUpperCase()); }));
   UNIV.forEach(u => String(u[2] || '').split(/[,\/\s]+/).forEach(c => { if (/^[A-Z0-9]{4,}$/i.test(c)) codes.add(c.toUpperCase()); }));
