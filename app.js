@@ -1,17 +1,17 @@
-/* APP.JS v11 — Imports 15j/30j + auto-test + corrélation stricte + auto-vérification */
+/* APP.JS v12 — accès 1 bouton + notifications + réseau permanent + recherche approfondie + MAJ 30j + auto-test */
 const ADMIN_PASSWORD = 'Kevin83600';
 const SESSION_KEY = 'autodiag_session';
 const DAY = 86400000;
-const MONTHLY_MS = 30 * DAY;
+const CYCLE_30 = 30 * DAY;
 const FUELS = { essence: '⛽ Essence', diesel: '🛢️ Diesel', hybride: '🔋 Hybride', electrique: '⚡ Électrique' };
-const BRAND_SITE = { renault:'renault.fr', peugeot:'peugeot.fr', citroen:'citroen.fr', ds:'dsautomobiles.fr', dacia:'dacia.fr', volkswagen:'volkswagen.fr', audi:'audi.fr', bmw:'bmw.fr', mercedes:'mercedes-benz.fr', opel:'opel.fr', fiat:'fiat.fr', seat:'seat.fr', skoda:'skoda.fr', volvo:'volvo.fr', porsche:'porsche.fr', mini:'mini.fr', alfa:'alfaromeo.fr', toyota:'toyota.fr', honda:'honda.fr', nissan:'nissan.fr', mazda:'mazda.fr', mitsubishi:'mitsubishi-motors.fr', subaru:'subaru.fr', suzuki:'suzuki.fr', hyundai:'hyundai.fr', kia:'kia.fr', lexus:'lexus.fr', byd:'byd.com', mg:'mgmotor.eu', lynkco:'lynkco.com', nio:'nio.com', xpeng:'xpeng.com', aiways:'aiways.com', seres:'seres.com', omoda:'omoda.com', jaecoo:'jaecoo.com', leapmotor:'leapmotor.com', ora:'ora-ev.com', ford:'ford.fr', chevrolet:'chevrolet.com', jeep:'jeep.fr', dodge:'dodge.com', cadillac:'cadillac.com', tesla:'tesla.com' };
+const BRAND_SITE = { renault:'renault.fr', peugeot:'peugeot.fr', citroen:'citroen.fr', ds:'dsautomobiles.fr', dacia:'dacia.fr', lancia:'lancia.com', cupra:'cupraofficial.com', polestar:'polestar.com', volkswagen:'volkswagen.fr', audi:'audi.fr', bmw:'bmw.fr', mercedes:'mercedes-benz.fr', opel:'opel.fr', fiat:'fiat.fr', seat:'seat.fr', skoda:'skoda.fr', volvo:'volvo.fr', porsche:'porsche.fr', mini:'mini.fr', alfa:'alfaromeo.fr', toyota:'toyota.fr', honda:'honda.fr', nissan:'nissan.fr', mazda:'mazda.fr', mitsubishi:'mitsubishi-motors.fr', subaru:'subaru.fr', suzuki:'suzuki.fr', hyundai:'hyundai.fr', kia:'kia.fr', lexus:'lexus.fr', byd:'byd.com', mg:'mgmotor.eu', lynkco:'lynkco.com', nio:'nio.com', xpeng:'xpeng.com', aiways:'aiways.com', seres:'seres.com', omoda:'omoda.com', jaecoo:'jaecoo.com', leapmotor:'leapmotor.com', ora:'ora-ev.com', ford:'ford.fr', chevrolet:'chevrolet.com', jeep:'jeep.fr', dodge:'dodge.com', cadillac:'cadillac.com', tesla:'tesla.com' };
 const FUEL_KW = {
  diesel: ['adblue','fap','egr','dci','tdi','bluehdi','diesel','multijet','crdi','ecoblue','skyactiv-d','préchauffage','prechauffage','jtd','d-4d'],
  essence: ['puretech','tce','tsi','ecoboost','gdi','thp','vtec','essence','courroie','chaîne','chaine','allumage','bougies','catalyseur','gpf','turbo essence'],
  hybride: ['hybrid','hybride','phev','e:hev','e-tech','onduleur','régénératif','regeneratif'],
  electrique: ['électrique','electrique',' ev','iccu','obc','bms','batterie hv','charge','isolement','dc-dc','12v','e-208','zoe']
 };
-/* ===== LOT PANNES/RAPPELS — import auto 15 jours : [brand,model,motor,title,symptom,diagnosis,parts,dtc,source,years] ===== */
+/* ===== LOT PANNES/CAMPAGNES — import auto 30 j ===== */
 const BATCH_ISSUES = [
  ['renault','Clio V','1.5 Blue dCi','Campagne EGR 1.5 dCi Clio V','Perte puissance sous 2000 tr/min, voyant P0401','1) Lire P0401 2) Test ouverture EGR 3) Remplacement vanne selon campagne','Vanne EGR','P0401','Rappel Conso','2019-2024'],
  ['peugeot','208 II','1.2 PureTech','Campagne tendeur courroie 2022-2023','Usure courroie prématurée, bruit','1) Gabarit usure 2) Kit courroie selon VIN','Kit courroie','P0087','Rappel Conso','2022-2023'],
@@ -28,24 +28,35 @@ const BATCH_ISSUES = [
  ['kia','EV6','Electrique','Campagne ICCU 2022-2024','Non-charge, défaut 12V','1) Codes ICCU 2) Remplacement ICCU + 12V','ICCU','U0111','NHTSA','2022-2024'],
  ['renault','Zoe','Electrique','Campagne connecteur charge 2018-2021','Échauffement connecteur','1) Inspection visuelle 2) Remplacement connecteur','Connecteur','P0D11','Rappel Conso','2018-2021'],
  ['volkswagen','Golf VIII','2.0 TDI','Campagne pompe AdBlue 2020-2023','Défaut AdBlue, countdown','1) Lire P20EE 2) Remplacement pompe','Pompe AdBlue','P20EE','Campagne constructeur','2020-2023'],
- ['dacia','Duster III','1.2 TCe','Campagne courroie accessoires 2024-2025','Usure prématurée courroie','1) Inspection 2) Kit selon VIN','Kit courroie','P0016','Rappel Conso','2024-2025']
+ ['dacia','Duster III','1.2 TCe','Campagne courroie accessoires 2024-2025','Usure prématurée courroie','1) Inspection 2) Kit selon VIN','Kit courroie','P0016','Rappel Conso','2024-2025'],
+ ['cupra','Born','Electrique','Campagne logiciel batterie 2022-2024','Limitation puissance, défaut BMS','1) Codes BMS 2) Campagne logicielle 3) Contrôle modules','Logiciel BMS','P0AA6','Safety Gate','2022-2024'],
+ ['polestar','Polestar 2','Electrique','Campagne capteur HV 2020-2022','Défaut isolement intempestif','1) Mesure isolement 2) Remplacement capteur selon campagne','Capteur HV','P0AA6','NHTSA','2020-2022'],
+ ['lancia','Ypsilon','1.2 Hybrid','Campagne logiciel hybride 2024-2025','À-coups, défaut système 48V','1) Codes 2) MAJ logiciel 3) Contrôle batterie 12V','Logiciel, 12V','P0562','Campagne constructeur','2024-2026'],
+ ['mg','MG4','Electrique','Campagne DC-DC 2023-2025','Défaut 12V répété','1) SOH 12V 2) Test DC-DC 3) MAJ/remplacement','DC-DC, 12V','U0111','Campagne constructeur','2023-2025']
 ];
-/* ===== LOT MODÈLES/MOTORISATIONS — import auto 30 jours ===== */
+/* ===== LOT MODÈLES/MOTORISATIONS 2024-2026 — import auto 30 j : [brandId,name,years,motors,brandName,region] ===== */
 const BATCH_MODELS = [
- ['renault','Kangoo E-Tech','2022-2026',[['Electrique 120','electrique','120 ch']]],
- ['peugeot','Partner E','2021-2026',[['Electrique 136','electrique','136 ch']]],
- ['citroen','C5 Aircross II','2025-2026',[['1.2 Hybrid 136','hybride','136 ch'],['Hybrid 195','hybride','195 ch']]],
- ['volkswagen','T-Roc II','2025-2026',[['1.5 TSI 116','essence','116 ch'],['1.5 TSI 150','essence','150 ch'],['2.0 TDI 150','diesel','150 ch']]],
- ['bmw','iX3','2025-2026',[['Electrique 313','electrique','313 ch'],['Electrique 469','electrique','469 ch']]],
- ['mercedes','GLC EV','2026-2026',[['Electrique 408','electrique','408 ch']]],
- ['toyota','Aygo X Hybrid','2025-2026',[['1.5 Hybrid 116','hybride','116 ch']]],
- ['hyundai','Ioniq 6 N','2025-2026',[['Electrique 650','electrique','650 ch']]],
- ['kia','PV5','2025-2026',[['Electrique 163','electrique','163 ch']]],
- ['byd','Tang L','2025-2026',[['Electrique 517','electrique','517 ch']]],
- ['tesla','Model Y Juniper','2025-2026',[['Propulsion 299','electrique','299 ch'],['Grande Autonomie 498','electrique','498 ch']]],
- ['dacia','Spring II','2026-2026',[['Electrique 70','electrique','70 ch']]],
- ['skoda','Elroq RS','2025-2026',[['Electrique 340','electrique','340 ch']]],
- ['ford','Explorer EV II','2025-2026',[['Electrique 286','electrique','286 ch'],['Electrique 340','electrique','340 ch']]]
+ ['renault','Kangoo E-Tech','2022-2026',[['Electrique 120','electrique','120 ch']],'Renault','francaises'],
+ ['peugeot','Partner E','2021-2026',[['Electrique 136','electrique','136 ch']],'Peugeot','francaises'],
+ ['citroen','C5 Aircross II','2025-2026',[['1.2 Hybrid 136','hybride','136 ch'],['Hybrid 195','hybride','195 ch']],'Citroën','francaises'],
+ ['volkswagen','T-Roc II','2025-2026',[['1.5 TSI 116','essence','116 ch'],['1.5 TSI 150','essence','150 ch'],['2.0 TDI 150','diesel','150 ch']],'Volkswagen','europeennes'],
+ ['bmw','iX3','2025-2026',[['Electrique 313','electrique','313 ch'],['Electrique 469','electrique','469 ch']],'BMW','europeennes'],
+ ['mercedes','GLC EV','2026-2026',[['Electrique 408','electrique','408 ch']],'Mercedes','europeennes'],
+ ['toyota','Aygo X Hybrid','2025-2026',[['1.5 Hybrid 116','hybride','116 ch']],'Toyota','asiatiques'],
+ ['hyundai','Ioniq 6 N','2025-2026',[['Electrique 650','electrique','650 ch']],'Hyundai','asiatiques'],
+ ['kia','PV5','2025-2026',[['Electrique 163','electrique','163 ch']],'Kia','asiatiques'],
+ ['byd','Tang L','2025-2026',[['Electrique 517','electrique','517 ch']],'BYD','chinoises'],
+ ['tesla','Model Y Juniper','2025-2026',[['Propulsion 299','electrique','299 ch'],['Grande Autonomie 498','electrique','498 ch']],'Tesla','americaines'],
+ ['dacia','Spring II','2026-2026',[['Electrique 70','electrique','70 ch']],'Dacia','europeennes'],
+ ['skoda','Elroq RS','2025-2026',[['Electrique 340','electrique','340 ch']],'Skoda','europeennes'],
+ ['ford','Explorer EV II','2025-2026',[['Electrique 286','electrique','286 ch'],['Electrique 340','electrique','340 ch']],'Ford','americaines'],
+ ['lancia','Ypsilon','2024-2026',[['1.2 Hybrid 100','hybride','100 ch'],['Electrique 156','electrique','156 ch']],'Lancia','europeennes'],
+ ['cupra','Born','2021-2026',[['Electrique 204','electrique','204 ch'],['Electrique 231','electrique','231 ch'],['VZ 326','electrique','326 ch']],'Cupra','europeennes'],
+ ['cupra','Tavascan','2024-2026',[['Electrique 286','electrique','286 ch'],['Electrique 340','electrique','340 ch']],'Cupra','europeennes'],
+ ['cupra','Formentor','2020-2026',[['1.5 eTSI 150','essence','150 ch'],['2.0 TSI 245','essence','245 ch'],['1.4 e-Hybrid 218','hybride','218 ch']],'Cupra','europeennes'],
+ ['polestar','Polestar 2','2020-2026',[['Electrique 231','electrique','231 ch'],['Electrique 408','electrique','408 ch'],['Electrique 476','electrique','476 ch']],'Polestar','europeennes'],
+ ['polestar','Polestar 3','2024-2026',[['Electrique 489','electrique','489 ch'],['Electrique 517','electrique','517 ch']],'Polestar','europeennes'],
+ ['polestar','Polestar 4','2024-2026',[['Electrique 272','electrique','272 ch'],['Electrique 544','electrique','544 ch']],'Polestar','europeennes']
 ];
 const KEY_ISSUES = [
  { brand:'dacia', model:'Bigster', motor:'', title:'Ressorts suspension AR : rupture (diamètre fil insuffisant)', detail:'Campagne de rappel : remplacement des 2 ressorts de suspension arrière suite à risque de rupture (diamètre de fil insuffisant). Contrôle visuel + mesure du diamètre, remplacement préventif selon VIN. Intervention gratuite en concession.', source:'Rappel Conso / Safety Gate', dtc:'', url:'https://www.rappel.conso.gouv.fr/' },
@@ -126,7 +137,10 @@ const BRAND_EXPERT = [
  ['chevrolet','','Campagnes sécurité NHTSA','Selon campagne (airbag/caméra)','1) VIN NHTSA 2) Campagne 3) Remplacement','—','','NHTSA','2017-2026'],
  ['dodge','','Faisceau/incendie campagnes','Risque échauffement faisceau','1) VIN 2) Inspection faisceau 3) Remplacement','Faisceau','','NHTSA','2017-2023'],
  ['cadillac','Lyriq','Batterie HV Lyriq (campagne)','Défaut batterie, limitation','1) Codes BMS 2) Campagne 3) Module','Module batterie','P0AA6','NHTSA','2024-2026'],
- ['dacia','','Campagnes sécurité Dacia','Airbag/ceintures selon VIN','1) VIN Rappel Conso 2) Campagne 3) Remplacement','—','','Rappel Conso','2017-2026']
+ ['dacia','','Campagnes sécurité Dacia','Airbag/ceintures selon VIN','1) VIN Rappel Conso 2) Campagne 3) Remplacement','—','','Rappel Conso','2017-2026'],
+ ['cupra','','Campagnes logiciel HV','Défaut BMS/limite puissance','1) Codes BMS 2) Campagne logicielle 3) Contrôle modules','Logiciel BMS','P0AA6','Safety Gate','2021-2026'],
+ ['polestar','','Capteurs isolement HV','Défaut isolement intempestif','1) Mesure isolement 2) Capteur selon campagne','Capteur HV','P0AA6','NHTSA','2020-2026'],
+ ['lancia','','Système 48V hybride','À-coups, défaut hybridation','1) Codes 2) MAJ 3) Contrôle 12V','Logiciel, 12V','P0562','Campagne constructeur','2024-2026']
 ];
 const GENERIC_EXPERT = {
  diesel: [
@@ -163,10 +177,10 @@ const UNIV = [
   ['Capteurs TPMS / pression', 'Perte signal capteur, voyant erroné', '', 'Campagne constructeur']
 ];
 const GENERIC = {
-  diesel: { issues: [['Vanne EGR encrassée', 'Perte puissance, voyant, ralenti instable', 'P0401 / P0490'], ['FAP colmaté', 'Régénérations fréquentes, perte puissance', 'P2002 / P2463'], ['Système AdBlue', 'Cristallisation, pompe HS, countdown', 'P20EE / P204F'], ['Pompe haute pression', 'Démarrage difficile, pression rail basse', 'P0087 / P0088'], ['Injecteurs', 'Claquement, fumée, surconso, ratés', 'P0201-P0204'], ['Chaîne / courroie distribution', 'Claquement froid, décalage calage', 'P0016 / P0335'], ['Turbo / géométrie variable', 'Perte puissance, sifflement anormal', 'P0299 / P0234'], ['Préchauffage', 'Démarrage difficile à froid', 'P0380 / P0671']], dtc: ['P0401', 'P0490', 'P2002', 'P2463', 'P20EE', 'P0087', 'P0201', 'P0016', 'P0299', 'P0380'] },
-  essence: { issues: [['Chaîne de distribution', 'Claquement froid, usure tendeur', 'P0016 / P0335'], ['Courroie de distribution (humide)', 'Débris, pompe à huile colmatée', 'P0087 / P0340'], ['Injecteurs / calamine (injection directe)', 'Ratés, ralenti instable, perte puissance', 'P0300-P0304'], ['Pompe haute pression (GDI)', 'Pression rail insuffisante', 'P0087'], ['Catalyseur', 'Vieillissement, contre-pression, odeur', 'P0420'], ['Turbo', 'Fuite admission, sous/sur-turbo', 'P0299 / P0234'], ['Allumage bougies/bobines', 'À-coups, ratés accélération', 'P0300-P0304'], ['Électronique / tension', 'Défauts multiples, batterie/alternateur', 'P0562']], dtc: ['P0016', 'P0087', 'P0300', 'P0301', 'P0335', 'P0340', 'P0420', 'P0299', 'P0562'] },
-  hybride: { issues: [['Batterie haute tension', 'Vieillissement cellules, équilibrage, isolation', 'U0111 / P0AA6'], ['Onduleur / convertisseur', 'Perte puissance, défaut isolement', 'P0AA6'], ['Défaut de charge', 'Charge lente/absente (OBC/ICCU)', 'P0D11 / U0111'], ['Défaut d\'autonomie', 'Perte capacité, estimation erronée', 'U0111'], ['Freinage régénératif', 'À-coups, capteur pédale', 'C1365'], ['Batterie 12V / DC-DC', 'Non-démarrage, défaut circuit charge', 'P0562 / U0111'], ['Thermique batterie', 'Refroidissement, surchauffe modules', 'P0C00'], ['Moteur thermique associé', 'EGR/FAP/courroie selon motorisation', 'P0401 / P0087']], dtc: ['U0111', 'P0AA6', 'P0D11', 'P0C00', 'C1365', 'P0562'] },
-  electrique: { issues: [['Batterie haute tension', 'Dégradation, surchauffe modules, BMS, isolation', 'P0AA6 / U0111'], ['Défaut de charge (OBC/ICCU/borne)', 'Charge lente/absente, erreurs connecteur', 'P0D11 / U0111'], ['Défaut d\'autonomie', 'Perte capacité, équilibrage cellules', 'U0111'], ['Court-circuit / isolement HV', 'Défaut isolement, sécurité coupure', 'P0AA6'], ['Batterie 12V / DC-DC', 'Non-démarrage, défaut 12V', 'P0562 / U0111'], ['Moteur électrique / onduleur', 'Perte puissance, bruit anormal', 'P0AA6'], ['Thermique batterie', 'Refroidissement, pompe LDR', 'P0C00'], ['Électronique / logiciels', 'Bugs BMS/MBUX, MAJ nécessaires', 'U0101']], dtc: ['P0AA6', 'U0111', 'P0D11', 'P0C00', 'P0562', 'U0101'] }
+ diesel: { issues: [['Vanne EGR encrassée', 'Perte puissance, voyant, ralenti instable', 'P0401 / P0490'], ['FAP colmaté', 'Régénérations fréquentes, perte puissance', 'P2002 / P2463'], ['Système AdBlue', 'Cristallisation, pompe HS, countdown', 'P20EE / P204F'], ['Pompe haute pression', 'Démarrage difficile, pression rail basse', 'P0087 / P0088'], ['Injecteurs', 'Claquement, fumée, surconso, ratés', 'P0201-P0204'], ['Chaîne / courroie distribution', 'Claquement froid, décalage calage', 'P0016 / P0335'], ['Turbo / géométrie variable', 'Perte puissance, sifflement anormal', 'P0299 / P0234'], ['Préchauffage', 'Démarrage difficile à froid', 'P0380 / P0671']], dtc: ['P0401', 'P0490', 'P2002', 'P2463', 'P20EE', 'P0087', 'P0201', 'P0016', 'P0299', 'P0380'] },
+ essence: { issues: [['Chaîne de distribution', 'Claquement froid, usure tendeur', 'P0016 / P0335'], ['Courroie de distribution (humide)', 'Débris, pompe à huile colmatée', 'P0087 / P0340'], ['Injecteurs / calamine (injection directe)', 'Ratés, ralenti instable, perte puissance', 'P0300-P0304'], ['Pompe haute pression (GDI)', 'Pression rail insuffisante', 'P0087'], ['Catalyseur', 'Vieillissement, contre-pression, odeur', 'P0420'], ['Turbo', 'Fuite admission, sous/sur-turbo', 'P0299 / P0234'], ['Allumage bougies/bobines', 'À-coups, ratés accélération', 'P0300-P0304'], ['Électronique / tension', 'Défauts multiples, batterie/alternateur', 'P0562']], dtc: ['P0016', 'P0087', 'P0300', 'P0301', 'P0335', 'P0340', 'P0420', 'P0299', 'P0562'] },
+ hybride: { issues: [['Batterie haute tension', 'Vieillissement cellules, équilibrage, isolation', 'U0111 / P0AA6'], ['Onduleur / convertisseur', 'Perte puissance, défaut isolement', 'P0AA6'], ['Défaut de charge', 'Charge lente/absente (OBC/ICCU)', 'P0D11 / U0111'], ['Défaut d\'autonomie', 'Perte capacité, estimation erronée', 'U0111'], ['Freinage régénératif', 'À-coups, capteur pédale', 'C1365'], ['Batterie 12V / DC-DC', 'Non-démarrage, défaut circuit charge', 'P0562 / U0111'], ['Thermique batterie', 'Refroidissement, surchauffe modules', 'P0C00'], ['Moteur thermique associé', 'EGR/FAP/courroie selon motorisation', 'P0401 / P0087']], dtc: ['U0111', 'P0AA6', 'P0D11', 'P0C00', 'C1365', 'P0562'] },
+ electrique: { issues: [['Batterie haute tension', 'Dégradation, surchauffe modules, BMS, isolation', 'P0AA6 / U0111'], ['Défaut de charge (OBC/ICCU/borne)', 'Charge lente/absente, erreurs connecteur', 'P0D11 / U0111'], ['Défaut d\'autonomie', 'Perte capacité, équilibrage cellules', 'U0111'], ['Court-circuit / isolement HV', 'Défaut isolement, sécurité coupure', 'P0AA6'], ['Batterie 12V / DC-DC', 'Non-démarrage, défaut 12V', 'P0562 / U0111'], ['Moteur électrique / onduleur', 'Perte puissance, bruit anormal', 'P0AA6'], ['Thermique batterie', 'Refroidissement, pompe LDR', 'P0C00'], ['Électronique / logiciels', 'Bugs BMS/MBUX, MAJ nécessaires', 'U0101']], dtc: ['P0AA6', 'U0111', 'P0D11', 'P0C00', 'P0562', 'U0101'] }
 };
 const ENSURE = [
  ['renault','Clio 6','2025-2026',[['1.0 TCe 90','essence','90 ch'],['1.0 TCe 110','essence','110 ch'],['E-Tech 140','hybride','140 ch'],['E-Tech 160','hybride','160 ch']]],
@@ -204,15 +218,16 @@ const ENSURE = [
  ['mg','MG4','2022-2026',[['Electrique 170','electrique','170 ch'],['Electrique 204','electrique','204 ch'],['XPower 435','electrique','435 ch']]],
  ['ford','Puma','2019-2026',[['1.0 EcoBoost 95','essence','95 ch'],['1.0 EcoBoost 125','essence','125 ch'],['1.0 EcoBoost 155','essence','155 ch'],['1.5 EcoBlue 120','diesel','120 ch']]]
 ];
-let db, usersData = {}, brandsData = {}, motorsCache = [], deferredPrompt = null, listenersStarted = false, ensureDone = false;
+let db, usersData = {}, brandsData = {}, motorsCache = [], deferredPrompt = null, listenersStarted = false, ensureDone = false, pwdUserTyped = false, pendCount = -1;
 let curBrand = null, curModelId = null, curModelName = null;
 
 window.addEventListener('DOMContentLoaded', () => {
   if ('serviceWorker' in navigator) navigator.serviceWorker.register('./sw.js').catch(() => {});
   firebase.initializeApp(firebaseConfig);
   db = firebase.database();
-  setupInstall(); bindAdminTable(); boot(); checkMonthly(); selfTest(true);
+  setupInstall(); bindAdminTable(); bindPwdGuard(); netMonitor(); boot(); checkMonthly(); selfTest(true);
 });
+window.addEventListener('pageshow', () => hardClearPwd());
 function el(id) { return document.getElementById(id); }
 function val(id) { return el(id).value; }
 function getSession() { try { return JSON.parse(localStorage.getItem(SESSION_KEY)); } catch (e) { return null; } }
@@ -220,6 +235,7 @@ function saveSession(s) { localStorage.setItem(SESSION_KEY, JSON.stringify(s)); 
 function showScreen(id) { document.querySelectorAll('.screen').forEach(s => s.classList.remove('active')); el(id).classList.add('active'); }
 function screenIsActive(id) { return el(id).classList.contains('active'); }
 function notify(m, t) { const n = document.createElement('div'); n.className = 'notification' + (t === 'error' ? ' error' : ''); n.textContent = m; document.body.appendChild(n); setTimeout(() => n.remove(), 3500); }
+function pushNotif(title, body) { if ('Notification' in window && Notification.permission === 'granted') { try { new Notification(title, { body: body, icon: './icon-192.png' }); } catch (e) {} } }
 function esc(s) { const d = document.createElement('div'); d.textContent = String(s); return d.innerHTML; }
 function deviceId() { let id = localStorage.getItem('autodiag_device'); if (!id) { id = 'DEV-' + Math.random().toString(36).substr(2, 8).toUpperCase(); localStorage.setItem('autodiag_device', id); } return id; }
 function uid(p) { return p + '_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5); }
@@ -227,7 +243,30 @@ function kwMatch(kw, motor) { if (!kw) return true; if (!motor) return false; re
 function guessFuel(n) { n = String(n).toLowerCase(); if (/électrique|electrique|ev\b|e-|zero emi|electri/.test(n)) return 'electrique'; if (/hybrid|hybride|phev|e:hev|e-tech|e:h/.test(n)) return 'hybride'; if (/dci|tdi|bluehdi|diesel|crdi|multijet|ecoblue|jtd|d-4d|\bd\b/.test(n)) return 'diesel'; return 'essence'; }
 function guessPower(n) { const m = String(n).match(/(\d{2,4})\s*ch\b/i) || String(n).match(/(\d{2,4})$/); return m ? m[1] + ' ch' : ''; }
 function issueFuel(i) { const t = ((i.title || '') + ' ' + (i.detail || '') + ' ' + (i.motor || '') + ' ' + (i.symptom || '')).toLowerCase(); for (const f of ['diesel', 'essence', 'hybride', 'electrique']) if (FUEL_KW[f].some(k => t.includes(k))) return f; return null; }
-function showAdminLogin() { const p = el('admin-pwd'); if (p) p.value = ''; showScreen('screen-admin-login'); setTimeout(() => { const q = el('admin-pwd'); if (q) { q.value = ''; if (q.focus) q.focus(); } }, 60); }
+
+/* ===== CASE MOT DE PASSE : aucun point par défaut ===== */
+function hardClearPwd() { const p = el('admin-pwd'); if (!p || pwdUserTyped) return; p.value = ''; try { p.setAttribute('value', ''); } catch (e) {} }
+function showAdminLogin() { pwdUserTyped = false; hardClearPwd(); showScreen('screen-admin-login'); [0, 80, 250, 600, 1200].forEach(ms => setTimeout(hardClearPwd, ms)); }
+function bindPwdGuard() { const p = el('admin-pwd'); if (!p) return; p.addEventListener('input', () => { pwdUserTyped = true; }); p.addEventListener('focus', () => { if (!pwdUserTyped) hardClearPwd(); }); }
+
+/* ===== CONNEXION PERMANENTE 4G/5G/WiFi + statut ===== */
+function netMonitor() {
+  const set = on => { const s = el('net-status'); if (s) s.textContent = on ? '📶 en ligne' : '⚠️ hors-ligne (cache)'; };
+  set(navigator.onLine);
+  window.addEventListener('online', () => { set(true); notify('📶 Connexion rétablie (4G/5G/WiFi)'); });
+  window.addEventListener('offline', () => { set(false); notify('⚠️ Hors-ligne : bascule sur cache local', 'error'); });
+}
+/* Lecture robuste : réseau d'abord, repli miroir local (offline) */
+async function dbGet(path) {
+  try {
+    const v = await Promise.race([db.ref(path).once('value'), new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), 3000))]);
+    const val = v.val();
+    try { localStorage.setItem('mir_' + path, JSON.stringify(val || {})); } catch (e) {}
+    return val || {};
+  } catch (e) {
+    try { return JSON.parse(localStorage.getItem('mir_' + path) || '{}'); } catch (e2) { return {}; }
+  }
+}
 
 /* ===== AUTO-TEST APK ===== */
 async function selfTest(quiet) {
@@ -237,9 +276,10 @@ async function selfTest(quiet) {
   try { const m = await fetch('./manifest.json', { cache: 'no-store' }); t('Manifest accessible', m.ok); } catch (e) { t('Manifest accessible', false); }
   try { const i = await fetch('./icon-192.png', { cache: 'no-store' }); t('Icônes accessibles', i.ok); } catch (e) { t('Icônes accessibles', false); }
   t('Service Worker enregistré', !!(navigator.serviceWorker));
-  const b = (await db.ref('data/brands').once('value')).val() || {}; t('Base marques (' + Object.keys(b).length + ')', Object.keys(b).length > 0);
-  const mo = (await db.ref('data/models').once('value')).val() || {}; t('Base modèles (' + Object.keys(mo).length + ')', Object.keys(mo).length > 0);
-  const dt = (await db.ref('data/dtc').once('value')).val() || {}; t('Base DTC (' + Object.keys(dt).length + ')', Object.keys(dt).length > 0);
+  t('Réseau actif (4G/5G/WiFi)', navigator.onLine);
+  const b = await dbGet('data/brands'); t('Base marques (' + Object.keys(b).length + ')', Object.keys(b).length > 0);
+  const mo = await dbGet('data/models'); t('Base modèles (' + Object.keys(mo).length + ')', Object.keys(mo).length > 0);
+  const dt = await dbGet('data/dtc'); t('Base DTC (' + Object.keys(dt).length + ')', Object.keys(dt).length > 0);
   t('Écrans interface', !!el('screen-home') && !!el('screen-admin') && !!el('screen-app'));
   window.lastSelfTest = R;
   const bad = R.filter(r => !r.ok);
@@ -248,23 +288,20 @@ async function selfTest(quiet) {
   renderSelfTest();
   return R;
 }
-function renderSelfTest() {
-  const c = el('selftest-box'); if (!c || !window.lastSelfTest) return;
-  c.innerHTML = window.lastSelfTest.map(r => '<p style="font-size:13px;margin:3px 0">' + (r.ok ? '✅' : '❌') + ' ' + esc(r.name) + '</p>').join('');
-}
+function renderSelfTest() { const c = el('selftest-box'); if (!c || !window.lastSelfTest) return; c.innerHTML = window.lastSelfTest.map(r => '<p style="font-size:13px;margin:3px 0">' + (r.ok ? '✅' : '❌') + ' ' + esc(r.name) + '</p>').join(''); }
 
-/* ===== IMPORTS PROGRAMMÉS : pannes 15 j / modèles 30 j ===== */
+/* ===== IMPORTS PROGRAMMÉS 30 JOURS (pannes + modèles) ===== */
 function syncScheduler() {
   const now = Date.now();
   const li = parseInt(localStorage.getItem('autodiag_sync_issues') || '0', 10);
-  if (now - li > 15 * DAY) { applyBatch('issues'); localStorage.setItem('autodiag_sync_issues', String(now)); }
+  if (now - li > CYCLE_30) { applyBatch('issues'); localStorage.setItem('autodiag_sync_issues', String(now)); }
   const lc = parseInt(localStorage.getItem('autodiag_sync_catalog') || '0', 10);
-  if (now - lc > 30 * DAY) { applyBatch('catalog'); localStorage.setItem('autodiag_sync_catalog', String(now)); }
+  if (now - lc > CYCLE_30) { applyBatch('catalog'); localStorage.setItem('autodiag_sync_catalog', String(now)); }
 }
 async function applyBatch(kind) {
   try {
     if (kind === 'issues') {
-      const ex = (await db.ref('data/expert').once('value')).val() || {};
+      const ex = await dbGet('data/expert');
       const t = {}; Object.values(ex).forEach(x => t[String(x.title).toLowerCase()] = 1);
       let n = 0;
       for (const b of BATCH_ISSUES) {
@@ -272,19 +309,23 @@ async function applyBatch(kind) {
         await db.ref('data/expert/' + uid('bat')).set({ brandId: b[0], model: b[1], motor: b[2], title: b[3], symptom: b[4], diagnosis: b[5], parts: b[6], dtc: b[7], source: b[8], years: b[9] });
         n++;
       }
-      if (n) notify('📥 Import 15 j : ' + n + ' nouvelles pannes/campagnes intégrées');
+      if (n) notify('📥 MAJ 30 j : ' + n + ' nouvelles pannes/campagnes intégrées');
     } else {
-      const models = (await db.ref('data/models').once('value')).val() || {};
+      const models = await dbGet('data/models');
       const set = {}; Object.values(models).forEach(m => set[m.brandId + '|' + String(m.name).toLowerCase()] = 1);
       let n = 0;
       for (const e of BATCH_MODELS) {
-        if (set[e[0] + '|' + e[1].toLowerCase()]) continue;
-        const id = 'b_' + e[0] + '_' + Date.now() + '_' + n;
-        await db.ref('data/models/' + id).set({ brandId: e[0], name: e[1], years: e[2] });
+        const bid = e[0];
+        if (!(await db.ref('data/brands/' + bid).once('value')).exists()) {
+          await db.ref('data/brands/' + bid).set({ name: e[4] || bid, region: e[5] || 'europeennes' });
+        }
+        if (set[bid + '|' + e[1].toLowerCase()]) continue;
+        const id = 'b_' + bid + '_' + Date.now() + '_' + n;
+        await db.ref('data/models/' + id).set({ brandId: bid, name: e[1], years: e[2] });
         await db.ref('data/motors/' + id).set(e[3].map(m => ({ name: m[0], fuel: m[1], power: m[2] })));
         n++;
       }
-      if (n) notify('📥 Import mensuel : ' + n + ' nouveaux modèles/motorisations intégrés');
+      if (n) notify('📥 MAJ 30 j : ' + n + ' nouveaux modèles/motorisations intégrés');
     }
   } catch (e) { console.warn('batch', e); }
 }
@@ -294,7 +335,7 @@ async function ensureCatalog() {
   if (ensureDone) return;
   ensureDone = true;
   try {
-    const models = (await db.ref('data/models').once('value')).val() || {};
+    const models = await dbGet('data/models');
     const byName = {}; Object.entries(models).forEach(([id, m]) => byName[m.brandId + '|' + String(m.name).toLowerCase()] = id);
     let added = 0;
     for (let i = 0; i < ENSURE.length; i++) {
@@ -321,11 +362,11 @@ async function ensureCatalog() {
       if (changed) { await db.ref('data/motors/' + id).set(cur); fixed++; }
     }
     if (fixed) notify('🔧 Auto-vérification : ' + fixed + ' motorisations/puissances corrigées');
-    const iss = (await db.ref('data/issues').once('value')).val() || {};
+    const iss = await dbGet('data/issues');
     const tI = {}; Object.values(iss).forEach(x => tI[String(x.title).toLowerCase()] = 1);
     let aI = 0;
     for (const k of KEY_ISSUES) if (!tI[k.title.toLowerCase()]) { await db.ref('data/issues/' + uid('key')).set(k); aI++; }
-    const ex = (await db.ref('data/expert').once('value')).val() || {};
+    const ex = await dbGet('data/expert');
     const tE = {}; Object.values(ex).forEach(x => tE[String(x.title).toLowerCase()] = 1);
     for (const k of KEY_EXPERT) if (!tE[k.title.toLowerCase()]) { await db.ref('data/expert/' + uid('key')).set(k); aI++; }
     if (aI) notify('🔩 Rappels officiels vérifiés (Bigster ressorts AR)');
@@ -334,7 +375,7 @@ async function ensureCatalog() {
 async function checkMonthly() {
   const v = (await db.ref('data/version').once('value')).val();
   if (!v || !v.lastUpdate) return;
-  if (Date.now() - new Date(v.lastUpdate).getTime() > MONTHLY_MS) {
+  if (Date.now() - new Date(v.lastUpdate).getTime() > CYCLE_30) {
     if (sessionStorage.getItem('autodiag_admin') === '1') { await updateBase(true); notify('📅 MAJ mensuelle diffusée automatiquement'); }
     else notify('📅 Base > 30 jours : MAJ mensuelle en diffusion');
   }
@@ -346,7 +387,13 @@ async function updateBase(manual) {
 function boot() {
   if (!listenersStarted) {
     listenersStarted = true;
-    db.ref('access/users').on('value', s => { usersData = s.val() || {}; routeUser(); if (screenIsActive('screen-admin')) renderAdmin(); });
+    db.ref('access/users').on('value', s => {
+      usersData = s.val() || {};
+      const pc = Object.values(usersData).filter(u => u.status === 'pending').length;
+      if (pendCount >= 0 && pc > pendCount && sessionStorage.getItem('autodiag_admin') === '1') { notify('📨 Nouvelle demande d\'accès tiers'); pushNotif('📨 Nouvelle demande', 'Un tiers attend votre validation.'); }
+      pendCount = pc;
+      routeUser(); if (screenIsActive('screen-admin')) renderAdmin();
+    });
     db.ref('data/brands').on('value', s => { brandsData = s.val() || {}; if (screenIsActive('screen-admin')) fillBrandSelects(); });
     db.ref('data/version').on('value', s => { const v = s.val(); const t = v && v.lastUpdate ? new Date(v.lastUpdate).toLocaleDateString('fr-FR') : '--'; if (el('app-version')) el('app-version').textContent = t; if (el('admin-version')) el('admin-version').textContent = t; });
   }
@@ -358,32 +405,39 @@ function routeUser() {
   if (!s || !s.prenom) { showScreen('screen-home'); return; }
   const k = findKey(s.prenom);
   if (!k) { showPending(s.prenom); return; }
-  s.status = usersData[k].status; saveSession(s);
-  if (s.status === 'accepted') { el('accepted-name').textContent = s.prenom; showScreen('screen-accepted'); }
-  else if (s.status === 'refused') showScreen('screen-refused');
-  else if (s.status === 'revoked') showScreen('screen-revoked');
+  const status = usersData[k].status;
+  const prev = s.lastStatus;
+  if (prev !== status) {
+    s.lastStatus = status; saveSession(s);
+    if (status === 'accepted') { notify('✅ Accès autorisé — bienvenue ' + s.prenom); pushNotif('✅ Accès autorisé', 'Votre accès à Auto Diagnostic Pro est actif. Bonne route !'); }
+    else if (status === 'refused') { notify('❌ Demande refusée', 'error'); pushNotif('❌ Accès refusé', 'Votre demande d\'accès a été refusée.'); }
+    else if (status === 'revoked') { notify('🔒 Accès révoqué', 'error'); pushNotif('🔒 Accès révoqué', 'Votre accès a été révoqué par l\'administrateur.'); }
+  }
+  s.status = status; saveSession(s);
+  if (status === 'accepted') { el('accepted-name').textContent = s.prenom; showScreen('screen-accepted'); }
+  else if (status === 'refused') showScreen('screen-refused');
+  else if (status === 'revoked') showScreen('screen-revoked');
   else showPending(s.prenom);
 }
+/* ===== DEMANDE D'ACCÈS SIMPLIFIÉE : prénom + 1 bouton ===== */
 async function requestAccess() {
   const p = el('input-prenom').value.trim();
   if (p.length < 2) return notify('Prénom invalide', 'error');
-  saveSession({ prenom: p, status: 'pending', date: Date.now() });
+  if ('Notification' in window && Notification.permission === 'default') Notification.requestPermission();
+  saveSession({ prenom: p, status: 'pending', lastStatus: 'pending', date: Date.now() });
   await db.ref('access/users/user_' + p.toLowerCase().replace(/[^a-z0-9]+/g, '_')).set({ prenom: p, status: 'pending', device: deviceId(), date: Date.now() });
-  showPending(p); notify('📨 Demande envoyée');
+  showPending(p);
+  notify('📨 Demande transmise à l\'administrateur');
+  pushNotif('📨 Demande envoyée', 'Votre demande d\'accès a été transmise. Vous serez notifié à la validation.');
 }
-function showPending(p) {
-  el('pending-name').textContent = p;
-  const m = encodeURIComponent('🔐 DEMANDE D\'ACCÈS Auto Diagnostic Pro\n👤 ' + p + '\n📱 ' + deviceId() + '\n📅 ' + new Date().toLocaleString('fr-FR'));
-  el('share-wa').href = 'https://wa.me/?text=' + m; el('share-sms').href = 'sms:?body=' + m; el('share-mail').href = 'mailto:?subject=Demande%20acc%C3%A8s&body=' + m;
-  showScreen('screen-pending');
-}
-function checkStatus() { routeUser(); }
+function showPending(p) { el('pending-name').textContent = p; showScreen('screen-pending'); }
+function checkStatus() { routeUser(); notify('🔄 Statut vérifié'); }
 function resetSession() { localStorage.removeItem(SESSION_KEY); el('input-prenom').value = ''; showScreen('screen-home'); }
 function loginAdmin() {
-  if (el('admin-pwd').value === ADMIN_PASSWORD) { sessionStorage.setItem('autodiag_admin', '1'); el('admin-pwd').value = ''; boot(); showScreen('screen-admin'); renderAdmin(); fillBrandSelects(); checkMonthly(); renderSelfTest(); }
+  if (el('admin-pwd').value === ADMIN_PASSWORD) { sessionStorage.setItem('autodiag_admin', '1'); pwdUserTyped = false; el('admin-pwd').value = ''; boot(); showScreen('screen-admin'); renderAdmin(); fillBrandSelects(); checkMonthly(); renderSelfTest(); }
   else notify('❌ Mot de passe incorrect', 'error');
 }
-function logoutAdmin() { sessionStorage.removeItem('autodiag_admin'); const p = el('admin-pwd'); if (p) p.value = ''; showScreen('screen-home'); }
+function logoutAdmin() { sessionStorage.removeItem('autodiag_admin'); pwdUserTyped = false; const p = el('admin-pwd'); if (p) p.value = ''; showScreen('screen-home'); }
 function adminTab(id) { el('tab-access').classList.toggle('hidden', id !== 'tab-access'); el('tab-data').classList.toggle('hidden', id !== 'tab-data'); if (id === 'tab-data') { fillBrandSelects(); fillModelSelectAdmin(); } }
 function renderAdmin() {
   const c = el('users-table-container'); const keys = Object.keys(usersData).sort((a, b) => (usersData[b].date || 0) - (usersData[a].date || 0));
@@ -426,10 +480,10 @@ function fillBrandSelects() {
 }
 function fillModelSelect() {
   const b = val('is-brand');
-  db.ref('data/models').once('value').then(s => { const sel = el('is-model'); sel.innerHTML = ''; Object.values(s.val() || {}).filter(m => m.brandId === b).forEach(m => { sel.innerHTML += '<option value="' + esc(m.name) + '">' + esc(m.name) + '</option>'; }); });
+  dbGet('data/models').then(s => { const sel = el('is-model'); sel.innerHTML = ''; Object.values(s).filter(m => m.brandId === b).forEach(m => { sel.innerHTML += '<option value="' + esc(m.name) + '">' + esc(m.name) + '</option>'; }); });
 }
 function fillModelSelectAdmin() {
-  db.ref('data/models').once('value').then(s => { const sel = el('mo-model'); if (!sel) return; sel.innerHTML = ''; Object.entries(s.val() || {}).forEach(([k, m]) => { const bn = brandsData[m.brandId] ? brandsData[m.brandId].name : m.brandId; sel.innerHTML += '<option value="' + k + '">' + esc(bn + ' ' + m.name) + '</option>'; }); });
+  dbGet('data/models').then(s => { const sel = el('mo-model'); if (!sel) return; sel.innerHTML = ''; Object.entries(s).forEach(([k, m]) => { const bn = brandsData[m.brandId] ? brandsData[m.brandId].name : m.brandId; sel.innerHTML += '<option value="' + k + '">' + esc(bn + ' ' + m.name) + '</option>'; }); });
 }
 async function addBrand() { const n = el('nb-name').value.trim(); if (!n) return notify('Nom requis', 'error'); await db.ref('data/brands/' + n.toLowerCase().replace(/[^a-z0-9]+/g, '-')).set({ name: n, region: val('nb-region') }); el('nb-name').value = ''; notify('✅ Marque ajoutée'); }
 async function addModel() { const b = val('nm-brand'), n = el('nm-name').value.trim(); if (!b || !n) return notify('Infos requises', 'error'); await db.ref('data/models/' + b + '_' + Date.now()).set({ brandId: b, name: n, years: el('nm-years').value.trim() || '2017-2026' }); el('nm-name').value = ''; notify('✅ Modèle ajouté'); }
@@ -458,7 +512,7 @@ async function importJSON() {
   const txt = el('import-json').value.trim(); if (!txt) return notify('Collez un JSON', 'error');
   let arr; try { arr = JSON.parse(txt); } catch (e) { return notify('❌ JSON invalide', 'error'); }
   if (!Array.isArray(arr)) arr = [arr];
-  const ms = (await db.ref('data/models').once('value')).val() || {};
+  const ms = await dbGet('data/models');
   let n = 0;
   for (const it of arr) {
     if (it.type === 'motor' && it.brand && it.model && it.name) {
@@ -474,22 +528,35 @@ async function importJSON() {
   }
   el('import-json').value = ''; notify('✅ ' + n + ' fiches importées');
 }
+/* ===== RECHERCHE APPROFONDIE MULTI-SOURCES (mode ingénieur-chercheur) ===== */
+function slink(l, u) { const S = 'display:inline-block;background:#1e293b;color:#4ade80;padding:6px 10px;border-radius:8px;margin:3px;font-size:12px;font-weight:600;text-decoration:none'; return '<a style="' + S + '" target="_blank" rel="noopener" href="' + u + '">' + l + '</a>'; }
 function sourceLinks(q) {
   const e = encodeURIComponent(q);
-  const S = 'display:inline-block;background:#1e293b;color:#4ade80;padding:6px 10px;border-radius:8px;margin:3px;font-size:12px;font-weight:600;text-decoration:none';
   const dom = BRAND_SITE[curBrand] || '';
-  let h = '<div class="issue-card" style="border-left-color:#38bdf8"><strong>🌐 Sources à consulter : « ' + esc(q) + ' »</strong><p style="margin:8px 0 4px">';
-  if (dom) h += '<a style="' + S + '" target="_blank" rel="noopener" href="https://www.google.com/search?q=site:' + dom + '+rappel+' + e + '">🏭 Constructeur</a>';
-  h += '<a style="' + S + '" target="_blank" rel="noopener" href="https://www.google.com/search?q=site:rappel.conso.gouv.fr+' + e + '">🇫 Rappel Conso</a>';
-  h += '<a style="' + S + '" target="_blank" rel="noopener" href="https://ec.europa.eu/safety-gate-alerts/screen/webReport/searchAdvanced">🇪 Safety Gate</a>';
-  h += '<a style="' + S + '" target="_blank" rel="noopener" href="https://www.google.com/search?q=site:ec.europa.eu+safety+gate+' + e + '">🇪 Safety Gate (recherche)</a>';
-  h += '<a style="' + S + '" target="_blank" rel="noopener" href="https://www.nhtsa.gov/recalls">🇺🇸 NHTSA</a>';
-  h += '<a style="' + S + '" target="_blank" rel="noopener" href="https://www.google.com/search?q=site:nhtsa.gov+recalls+' + e + '">🇺 NHTSA (recherche)</a>';
-  h += '<a style="' + S + '" target="_blank" rel="noopener" href="https://www.google.com/search?q=site:largus.fr+' + e + '">📰 L\'Argus</a>';
-  h += '<a style="' + S + '" target="_blank" rel="noopener" href="https://www.google.com/search?q=site:caradisiac.com+' + e + '">📰 Caradisiac</a>';
-  h += '<a style="' + S + '" target="_blank" rel="noopener" href="https://www.google.com/search?q=site:que-choisir.org+' + e + '">⚖️ Que Choisir</a>';
-  h += '<a style="' + S + '" target="_blank" rel="noopener" href="https://www.google.com/search?q=site:forum-auto.caradisiac.com+' + e + '">💬 Forum Auto</a>';
-  h += '<a style="' + S + '" target="_blank" rel="noopener" href="https://www.google.com/search?q=' + e + '+rappel+panne+avis+proprietaires">🔎 Internet (avis/pannes)</a>';
+  const isCode = /^[pubc]\d{3,4}$/i.test(q.trim());
+  let h = '<div class="issue-card" style="border-left-color:#38bdf8"><strong>🌐 Recherche approfondie multi-sources : « ' + esc(q) + ' »</strong><p style="margin:8px 0 4px">';
+  if (dom) h += slink('🏭 Constructeur', 'https://www.google.com/search?q=site:' + dom + '+rappel+campagne+' + e);
+  h += slink('🇫🇷 Rappel Conso', 'https://www.google.com/search?q=site:rappel.conso.gouv.fr+' + e);
+  h += slink('🇫🇷 Rappel Conso (site)', 'https://www.rappel.conso.gouv.fr/');
+  h += slink('🇪🇺 Safety Gate', 'https://ec.europa.eu/safety-gate-alerts/screen/webReport/searchAdvanced');
+  h += slink('🇪 Safety Gate (recherche)', 'https://www.google.com/search?q=site:ec.europa.eu+safety+gate+' + e);
+  h += slink('🇺🇸 NHTSA', 'https://www.nhtsa.gov/recalls');
+  h += slink('🇺🇸 NHTSA (recherche)', 'https://www.google.com/search?q=site:nhtsa.gov+' + e);
+  h += slink('🇬🇧 GOV.UK rappels', 'https://www.gov.uk/check-vehicle-recall');
+  h += slink('🇩🇪 KBA rappels', 'https://www.kba.de/DE/Home/home_node.html');
+  h += slink('📰 L\'Argus', 'https://www.google.com/search?q=site:largus.fr+' + e);
+  h += slink('📰 Caradisiac', 'https://www.google.com/search?q=site:caradisiac.com+' + e);
+  h += slink('📰 Auto Plus', 'https://www.google.com/search?q=site:autoplus.fr+' + e);
+  h += slink('📰 Auto Moto', 'https://www.google.com/search?q=site:automoto.com+' + e);
+  h += slink('📰 Turbo', 'https://www.google.com/search?q=site:turbo.fr+' + e);
+  h += slink('📰 Motorlegend', 'https://www.google.com/search?q=site:motorlegend.com+' + e);
+  h += slink('⚖️ Que Choisir', 'https://www.google.com/search?q=site:que-choisir.org+' + e);
+  h += slink('⚖️ 60 Millions', 'https://www.google.com/search?q=site:60millions-mag.com+' + e);
+  h += slink('💬 Forum Auto', 'https://www.google.com/search?q=site:forum-auto.caradisiac.com+' + e);
+  h += slink('💬 Futura Auto', 'https://www.google.com/search?q=site:forums.futura-sciences.com+auto+' + e);
+  if (isCode) { h += slink('🔧 OBD-Codes', 'https://www.obd-codes.com/' + q.trim().toLowerCase()); h += slink('🔧 Signification DTC', 'https://www.google.com/search?q=' + e + '+code+défaut+signification+causes'); }
+  h += slink('🔎 Internet (avis/pannes)', 'https://www.google.com/search?q=' + e + '+rappel+campagne+panne+problème+avis');
+  h += slink('🔎 TSB / bulletins', 'https://www.google.com/search?q=' + e + '+TSB+bulletin+service+technique');
   h += '</p></div>';
   return h;
 }
@@ -499,8 +566,8 @@ async function doExpertSearch() {
   const q = el('expert-search').value.trim().toLowerCase();
   const box = el('expert-results');
   if (q.length < 3) { box.innerHTML = ''; return; }
-  const ex = (await db.ref('data/expert').once('value')).val() || {};
-  const iss = (await db.ref('data/issues').once('value')).val() || {};
+  const ex = await dbGet('data/expert');
+  const iss = await dbGet('data/issues');
   let html = '';
   Object.values(ex).filter(e => ((e.title || '') + ' ' + (e.symptom || '') + ' ' + (e.diagnosis || '') + ' ' + (e.parts || '') + ' ' + (e.dtc || '') + ' ' + (e.motor || '') + ' ' + (e.model || '')).toLowerCase().includes(q)).slice(0, 15).forEach(e => html += expertCard(e, '🧠 '));
   Object.values(iss).filter(i => ((i.title || '') + ' ' + (i.detail || '') + ' ' + (i.dtc || '') + ' ' + (i.model || '')).toLowerCase().includes(q)).slice(0, 10).forEach(i => html += issueCard(i, ''));
@@ -537,7 +604,7 @@ async function enterApp() {
   syncScheduler();
   el('app-user').textContent = isAdmin ? '👑 Admin' : s.prenom;
   showScreen('screen-app');
-  brandsData = (await db.ref('data/brands').once('value')).val() || {};
+  brandsData = await dbGet('data/brands');
   const sel = el('sel-marque');
   const regions = { francaises: '🇫🇷 Françaises', europeennes: '🇪🇺 Européennes', asiatiques: '🌏 Asiatiques', chinoises: '🇨🇳 Chinoises', americaines: '🇺🇸 Américaines' };
   sel.innerHTML = '<option value="">-- Choisir --</option>';
@@ -554,7 +621,7 @@ async function loadModels() {
   el('sel-motor').innerHTML = '<option value="">-- Motorisation --</option>';
   ['issues-box', 'dtc-box', 'expert-box'].forEach(id => el(id).innerHTML = '<p style="color:#94a3b8">Sélectionnez…</p>');
   if (!curBrand) return;
-  const s = (await db.ref('data/models').once('value')).val() || {};
+  const s = await dbGet('data/models');
   Object.entries(s).filter(([k, m]) => m.brandId === curBrand).sort((a, b) => a[1].name.localeCompare(b[1].name)).forEach(([k, m]) => { el('sel-model').innerHTML += '<option value="' + k + '">' + esc(m.name) + ' (' + esc(m.years) + ')</option>'; });
 }
 async function loadMotors() {
@@ -573,7 +640,7 @@ async function correlate() {
   if (!curBrand || !curModelName) { box.innerHTML = dbox.innerHTML = ebox.innerHTML = '<p style="color:#94a3b8">Sélectionnez un véhicule…</p>'; return; }
   const mi = val('sel-motor'); const motor = mi !== '' ? motorsCache[mi] : null;
   const fuel = motor ? motor.fuel : null;
-  const all = Object.values((await db.ref('data/issues').once('value')).val() || {}).filter(i => i.brandId === curBrand && (!i.model || i.model === curModelName));
+  const all = Object.values(await dbGet('data/issues')).filter(i => i.brandId === curBrand && (!i.model || i.model === curModelName));
   const specific = motor ? all.filter(i => i.motor && String(motor.name).toLowerCase().includes(String(i.motor).toLowerCase())) : [];
   const general = all.filter(i => !specific.includes(i));
   let html = '', hidden = 0;
@@ -587,9 +654,9 @@ async function correlate() {
   if (fuel && GENERIC[fuel]) GENERIC[fuel].issues.forEach(g => { html += '<div class="issue-card"><strong>' + g[0] + '</strong><span class="src">Typique ' + FUELS[fuel] + '</span><p>' + g[1] + '</p><p style="color:#fbbf24;font-size:12px">DTC : ' + g[2] + '</p></div>'; });
   UNIV.forEach(u => html += univCard(u));
   const bn = brandsData[curBrand] ? brandsData[curBrand].name : curBrand;
-  html += sourceLinks(bn + ' ' + curModelName + (motor ? ' ' + motor.name : '') + ' rappel panne');
+  html += sourceLinks(bn + ' ' + curModelName + (motor ? ' ' + motor.name : '') + ' rappel panne 2017-2026');
   box.innerHTML = html || '<p style="color:#94a3b8">Aucune panne — vérifiez les sites officiels.</p>';
-  const exAll = Object.values((await db.ref('data/expert').once('value')).val() || {});
+  const exAll = Object.values(await dbGet('data/expert'));
   const exHits = exAll.filter(e => e.brandId === curBrand && (!e.model || e.model === curModelName) && motorMatch(e, motor));
   const bex = BRAND_EXPERT.filter(e => e[0] === curBrand && kwMatch(e[1], motor));
   let eh = '';
@@ -604,7 +671,7 @@ async function correlate() {
   UNIV.forEach(u => String(u[2] || '').split(/[,\/\s]+/).forEach(c => { if (/^[A-Z0-9]{4,}$/i.test(c)) codes.add(c.toUpperCase()); }));
   if (fuel && GENERIC[fuel]) GENERIC[fuel].dtc.forEach(c => codes.add(c));
   if (fuel && GENERIC_EXPERT[fuel]) GENERIC_EXPERT[fuel].forEach(g => String(g[4] || '').split(/[,\/\s]+/).forEach(c => { if (/^[A-Z0-9]{4,}$/i.test(c)) codes.add(c.toUpperCase()); }));
-  const D = (await db.ref('data/dtc').once('value')).val() || {};
+  const D = await dbGet('data/dtc');
   let dh = '';
   codes.forEach(c => { const d = D[c] || D[c.replace(/[^A-Z0-9]+/g, '_')]; dh += d ? '<div class="dtc-card"><strong>' + esc(d.code) + '</strong><p>' + esc(d.description) + '</p>' + (d.cause ? '<p>🔍 ' + esc(d.cause) + '</p>' : '') + (d.solution ? '<p>🔧 ' + esc(d.solution) + '</p>' : '') + '</div>' : '<div class="dtc-card"><strong>' + esc(c) + '</strong><p>Code corrélé (détail à importer)</p></div>'; });
   dbox.innerHTML = dh || '<p style="color:#94a3b8">—</p>';
@@ -614,8 +681,10 @@ function searchDTC() { clearTimeout(dtcTimer); dtcTimer = setTimeout(doSearchDTC
 async function doSearchDTC() {
   const q = el('dtc-search').value.toUpperCase().trim(); const c = el('dtc-results');
   if (q.length < 2) { c.innerHTML = ''; return; }
-  const m = Object.values((await db.ref('data/dtc').once('value')).val() || {}).filter(d => (d.code || '').toUpperCase().includes(q) || (d.description || '').toLowerCase().includes(q.toLowerCase()));
-  c.innerHTML = m.length ? m.slice(0, 12).map(d => '<div class="dtc-card"><strong>' + esc(d.code) + '</strong><p>' + esc(d.description) + '</p>' + (d.cause ? '<p>🔍 ' + esc(d.cause) + '</p>' : '') + (d.solution ? '<p>🔧 ' + esc(d.solution) + '</p>' : '') + '</div>').join('') : '<p style="color:#94a3b8">Aucun DTC trouvé</p>';
+  const m = Object.values(await dbGet('data/dtc')).filter(d => (d.code || '').toUpperCase().includes(q) || (d.description || '').toLowerCase().includes(q.toLowerCase()));
+  let html = m.length ? m.slice(0, 12).map(d => '<div class="dtc-card"><strong>' + esc(d.code) + '</strong><p>' + esc(d.description) + '</p>' + (d.cause ? '<p>🔍 ' + esc(d.cause) + '</p>' : '') + (d.solution ? '<p>🔧 ' + esc(d.solution) + '</p>' : '') + '</div>').join('') : '<p style="color:#94a3b8">Aucun DTC trouvé</p>';
+  html += sourceLinks(q);
+  c.innerHTML = html;
 }
 function setupInstall() {
   window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); deferredPrompt = e; el('install-btn').classList.remove('hidden'); });
