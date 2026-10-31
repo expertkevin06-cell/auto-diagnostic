@@ -85,6 +85,10 @@
       <button class="btn btn-danger" onclick="logoutAdmin()">Déconnexion</button>
     </div>
     <div id="tab-data" class="hidden">
+      <h3>📤 EXPORT JSON COMPLET</h3>
+      <p style="font-size:12px;color:#94a3b8">Toutes marques, modèles, motorisations, pannes, campagnes de rappel, fiches expert, DTC.</p>
+      <button class="btn btn-success" onclick="exportJSON()">📤 Télécharger le fichier JSON</button>
+      <button class="btn btn-secondary" onclick="copyJSON()">📋 Copier le JSON</button>
       <h3>🏷️ Marque</h3>
       <input id="nb-name" placeholder="Nom"><select id="nb-region"><option value="francaises">Française</option><option value="europeennes">Européenne</option><option value="asiatiques">Asiatique</option><option value="chinoises">Chinoise</option><option value="americaines">Américaine</option></select>
       <button class="btn btn-success" onclick="addBrand()">Ajouter</button>
@@ -149,5 +153,6 @@
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
 <script src="./firebase-config.js"></script>
 <script src="./app.js"></script>
+<script src="./export.js"></script>
 </body>
 </html>
