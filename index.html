@@ -25,7 +25,7 @@
   </svg>
 </div>
 <div class="container">
-  <header><h1>🚗 Auto Diagnostic Pro</h1><p>Expert Ingénieur • Marques 2017-2026 • Pannes • Rappels • DTC</p></header>
+  <header><h1>🚗 Auto Diagnostic Pro</h1><p>Expert Ingénieur • Marques 2017-2027 • Pannes • Rappels • DTC</p></header>
 
   <section id="screen-home" class="screen active"><div class="card">
     <h2>👋 Bienvenue</h2>
@@ -68,7 +68,7 @@
 
   <section id="screen-admin" class="screen"><div class="card">
     <h2>🛠️ Administration</h2>
-    <p style="font-size:12px;color:#94a3b8">Base du : <span id="admin-version">--</span> • MAJ auto pannes + modèles : 30 j</p>
+    <p style="font-size:12px;color:#94a3b8">Base du : <span id="admin-version">--</span> • MAJ auto : 30 j • MAJ manuelle : bouton ci-dessous</p>
     <div class="tabs">
       <button class="btn btn-primary" onclick="adminTab('tab-access')">👥 Accès</button>
       <button class="btn btn-secondary" onclick="adminTab('tab-data')">🗄️ Base</button>
@@ -78,6 +78,7 @@
       <div class="grid-2"><input type="text" id="new-prenom" placeholder="Prénom"><button class="btn btn-success" onclick="addUser()">Ajouter</button></div>
       <h3>📊 Tableau récapitulatif (temps réel)</h3>
       <div id="users-table-container"><div class="loader">Chargement…</div></div>
+      <button class="btn btn-admin" onclick="manualUpdate()">🔄 MAJ manuelle expert 2026/2027</button>
       <button class="btn btn-secondary" onclick="selfTest(false)">🩺 Auto-test APK</button>
       <div id="selftest-box"></div>
       <button class="btn btn-success" onclick="shareAPK()">📤 Partager / télécharger l'APK</button>
@@ -86,7 +87,7 @@
     </div>
     <div id="tab-data" class="hidden">
       <h3>📤 EXPORT JSON COMPLET</h3>
-      <p style="font-size:12px;color:#94a3b8">Toutes marques, modèles, motorisations, pannes, campagnes de rappel, fiches expert, DTC.</p>
+      <p style="font-size:12px;color:#94a3b8">Toutes marques, modèles, motorisations, pannes, campagnes, fiches expert, DTC.</p>
       <button class="btn btn-success" onclick="exportJSON()">📤 Télécharger le fichier JSON</button>
       <button class="btn btn-secondary" onclick="copyJSON()">📋 Copier le JSON</button>
       <h3>🏷️ Marque</h3>
@@ -104,10 +105,11 @@
       <select id="is-source"><option>Rappel Conso</option><option>Safety Gate</option><option>NHTSA</option><option>Campagne constructeur</option><option>L'Argus / Caradisiac</option></select>
       <input id="is-dtc" placeholder="Codes DTC liés"><input id="is-url" placeholder="URL source officielle">
       <button class="btn btn-success" onclick="addIssue()">Ajouter</button>
-      <h3>🧠 Fiche expert ingénieur (avec lien source)</h3>
+      <h3>🧠 Fiche expert scientifique (type + organes + DTC + source)</h3>
       <select id="ex-brand"></select><input id="ex-model" placeholder="Modèle (vide = tous)"><input id="ex-motor" placeholder="Motorisation clé">
-      <input id="ex-title" placeholder="Titre"><input id="ex-symptom" placeholder="Symptômes"><textarea id="ex-diag" rows="3" placeholder="Procédure 1) … 2) … 3) …"></textarea>
-      <input id="ex-parts" placeholder="Pièces"><input id="ex-dtc" placeholder="DTC"><input id="ex-years" placeholder="Années"><input id="ex-url" placeholder="URL source">
+      <input id="ex-type" placeholder="Type de panne (ex: Batterie HV, ADAS, Transmission, Charge)">
+      <input id="ex-title" placeholder="Titre"><input id="ex-symptom" placeholder="Symptômes"><textarea id="ex-diag" rows="3" placeholder="Protocole 1) … 2) … 3) …"></textarea>
+      <input id="ex-parts" placeholder="Organes/pièces concernées"><input id="ex-dtc" placeholder="DTC liés"><input id="ex-years" placeholder="Années"><input id="ex-url" placeholder="URL source">
       <select id="ex-source"><option>Campagne constructeur</option><option>Rappel Conso</option><option>Safety Gate</option><option>NHTSA</option><option>TSB</option><option>L'Argus / Caradisiac</option></select>
       <button class="btn btn-success" onclick="addExpert()">Ajouter la fiche expert</button>
       <h3>🔧 Code DTC</h3>
@@ -123,7 +125,7 @@
     <h2>🚗 Diagnostic Expert</h2>
     <p>Bienvenue <strong id="app-user"></strong> • Base du : <span id="app-version">--</span> • <span id="net-status">📶 en ligne</span></p>
     <h3>🧠 Diagnostic expert par symptôme</h3>
-    <input type="text" id="expert-search" placeholder="Ex: ressort suspension, perte puissance, AdBlue, P0420…" oninput="expertSearch()">
+    <input type="text" id="expert-search" placeholder="Ex: batterie HV, ADAS, transmission, ressort, AdBlue, P0420…" oninput="expertSearch()">
     <div id="expert-results"></div>
     <h3>1️⃣ Marque</h3><select id="sel-marque" onchange="loadModels()"></select>
     <h3>2️⃣ Modèle</h3><select id="sel-model" onchange="loadMotors()"></select>
@@ -154,6 +156,7 @@
 <script src="./firebase-config.js"></script>
 <script src="./app.js"></script>
 <script src="./export.js"></script>
-  <script src="./tools.js"></script>
+<script src="./tools.js"></script>
+<script src="./update2026.js"></script>
 </body>
 </html>
