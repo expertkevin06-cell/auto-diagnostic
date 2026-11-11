@@ -104,7 +104,7 @@ const UTI_EXPERT = [
  ['ford','Transit','Groupe électrogène','Transit : groupe électrogène','Défaut alimentation','1) Alternateur 2) Batterie 3) Onduleur','Alternateur, batterie, onduleur','','TSB'],
  ['mercedes','Sprinter','Groupe électrogène','Sprinter : groupe électrogène','Défaut alimentation','1) Alternateur 2) Batterie 3) Onduleur','Alternateur, batterie, onduleur','','TSB'],
  ['fiat','Ducato','Groupe électrogène','Ducato : groupe électrogène','Défaut alimentation','1) Alternateur 2) Batterie 3) Onduleur','Alternateur, batterie, onduleur','','TSB'],
- ['opel','Movano','Groupe électrogène','Movano : groupe électrogène','Défaut alimentation','1) Alternateur 2) Batterie 3, Onduleur','Alternateur, batterie, onduleur','','TSB'],
+ ['opel','Movano','Groupe électrogène','Movano : groupe électrogène','Défaut alimentation','1) Alternateur 2) Batterie 3) Onduleur','Alternateur, batterie, onduleur','','TSB'],
  ['iveco','Daily','Groupe électrogène','Daily : groupe électrogène','Défaut alimentation','1) Alternateur 2) Batterie 3) Onduleur','Alternateur, batterie, onduleur','','TSB']
 ];
 window.addEventListener('DOMContentLoaded', async () => {
