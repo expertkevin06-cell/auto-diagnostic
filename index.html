@@ -130,8 +130,8 @@
     <h3>1️⃣ Marque</h3><select id="sel-marque" onchange="loadModels()"></select>
     <h3>2️⃣ Modèle</h3><select id="sel-model" onchange="loadMotors()"></select>
     <h3>3️⃣ Motorisation</h3><select id="sel-motor" onchange="correlate()"></select>
+        <h3>⚠️ Pannes connues & campagnes (corrélées)</h3><div id="issues-box"><p style="color:#94a3b8">Sélectionnez un véhicule…</p></div>
     <h3>🧠 Fiches expert corrélées au véhicule</h3><div id="expert-box"><p style="color:#94a3b8">Sélectionnez un véhicule…</p></div>
-    <h3>⚠️ Pannes connues & campagnes (corrélées)</h3><div id="issues-box"><p style="color:#94a3b8">Sélectionnez un véhicule…</p></div>
     <h3>🔧 Codes défaut DTC corrélés</h3><div id="dtc-box"><p style="color:#94a3b8">—</p></div>
     <h3>🔎 Recherche DTC libre</h3>
     <input type="text" id="dtc-search" placeholder="Ex: P0300, turbo…" oninput="searchDTC()">
@@ -160,5 +160,6 @@
 <script src="./update2026.js"></script>
   <script src="./premium22.js"></script>
   <script src="./coherence.js"></script>
+  <script src="./utilitaires.js"></script>
 </body>
 </html>
