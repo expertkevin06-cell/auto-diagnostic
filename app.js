@@ -1,693 +1,679 @@
-/* APP.JS v12 — accès 1 bouton + notifications + réseau permanent + recherche approfondie + MAJ 30j + auto-test */
-const ADMIN_PASSWORD = 'Kevin83600';
-const SESSION_KEY = 'autodiag_session';
-const DAY = 86400000;
-const CYCLE_30 = 30 * DAY;
-const FUELS = { essence: '⛽ Essence', diesel: '🛢️ Diesel', hybride: '🔋 Hybride', electrique: '⚡ Électrique' };
-const BRAND_SITE = { renault:'renault.fr', peugeot:'peugeot.fr', citroen:'citroen.fr', ds:'dsautomobiles.fr', dacia:'dacia.fr', lancia:'lancia.com', cupra:'cupraofficial.com', polestar:'polestar.com', volkswagen:'volkswagen.fr', audi:'audi.fr', bmw:'bmw.fr', mercedes:'mercedes-benz.fr', opel:'opel.fr', fiat:'fiat.fr', seat:'seat.fr', skoda:'skoda.fr', volvo:'volvo.fr', porsche:'porsche.fr', mini:'mini.fr', alfa:'alfaromeo.fr', toyota:'toyota.fr', honda:'honda.fr', nissan:'nissan.fr', mazda:'mazda.fr', mitsubishi:'mitsubishi-motors.fr', subaru:'subaru.fr', suzuki:'suzuki.fr', hyundai:'hyundai.fr', kia:'kia.fr', lexus:'lexus.fr', byd:'byd.com', mg:'mgmotor.eu', lynkco:'lynkco.com', nio:'nio.com', xpeng:'xpeng.com', aiways:'aiways.com', seres:'seres.com', omoda:'omoda.com', jaecoo:'jaecoo.com', leapmotor:'leapmotor.com', ora:'ora-ev.com', ford:'ford.fr', chevrolet:'chevrolet.com', jeep:'jeep.fr', dodge:'dodge.com', cadillac:'cadillac.com', tesla:'tesla.com' };
-const FUEL_KW = {
- diesel: ['adblue','fap','egr','dci','tdi','bluehdi','diesel','multijet','crdi','ecoblue','skyactiv-d','préchauffage','prechauffage','jtd','d-4d'],
- essence: ['puretech','tce','tsi','ecoboost','gdi','thp','vtec','essence','courroie','chaîne','chaine','allumage','bougies','catalyseur','gpf','turbo essence'],
- hybride: ['hybrid','hybride','phev','e:hev','e-tech','onduleur','régénératif','regeneratif'],
- electrique: ['électrique','electrique',' ev','iccu','obc','bms','batterie hv','charge','isolement','dc-dc','12v','e-208','zoe']
-};
-/* ===== LOT PANNES/CAMPAGNES — import auto 30 j ===== */
-const BATCH_ISSUES = [
- ['renault','Clio V','1.5 Blue dCi','Campagne EGR 1.5 dCi Clio V','Perte puissance sous 2000 tr/min, voyant P0401','1) Lire P0401 2) Test ouverture EGR 3) Remplacement vanne selon campagne','Vanne EGR','P0401','Rappel Conso','2019-2024'],
- ['peugeot','208 II','1.2 PureTech','Campagne tendeur courroie 2022-2023','Usure courroie prématurée, bruit','1) Gabarit usure 2) Kit courroie selon VIN','Kit courroie','P0087','Rappel Conso','2022-2023'],
- ['volkswagen','ID.4','','Campagne logiciel ICU famille ID','Décharge 12V, reboots inopinés','1) Logs courant repos 2) Campagne logicielle 3) Batterie 12V','Logiciel ICU, 12V','U0111','Safety Gate','2021-2024'],
- ['bmw','X3','20d','Campagne refroidisseur EGR 2018-2020','Fuite LDR, fumée blanche','1) Test pression circuit 2) Remplacement refroidisseur campagne','Refroidisseur EGR','P0401','NHTSA','2018-2020'],
- ['mercedes','Classe A','E200','Campagne alterno-démarreur 48V','Non-démarrage, défaut 48V','1) Lire codes 2) Campagne 3) Remplacement alterno-démarreur','Alterno-démarreur','P0562','Safety Gate','2019-2022'],
- ['toyota','RAV4','2.5 Hybrid','Campagne pompe à carburant 2019-2020','Calage, non-démarrage','1) VIN NHTSA 2) Remplacement pompe','Pompe carburant','P0087','NHTSA','2019-2020'],
- ['hyundai','Tucson','1.6 CRDi','Campagne logiciel FAP','Régénérations fréquentes','1) MAJ logiciel 2) Contrôle FAP','Logiciel','P2002','Campagne constructeur','2021-2023'],
- ['tesla','Model Y','','Campagne MAJ freinage fantôme 2023','Freinage ACC inopiné','1) Version logiciel 2) MAJ 3) Calibration caméras','Caméras','U0101','NHTSA','2021-2023'],
- ['ford','Kuga','2.5 PHEV','Campagne batterie HV 2020-2022','Risque incendie module','1) VIN 2) Remplacement batterie HV','Batterie HV','P0AA6','Safety Gate','2020-2022'],
- ['fiat','500','Electrique','Campagne OBC 2021-2023','Non-charge AC','1) Codes OBC 2) Remplacement OBC','OBC','P0D11','Rappel Conso','2021-2023'],
- ['citroen','C3 III','1.2 PureTech','Campagne pompe à huile 2017-2019','Pression huile basse, bruit','1) Mesure pression 2) Remplacement pompe','Pompe à huile','P0087','Rappel Conso','2017-2019'],
- ['skoda','Enyaq','Electrique','Campagne module batterie 2021-2023','Défaut isolement, limitation','1) Mesure isolement 2) Module selon campagne','Module HV','P0AA6','Safety Gate','2021-2023'],
- ['kia','EV6','Electrique','Campagne ICCU 2022-2024','Non-charge, défaut 12V','1) Codes ICCU 2) Remplacement ICCU + 12V','ICCU','U0111','NHTSA','2022-2024'],
- ['renault','Zoe','Electrique','Campagne connecteur charge 2018-2021','Échauffement connecteur','1) Inspection visuelle 2) Remplacement connecteur','Connecteur','P0D11','Rappel Conso','2018-2021'],
- ['volkswagen','Golf VIII','2.0 TDI','Campagne pompe AdBlue 2020-2023','Défaut AdBlue, countdown','1) Lire P20EE 2) Remplacement pompe','Pompe AdBlue','P20EE','Campagne constructeur','2020-2023'],
- ['dacia','Duster III','1.2 TCe','Campagne courroie accessoires 2024-2025','Usure prématurée courroie','1) Inspection 2) Kit selon VIN','Kit courroie','P0016','Rappel Conso','2024-2025'],
- ['cupra','Born','Electrique','Campagne logiciel batterie 2022-2024','Limitation puissance, défaut BMS','1) Codes BMS 2) Campagne logicielle 3) Contrôle modules','Logiciel BMS','P0AA6','Safety Gate','2022-2024'],
- ['polestar','Polestar 2','Electrique','Campagne capteur HV 2020-2022','Défaut isolement intempestif','1) Mesure isolement 2) Remplacement capteur selon campagne','Capteur HV','P0AA6','NHTSA','2020-2022'],
- ['lancia','Ypsilon','1.2 Hybrid','Campagne logiciel hybride 2024-2025','À-coups, défaut système 48V','1) Codes 2) MAJ logiciel 3) Contrôle batterie 12V','Logiciel, 12V','P0562','Campagne constructeur','2024-2026'],
- ['mg','MG4','Electrique','Campagne DC-DC 2023-2025','Défaut 12V répété','1) SOH 12V 2) Test DC-DC 3) MAJ/remplacement','DC-DC, 12V','U0111','Campagne constructeur','2023-2025']
-];
-/* ===== LOT MODÈLES/MOTORISATIONS 2024-2026 — import auto 30 j : [brandId,name,years,motors,brandName,region] ===== */
-const BATCH_MODELS = [
- ['renault','Kangoo E-Tech','2022-2026',[['Electrique 120','electrique','120 ch']],'Renault','francaises'],
- ['peugeot','Partner E','2021-2026',[['Electrique 136','electrique','136 ch']],'Peugeot','francaises'],
- ['citroen','C5 Aircross II','2025-2026',[['1.2 Hybrid 136','hybride','136 ch'],['Hybrid 195','hybride','195 ch']],'Citroën','francaises'],
- ['volkswagen','T-Roc II','2025-2026',[['1.5 TSI 116','essence','116 ch'],['1.5 TSI 150','essence','150 ch'],['2.0 TDI 150','diesel','150 ch']],'Volkswagen','europeennes'],
- ['bmw','iX3','2025-2026',[['Electrique 313','electrique','313 ch'],['Electrique 469','electrique','469 ch']],'BMW','europeennes'],
- ['mercedes','GLC EV','2026-2026',[['Electrique 408','electrique','408 ch']],'Mercedes','europeennes'],
- ['toyota','Aygo X Hybrid','2025-2026',[['1.5 Hybrid 116','hybride','116 ch']],'Toyota','asiatiques'],
- ['hyundai','Ioniq 6 N','2025-2026',[['Electrique 650','electrique','650 ch']],'Hyundai','asiatiques'],
- ['kia','PV5','2025-2026',[['Electrique 163','electrique','163 ch']],'Kia','asiatiques'],
- ['byd','Tang L','2025-2026',[['Electrique 517','electrique','517 ch']],'BYD','chinoises'],
- ['tesla','Model Y Juniper','2025-2026',[['Propulsion 299','electrique','299 ch'],['Grande Autonomie 498','electrique','498 ch']],'Tesla','americaines'],
- ['dacia','Spring II','2026-2026',[['Electrique 70','electrique','70 ch']],'Dacia','europeennes'],
- ['skoda','Elroq RS','2025-2026',[['Electrique 340','electrique','340 ch']],'Skoda','europeennes'],
- ['ford','Explorer EV II','2025-2026',[['Electrique 286','electrique','286 ch'],['Electrique 340','electrique','340 ch']],'Ford','americaines'],
- ['lancia','Ypsilon','2024-2026',[['1.2 Hybrid 100','hybride','100 ch'],['Electrique 156','electrique','156 ch']],'Lancia','europeennes'],
- ['cupra','Born','2021-2026',[['Electrique 204','electrique','204 ch'],['Electrique 231','electrique','231 ch'],['VZ 326','electrique','326 ch']],'Cupra','europeennes'],
- ['cupra','Tavascan','2024-2026',[['Electrique 286','electrique','286 ch'],['Electrique 340','electrique','340 ch']],'Cupra','europeennes'],
- ['cupra','Formentor','2020-2026',[['1.5 eTSI 150','essence','150 ch'],['2.0 TSI 245','essence','245 ch'],['1.4 e-Hybrid 218','hybride','218 ch']],'Cupra','europeennes'],
- ['polestar','Polestar 2','2020-2026',[['Electrique 231','electrique','231 ch'],['Electrique 408','electrique','408 ch'],['Electrique 476','electrique','476 ch']],'Polestar','europeennes'],
- ['polestar','Polestar 3','2024-2026',[['Electrique 489','electrique','489 ch'],['Electrique 517','electrique','517 ch']],'Polestar','europeennes'],
- ['polestar','Polestar 4','2024-2026',[['Electrique 272','electrique','272 ch'],['Electrique 544','electrique','544 ch']],'Polestar','europeennes']
-];
-const KEY_ISSUES = [
- { brand:'dacia', model:'Bigster', motor:'', title:'Ressorts suspension AR : rupture (diamètre fil insuffisant)', detail:'Campagne de rappel : remplacement des 2 ressorts de suspension arrière suite à risque de rupture (diamètre de fil insuffisant). Contrôle visuel + mesure du diamètre, remplacement préventif selon VIN. Intervention gratuite en concession.', source:'Rappel Conso / Safety Gate', dtc:'', url:'https://www.rappel.conso.gouv.fr/' },
- { brand:'dacia', model:'Bigster', motor:'', title:'Ressorts AR : alerte UE (contrôle obligatoire)', detail:'Alerte Safety Gate : risque de rupture des ressorts arrière — vérification obligatoire en concession, remplacement gratuit des ressorts non conformes.', source:'Safety Gate', dtc:'', url:'https://ec.europa.eu/safety-gate-alerts/screen/webReport/searchAdvanced' }
-];
-const KEY_EXPERT = [
- { brand:'dacia', model:'Bigster', motor:'', title:'Procédure remplacement ressorts suspension AR (rappel)', symptom:'Claquement ou bruit de détente à l\'arrière, véhicule penché, fissure ou casse visible du ressort AR', diagnosis:'1) Vérifier le VIN sur rappel.conso.gouv.fr / Safety Gate 2) Lever le véhicule, roues AR suspendues 3) Inspecter les 2 ressorts AR : fissures, corrosion, diamètre de fil vs spécification 4) Remplacer les 2 ressorts + coupelles/butées 5) Serrer aux couples constructeur 6) Contrôle géométrie + essai routier', parts:'Ressorts AR x2, coupelles, butées', dtc:'', source:'Rappel Conso / Safety Gate', years:'2025-2026', url:'https://www.rappel.conso.gouv.fr/' }
-];
-const BRAND_EXPERT = [
- ['renault','dCi','EGR/FAP diesel Renault','Perte puissance, voyant, régénérations fréquentes','1) Lire P0401/P2002 au diag 2) Test ouverture EGR consigne/réel 3) Mesure ΔP FAP 4) Nettoyage/remplacement + adaptation','EGR, FAP','P0401, P2002','Campagne constructeur','2017-2026'],
- ['renault','TCe','GPF essence (filtre à particules)','Perte puissance courts trajets, voyant','1) Lire P2463 2) Régénération forcée 3) Contrôle GPF 4) Remplacement si colmaté','GPF','P2463','TSB','2018-2026'],
- ['renault','','Campagnes sécurité (airbag/ceintures)','Voyant airbag, prétensionneur non conforme','1) Vérifier VIN Rappel Conso 2) Lire codes BSM 3) Remplacer modules concernés','Airbag, prétensionneurs','','Rappel Conso','2017-2026'],
- ['peugeot','PureTech','Courroie humide (procédure complète)','Bruit courroie, perte puissance, pompe à huile colmatée','1) Gabarit largeur courroie (seuil ~9,4 mm) 2) Inspection carter débris 3) Pression huile ralenti chaud 4) Kit courroie + pompe à huile + vidange','Kit courroie, pompe à huile','P0087, P0340','Rappel Conso','2017-2023'],
- ['peugeot','BlueHDi','AdBlue pompe/injecteur','Message défaut AdBlue, countdown non-démarrage','1) Lire P20EE/P204F 2) Test débit pompe au diag 3) Inspection cristallisation injecteur 4) Remplacement + réinitialisation','Pompe/injecteur AdBlue','P20EE, P204F','Campagne constructeur','2017-2024'],
- ['citroen','PureTech','Courroie humide Stellantis','Idem Peugeot','Procédure identique Stellantis','Kit courroie, pompe','P0087','Rappel Conso','2017-2023'],
- ['citroen','BlueHDi','AdBlue Stellantis','Idem Peugeot','Procédure identique','Pompe AdBlue','P20EE','Campagne constructeur','2017-2024'],
- ['ds','PureTech','Courroie/AdBlue Stellantis','Selon motorisation','Procédures Stellantis','Kit courroie/pompe','P0087, P20EE','Rappel Conso','2017-2024'],
- ['opel','PureTech','Courroie humide Opel','Idem Stellantis','Procédure identique','Kit courroie','P0087','Rappel Conso','2019-2023'],
- ['opel','','Multimédia/écrans campagnes','Figements, reboots','1) Logs 2) MAJ logiciel 3) Remplacement si échec','—','U0101','Campagne constructeur','2017-2026'],
- ['volkswagen','TSI','Chaîne distribution TSI','Claquement à froid','1) Scope synchro vilo/AAC 2) Contrôle tendeur 3) Kit chaîne + guides','Kit chaîne, tendeur','P0016','TSB','2017-2026'],
- ['volkswagen','TDI','AdBlue/NOx TDI','Voyant NOx, limitation puissance','1) Capteurs NOx amont/aval 2) Injecteur AdBlue 3) MAJ logiciel NOx','Capteur NOx, injecteur','P20EE, P2201','Campagne constructeur','2017-2026'],
- ['volkswagen','DSG','Mécatronique DQ200/DQ250','Broutage démarrage, vitesses non engagées','1) Lire adaptations 2) Niveau huile mécatronique 3) TSB update 4) Remplacer mécatronique','Mécatronique','P0700','TSB','2017-2026'],
- ['volkswagen','','Campagnes sécurité (airbag/ceintures)','Voyant airbag','1) VIN check 2) Campagne 3) Remplacement','Airbag','','Rappel Conso / Safety Gate','2017-2026'],
- ['audi','TSI','Chaîne/AdBlue VAG','Claquement, défaut NOx','Procédures VAG','Kit chaîne/AdBlue','P0016, P20EE','TSB','2017-2026'],
- ['audi','','Caméra ADAS/calibration','Perte fonctions assistance','1) Défauts U0121 2) Recalibration après pare-brise 3) MAJ','Caméra','U0121','Campagne constructeur','2019-2026'],
- ['skoda','TSI','Chaîne/AdBlue VAG','Idem VW','Procédures VAG','—','P0016, P20EE','TSB','2017-2026'],
- ['seat','TSI','Chaîne TSI','Claquement froid','Procédure VAG','Kit chaîne','P0016','TSB','2017-2026'],
- ['bmw','B47','Chaîne distribution BMW','Claquement métallique à froid, P0016','1) Scope synchro vilo/AAC 2) Tendeur 3) Kit chaîne + guides','Kit chaîne','P0016, P0335','NHTSA / TSB','2017-2024'],
- ['bmw','N20','Pompe HP essence (GDI)','Pression rail basse, P0087','1) Pression rail mesurée vs consigne 2) Pompe HP 3) Remplacement','Pompe HP','P0087','TSB','2017-2026'],
- ['bmw','','Airbag Takata (modèles concernés)','Campagne rupture inflateur','1) VIN check NHTSA 2) Remplacement inflateur','Inflateur','','NHTSA','2017-2019'],
- ['mercedes','OM654','Injecteurs AdBlue + capteurs NOx','Défaut NOx, countdown AdBlue','1) Valeurs capteurs NOx 2) Cristallisation injecteur 3) Remplacement + réinit compteurs','Capteur NOx, injecteur','P2201, P20EE','Campagne constructeur','2017-2026'],
- ['mercedes','OM651','Chaîne OM651','Claquement, usure patins','Kit chaîne complet','Kit chaîne','P0016','TSB','2017-2020'],
- ['mercedes','','ADAS Drive Pilot / caméras','Défaut conduite autonome','1) Logs 2) Recalibration caméras/radar 3) MAJ','Caméra/radar','U0101, U0121','NHTSA','2019-2026'],
- ['volvo','','Batterie HV EX30/EX40 (campagne)','Limitation puissance, alerte surchauffe','1) Codes BMS 2) Campagne logicielle 3) Contrôle boucle LDR','BMS/logiciel','P0AA6, P0C00','Safety Gate','2023-2026'],
- ['volvo','','Prétensionneurs ceintures (campagne)','Campagne contrôle UE','1) VIN Safety Gate 2) Remplacement prétensionneurs','Prétensionneurs','','Safety Gate','2017-2026'],
- ['porsche','','Batterie HV Taycan/Macan EV','Défaut isolement, limitation puissance','1) Résistance isolement 2) Identification module 3) Remplacement sous garantie','Module batterie','P0AA6','NHTSA','2020-2026'],
- ['fiat','MultiJet','Injecteurs MultiJet encrassement','Ratés diesel, claquement, démarrage difficile','1) Test débits retour 2) Banc injecteurs 3) Remplacement + filtre','Injecteurs','P0201-P0204','TSB','2017-2026'],
- ['fiat','','Uconnect écran/MAJ','Écran noir, reboots','MAJ logiciel','—','U0101','TSB','2017-2026'],
- ['alfa','JTD','Injecteurs/AdBlue diesel','Ratés, défaut AdBlue','Procédure diesel standard','Injecteurs','P0201, P20EE','TSB','2017-2026'],
- ['mini','N13','Chaîne distribution Mini','Claquement, casse tendeur','Kit chaîne complet','Kit chaîne','P0016','TSB','2017-2020'],
- ['toyota','Hybrid','Pompe onduleur HSD','Non-démarrage, défaut système hybride','1) Codes onduleur 2) Test débit pompe 12V 3) Niveau LDR onduleur 4) Remplacement pompe','Pompe onduleur','P0A93','TSB','2017-2026'],
- ['toyota','D-4T','Consommation huile 1.2 D-4T','Baisse niveau, fumée bleue','1) Conso sur 1000 km 2) Endoscopie cylindres 3) Segments selon TSB','Segments','P0302','TSB','2017-2019'],
- ['toyota','','Airbag Takata','Campagne rupture','1) VIN 2) Remplacement inflateur','Inflateur','','NHTSA / Rappel Conso','2017-2019'],
- ['honda','','Airbag Takata','Campagne rupture','1) VIN 2) Inflateur','Inflateur','','NHTSA','2017-2019'],
- ['honda','1.5 VTEC','Dilution huile (turbo 1.5)','Niveau huile haut, odeur essence','1) Niveau/odeur 2) MAJ logiciel 3) Vidange complète','Logiciel/vidange','','TSB','2017-2020'],
- ['nissan','','SOH batterie Leaf','Perte autonomie, charge lente','1) SOH au diag 2) Delta cellules 3) Garantie si SOH <70% 4) Équilibrage','Modules batterie','','Campagne constructeur','2018-2026'],
- ['nissan','','Airbag Takata','Campagne','VIN, inflateur','Inflateur','','NHTSA','2017-2019'],
- ['mazda','Skyactiv-D','Calamine + FAP courts trajets','Perte puissance, régénérations fréquentes','1) Historique régénérations 2) Endoscopie admission 3) Décalaminage + MAJ','FAP, EGR','P2002, P2463','TSB','2017-2026'],
- ['mitsubishi','','Airbag Takata','Campagne','VIN','Inflateur','','NHTSA','2017-2019'],
- ['subaru','','Consommation huile boxer','Baisse niveau huile','1) Conso mesurée 2) TSB segments/PCV 3) Remplacement si confirmé','Segments','','TSB','2017-2019'],
- ['suzuki','','Caméra/ADAS campagnes','Défaut assistance','Recalibration + MAJ','Caméra','U0121','Campagne constructeur','2019-2026'],
- ['hyundai','Theta II','Serrage moteur Theta II','Claquement, limailles dans huile','1) Analyse KSDS 2) Contrôle limailles 3) Coussinets/moteur sous campagne','Coussinets bielles','','NHTSA','2017-2023'],
- ['hyundai','ICCU','ICCU Ioniq/Kona EV','Non-charge, défaut 12V','1) Codes ICCU 2) Test DC-DC 3) Remplacement ICCU + 12V','ICCU, 12V','U0111, P0AA6','NHTSA / campagne','2021-2026'],
- ['hyundai','Kona EV','Incendie batterie Kona EV','Risque incendie modules','1) Campagne BMS 2) Remplacement batterie si concerné','Batterie HV','P0AA6','Safety Gate / NHTSA','2018-2022'],
- ['kia','Theta II','Serrage Theta II','Idem Hyundai','Procédure identique','Coussinets','','NHTSA','2017-2023'],
- ['kia','ICCU','ICCU EV6/EV9','Non-charge, défaut 12V','Procédure ICCU','ICCU','U0111','Campagne constructeur','2021-2026'],
- ['lexus','Hybrid','Pompe onduleur Lexus','Idem Toyota','Procédure identique','Pompe onduleur','P0A93','TSB','2017-2026'],
- ['byd','','BMS/équilibrage LFP','Perte autonomie, delta cellules','1) Delta >60 mV = défaut 2) Charge lente équilibrage 3) MAJ BMS 4) Module si nécessaire','BMS, modules','P0AA6, U0111','Campagne constructeur','2022-2026'],
- ['mg','','12V / DC-DC MG EV','Non-démarrage, défaut 12V','1) SOH 12V 2) Test DC-DC 3) MAJ 4) Remplacement 12V','12V, DC-DC','U0111','Campagne constructeur','2020-2026'],
- ['mg','','Caméra/ADAS MG','Défaut assistance','Recalibration + MAJ','Caméra','U0121','Campagne constructeur','2021-2026'],
- ['lynkco','','PHEV batterie/charge','Défaut charge PHEV','1) Codes OBC 2) Campagne 3) Remplacement OBC','OBC','P0D11','Campagne constructeur','2020-2026'],
- ['nio','','Batterie HV / BaaS','Défaut batterie, swap station','1) Codes BMS 2) Diagnostic station 3) Module','BMS','','Campagne constructeur','2022-2026'],
- ['xpeng','','Charge/OTA','Défaut charge après mise à jour','1) Logs OTA 2) Re-flash 3) OBC','OBC/logiciel','P0D11','Campagne constructeur','2021-2026'],
- ['aiways','','12V / batterie HV','Défaut 12V répété','Procédure EV standard','12V','U0111','Campagne constructeur','2020-2026'],
- ['seres','','EREV batterie/générateur','Défaut générateur range-extender','1) Codes 2) Campagne 3) Générateur','Générateur','','Campagne constructeur','2021-2026'],
- ['omoda','','Campagnes essence/PHEV','Selon motorisation','Procédures constructeur','—','','Campagne constructeur','2023-2026'],
- ['jaecoo','','PHEV batterie/charge','Défaut charge','Procédure OBC','OBC','P0D11','Campagne constructeur','2024-2026'],
- ['leapmotor','','BMS/12V','Défaut 12V','Procédure EV','12V','U0111','Campagne constructeur','2023-2026'],
- ['ora','','Charge AC','Défaut charge AC','OBC','OBC','P0D11','Campagne constructeur','2023-2026'],
- ['ford','EcoBoost','Courroie humide + LDR cylindres','Bruit courroie, ratés après stationnement','1) État courroie 2) Endoscopie/compression 3) Joints culasse/injecteurs 4) Kit courroie + joints','Kit courroie, joints','P0300, P0301','TSB','2018-2024'],
- ['ford','PowerShift','Broutage embrayage sec','Vibrations démarrage, à-coups basse vitesse','1) Adaptations embrayage 2) Apprentissage TSB 3) Kit embrayage si confirmé','Kit embrayage','P0700','TSB / NHTSA','2017-2023'],
- ['ford','','ADAS BlueCruise / caméras','Défaut conduite autonome','1) Recalibration 2) MAJ 3) Logs NHTSA','Caméra/radar','U0101, U0121','NHTSA','2019-2026'],
- ['tesla','','eMMC MCU','Écran noir, reboots, lenteur','1) Santé eMMC mode service 2) Logs reboot 3) MCU sous garantie étendue','MCU, eMMC','U0101','NHTSA','2017-2023'],
- ['tesla','','Freinage fantôme ACC','Freinage brusque inopiné','1) Version caméras 2) Recalibration 3) MAJ logicielle','Caméras','','NHTSA','2021-2026'],
- ['tesla','','Contacteurs batterie HV','Défaut isolement/contacteur','1) Résistance isolement 2) Test contacteurs 3) Remplacement','Contacteurs','P0AA6','NHTSA','2017-2026'],
- ['jeep','MultiJet','FAP/EGR Jeep','Colmatage, perte puissance','Procédure diesel','FAP, EGR','P2002, P0401','TSB','2017-2026'],
- ['jeep','Uconnect','Uconnect reboots/caméra','Perte écran, caméra HS','MAJ logiciel','—','U0101','NHTSA','2017-2026'],
- ['chevrolet','','Campagnes sécurité NHTSA','Selon campagne (airbag/caméra)','1) VIN NHTSA 2) Campagne 3) Remplacement','—','','NHTSA','2017-2026'],
- ['dodge','','Faisceau/incendie campagnes','Risque échauffement faisceau','1) VIN 2) Inspection faisceau 3) Remplacement','Faisceau','','NHTSA','2017-2023'],
- ['cadillac','Lyriq','Batterie HV Lyriq (campagne)','Défaut batterie, limitation','1) Codes BMS 2) Campagne 3) Module','Module batterie','P0AA6','NHTSA','2024-2026'],
- ['dacia','','Campagnes sécurité Dacia','Airbag/ceintures selon VIN','1) VIN Rappel Conso 2) Campagne 3) Remplacement','—','','Rappel Conso','2017-2026'],
- ['cupra','','Campagnes logiciel HV','Défaut BMS/limite puissance','1) Codes BMS 2) Campagne logicielle 3) Contrôle modules','Logiciel BMS','P0AA6','Safety Gate','2021-2026'],
- ['polestar','','Capteurs isolement HV','Défaut isolement intempestif','1) Mesure isolement 2) Capteur selon campagne','Capteur HV','P0AA6','NHTSA','2020-2026'],
- ['lancia','','Système 48V hybride','À-coups, défaut hybridation','1) Codes 2) MAJ 3) Contrôle 12V','Logiciel, 12V','P0562','Campagne constructeur','2024-2026']
-];
-const GENERIC_EXPERT = {
- diesel: [
-  ['Diagnostic EGR complet','Voyant moteur, perte puissance, ralenti instable','1) Lire P0401/P0490 2) Test position EGR au diag (consigne vs réel) 3) Mesure encrassement refroidisseur (ΔP) 4) Nettoyage ou remplacement + adaptation','Vanne EGR, refroidisseur EGR','P0401, P0490'],
-  ['Diagnostic FAP complet','Régénérations fréquentes, perte puissance','1) Lire P2002/P2463 2) Mesure différentielle pression FAP 3) Régénération forcée au diag 4) Remplacement si colmatage irréversible','FAP, capteur ΔP','P2002, P2463'],
-  ['Diagnostic AdBlue complet','Countdown non-démarrage, voyant AdBlue','1) Lire P20EE/P204F/P207F 2) Test débit pompe AdBlue 3) Inspection cristallisation injecteur 4) Remplacement pompe/injecteur + réinit','Pompe AdBlue, injecteur, réservoir','P20EE, P204F'],
-  ['Diagnostic pompe haute pression','Démarrage difficile, pression rail basse','1) Lire P0087/P0088 2) Mesure pression rail vs consigne 3) Test débits retour injecteurs 4) Remplacement pompe HP','Pompe HP, régulateur','P0087, P0088'],
-  ['Diagnostic injecteurs diesel','Claquement, fumée, surconso, ratés','1) Lire P0201-P0204 2) Test débits retour 3) Banc injecteurs 4) Remplacement injecteurs défectueux + codage','Injecteurs','P0201-P0204']],
- essence: [
-  ['Diagnostic chaîne distribution','Claquement à froid, défaut calage','1) Lire P0016/P0335 2) Scope synchro vilo/AAC 3) Contrôle tendeur/guides 4) Kit chaîne complet','Kit chaîne, tendeur','P0016, P0335'],
-  ['Diagnostic courroie distribution','Bruit, risque rupture, débris huile','1) Inspection visuelle + gabarit usure 2) Contrôle carter débris 3) Pression huile 4) Kit courroie + pompe + vidange','Kit courroie, pompe à huile','P0087, P0340'],
-  ['Diagnostic allumage complet','Ratés, à-coups, perte puissance','1) Lire P0300-P0304 2) Permutation bobines/bougies 3) Test compressions 4) Remplacement bougies/bobines','Bougies, bobines','P0300-P0304'],
-  ['Diagnostic GPF/catalyseur','Perte puissance, voyant, odeur','1) Lire P2463/P0420 2) Régénération forcée 3) Contrôle contre-pression 4) Remplacement GPF/catalyseur','GPF, catalyseur','P2463, P0420']],
- hybride: [
-  ['Diagnostic batterie HV','Perte autonomie, défaut isolement','1) Lire U0111/P0AA6 2) Delta cellules au diag 3) Test isolement 4) Équilibrage ou module','BMS, modules HV','U0111, P0AA6'],
-  ['Diagnostic onduleur/convertisseur','Perte puissance, défaut hybride','1) Codes onduleur 2) Test pompe LDR onduleur 3) Contrôle connexions HV 4) Remplacement onduleur','Onduleur, pompe','P0A93, P0AA6'],
-  ['Diagnostic charge hybride','Charge lente/absente','1) Lire P0D11 2) Test OBC AC/DC 3) Contrôle connecteur 4) Remplacement OBC','OBC, connecteur','P0D11']],
- electrique: [
-  ['Diagnostic isolement HV','Défaut isolement, coupure sécurité','1) Lire P0AA6 2) Mesure résistance isolement 3) Identification branche défaillante 4) Remplacement composant HV','Câblage HV, batterie','P0AA6'],
-  ['Diagnostic charge complet','Charge lente/absente, erreurs borne','1) Lire P0D11/U0111 2) Test AC + DC 3) Contrôle ICCU/OBC 4) Remplacement ICCU/OBC + MAJ','ICCU, OBC','P0D11, U0111'],
-  ['Diagnostic autonomie/BMS','Perte autonomie anormale','1) SOH + delta cellules 2) Historique charges 3) MAJ BMS 4) Équilibrage ou module','BMS, modules','U0111'],
-  ['Diagnostic 12V/DC-DC','Non-démarrage, défaut 12V','1) SOH batterie 12V 2) Test sortie DC-DC 3) Courant de repos 4) Remplacement 12V/DC-DC','12V, DC-DC','P0562, U0111']]
-};
-const UNIV = [
-  ['Airbag (campagne Takata / générateur)', 'Risque rupture générateur au déploiement — remplacement inflateur selon rappel', '', 'NHTSA / Rappel Conso'],
-  ['Ceintures de sécurité (prétensionneur/ancrage)', 'Prétensionneur pyrotechnique ou ancrage non conforme — campagne de contrôle', '', 'Safety Gate'],
-  ['Caméra recul / 360°', 'Image figée, buée, perte signal — MAJ ou remplacement caméra', '', 'Campagne constructeur'],
-  ['Caméra ADAS / radar (calibration)', 'Perte fonctions assistance, défaut calibration pare-brise', 'U0121', 'Campagne constructeur'],
-  ['Conduite autonome / ACC', 'Freinage fantôme, perte assistance direction — MAJ logicielle obligatoire', 'U0101', 'NHTSA'],
-  ['Court-circuit faisceau / 12V', 'Risque échauffement câblage, incendie — campagne inspection faisceau', '', 'NHTSA / Rappel Conso'],
-  ['Incendie compartiment moteur / batterie', 'Fuite carburant ou défaut module HV — arrêt immédiat si rappel ouvert', '', 'Safety Gate / NHTSA'],
-  ['Électronique multiplexée / gateway', 'Défauts communication multiples, écrans figés', 'U0101 / U0121', 'Campagne constructeur'],
-  ['Batterie 12V / système charge', 'Non-démarrage répétitif, contrôle SOH + alternateur/DC-DC', 'P0562', 'Campagne constructeur'],
-  ['Capteurs TPMS / pression', 'Perte signal capteur, voyant erroné', '', 'Campagne constructeur']
-];
-const GENERIC = {
- diesel: { issues: [['Vanne EGR encrassée', 'Perte puissance, voyant, ralenti instable', 'P0401 / P0490'], ['FAP colmaté', 'Régénérations fréquentes, perte puissance', 'P2002 / P2463'], ['Système AdBlue', 'Cristallisation, pompe HS, countdown', 'P20EE / P204F'], ['Pompe haute pression', 'Démarrage difficile, pression rail basse', 'P0087 / P0088'], ['Injecteurs', 'Claquement, fumée, surconso, ratés', 'P0201-P0204'], ['Chaîne / courroie distribution', 'Claquement froid, décalage calage', 'P0016 / P0335'], ['Turbo / géométrie variable', 'Perte puissance, sifflement anormal', 'P0299 / P0234'], ['Préchauffage', 'Démarrage difficile à froid', 'P0380 / P0671']], dtc: ['P0401', 'P0490', 'P2002', 'P2463', 'P20EE', 'P0087', 'P0201', 'P0016', 'P0299', 'P0380'] },
- essence: { issues: [['Chaîne de distribution', 'Claquement froid, usure tendeur', 'P0016 / P0335'], ['Courroie de distribution (humide)', 'Débris, pompe à huile colmatée', 'P0087 / P0340'], ['Injecteurs / calamine (injection directe)', 'Ratés, ralenti instable, perte puissance', 'P0300-P0304'], ['Pompe haute pression (GDI)', 'Pression rail insuffisante', 'P0087'], ['Catalyseur', 'Vieillissement, contre-pression, odeur', 'P0420'], ['Turbo', 'Fuite admission, sous/sur-turbo', 'P0299 / P0234'], ['Allumage bougies/bobines', 'À-coups, ratés accélération', 'P0300-P0304'], ['Électronique / tension', 'Défauts multiples, batterie/alternateur', 'P0562']], dtc: ['P0016', 'P0087', 'P0300', 'P0301', 'P0335', 'P0340', 'P0420', 'P0299', 'P0562'] },
- hybride: { issues: [['Batterie haute tension', 'Vieillissement cellules, équilibrage, isolation', 'U0111 / P0AA6'], ['Onduleur / convertisseur', 'Perte puissance, défaut isolement', 'P0AA6'], ['Défaut de charge', 'Charge lente/absente (OBC/ICCU)', 'P0D11 / U0111'], ['Défaut d\'autonomie', 'Perte capacité, estimation erronée', 'U0111'], ['Freinage régénératif', 'À-coups, capteur pédale', 'C1365'], ['Batterie 12V / DC-DC', 'Non-démarrage, défaut circuit charge', 'P0562 / U0111'], ['Thermique batterie', 'Refroidissement, surchauffe modules', 'P0C00'], ['Moteur thermique associé', 'EGR/FAP/courroie selon motorisation', 'P0401 / P0087']], dtc: ['U0111', 'P0AA6', 'P0D11', 'P0C00', 'C1365', 'P0562'] },
- electrique: { issues: [['Batterie haute tension', 'Dégradation, surchauffe modules, BMS, isolation', 'P0AA6 / U0111'], ['Défaut de charge (OBC/ICCU/borne)', 'Charge lente/absente, erreurs connecteur', 'P0D11 / U0111'], ['Défaut d\'autonomie', 'Perte capacité, équilibrage cellules', 'U0111'], ['Court-circuit / isolement HV', 'Défaut isolement, sécurité coupure', 'P0AA6'], ['Batterie 12V / DC-DC', 'Non-démarrage, défaut 12V', 'P0562 / U0111'], ['Moteur électrique / onduleur', 'Perte puissance, bruit anormal', 'P0AA6'], ['Thermique batterie', 'Refroidissement, pompe LDR', 'P0C00'], ['Électronique / logiciels', 'Bugs BMS/MBUX, MAJ nécessaires', 'U0101']], dtc: ['P0AA6', 'U0111', 'P0D11', 'P0C00', 'P0562', 'U0101'] }
-};
-const ENSURE = [
- ['renault','Clio 6','2025-2026',[['1.0 TCe 90','essence','90 ch'],['1.0 TCe 110','essence','110 ch'],['E-Tech 140','hybride','140 ch'],['E-Tech 160','hybride','160 ch']]],
- ['renault','Clio V','2019-2026',[['1.0 SCe 65','essence','65 ch'],['1.0 TCe 90','essence','90 ch'],['1.0 TCe 100','essence','100 ch'],['1.3 TCe 130','essence','130 ch'],['1.5 Blue dCi 85','diesel','85 ch'],['1.5 Blue dCi 100','diesel','100 ch'],['1.5 Blue dCi 115','diesel','115 ch'],['E-Tech 140','hybride','140 ch']]],
- ['renault','R4 E-Tech','2024-2026',[['Electrique 120','electrique','120 ch'],['Electrique 150','electrique','150 ch']]],
- ['renault','Twingo E-Tech','2026-2026',[['Electrique 82','electrique','82 ch']]],
- ['peugeot','208 II','2019-2026',[['1.2 PureTech 75','essence','75 ch'],['1.2 PureTech 100','essence','100 ch'],['1.2 PureTech 130','essence','130 ch'],['1.5 BlueHDi 100','diesel','100 ch']]],
- ['peugeot','3008 III','2023-2026',[['1.2 Hybrid 136','hybride','136 ch'],['Hybrid 195','hybride','195 ch'],['Hybrid 230','hybride','230 ch']]],
- ['peugeot','E-3008','2024-2026',[['Electrique 210','electrique','210 ch'],['Electrique 230','electrique','230 ch'],['Electrique 320','electrique','320 ch']]],
- ['peugeot','5008 III','2024-2026',[['1.2 Hybrid 136','hybride','136 ch'],['Hybrid 195','hybride','195 ch']]],
- ['peugeot','E-5008','2024-2026',[['Electrique 210','electrique','210 ch'],['Electrique 320','electrique','320 ch']]],
- ['citroen','C3 IV','2024-2026',[['1.2 Hybrid 100','hybride','100 ch'],['1.2 Hybrid 136','hybride','136 ch']]],
- ['citroen','ë-C3','2024-2026',[['Electrique 113','electrique','113 ch']]],
- ['citroen','C3 Aircross III','2024-2026',[['1.2 Hybrid 100','hybride','100 ch'],['1.2 Hybrid 136','hybride','136 ch'],['Electrique 113','electrique','113 ch']]],
- ['ds','DS N°4','2025-2026',[['Hybrid 136','hybride','136 ch'],['E-Tense 210','electrique','210 ch']]],
- ['ds','DS N°8','2025-2026',[['E-Tense 230','electrique','230 ch'],['E-Tense 350','electrique','350 ch']]],
- ['dacia','Bigster','2025-2026',[['1.2 TCe 130','essence','130 ch'],['1.2 TCe 140 4x4','essence','140 ch'],['Hybrid 155','hybride','155 ch']]],
- ['dacia','Duster III','2024-2026',[['1.2 TCe 130','essence','130 ch'],['1.2 TCe 140 4x4','essence','140 ch'],['Hybrid 140','hybride','140 ch'],['1.5 Blue dCi 115','diesel','115 ch']]],
- ['volkswagen','Golf VIII','2020-2026',[['1.0 TSI 90','essence','90 ch'],['1.0 TSI 110','essence','110 ch'],['1.5 TSI 130','essence','130 ch'],['1.5 TSI 150','essence','150 ch'],['2.0 TDI 115','diesel','115 ch'],['2.0 TDI 150','diesel','150 ch'],['GTI 245','essence','245 ch']]],
- ['volkswagen','Tiguan III','2024-2026',[['1.5 TSI 130','essence','130 ch'],['1.5 TSI 150','essence','150 ch'],['2.0 TDI 150','diesel','150 ch'],['2.0 TDI 193','diesel','193 ch'],['eHybrid 204','hybride','204 ch'],['eHybrid 272','hybride','272 ch']]],
- ['volkswagen','ID.4','2021-2026',[['Electrique 170','electrique','170 ch'],['Electrique 204','electrique','204 ch'],['Electrique 265','electrique','265 ch'],['Electrique 286','electrique','286 ch'],['GTX 299','electrique','299 ch']]],
- ['volkswagen','ID.7','2023-2026',[['Electrique 286','electrique','286 ch'],['Electrique 340','electrique','340 ch']]],
- ['audi','Q6 e-tron','2024-2026',[['Electrique 252','electrique','252 ch'],['Electrique 388','electrique','388 ch'],['SQ6 490','electrique','490 ch']]],
- ['bmw','X3 G45','2024-2026',[['20 208','essence','208 ch'],['20d 197','diesel','197 ch'],['30e 299','hybride','299 ch'],['M50 398','essence','398 ch']]],
- ['mercedes','Classe E W214','2024-2026',[['E200 204','essence','204 ch'],['E220d 197','diesel','197 ch'],['E300e 313','hybride','313 ch'],['E400e 381','hybride','381 ch']]],
- ['skoda','Enyaq','2021-2026',[['Electrique 179','electrique','179 ch'],['Electrique 204','electrique','204 ch'],['Electrique 265','electrique','265 ch'],['Electrique 286','electrique','286 ch'],['RS 340','electrique','340 ch']]],
- ['skoda','Elroq','2024-2026',[['Electrique 170','electrique','170 ch'],['Electrique 204','electrique','204 ch'],['Electrique 286','electrique','286 ch']]],
- ['toyota','Yaris','2017-2026',[['1.0 72','essence','72 ch'],['1.5 Hybrid 116','hybride','116 ch'],['1.5 Hybrid 130','hybride','130 ch']]],
- ['toyota','RAV4','2019-2026',[['2.5 Hybrid 218','hybride','218 ch'],['2.5 Hybrid AWD 222','hybride','222 ch'],['2.5 PHEV 306','hybride','306 ch']]],
- ['hyundai','Tucson','2020-2026',[['1.6 T-GDI 150','essence','150 ch'],['1.6 T-GDI 180','essence','180 ch'],['1.6 CRDi 136','diesel','136 ch'],['Hybrid 230','hybride','230 ch'],['PHEV 265','hybride','265 ch']]],
- ['kia','Sportage','2021-2026',[['1.6 T-GDI 150','essence','150 ch'],['1.6 CRDi 136','diesel','136 ch'],['Hybrid 230','hybride','230 ch'],['PHEV 265','hybride','265 ch']]],
- ['tesla','Model 3','2019-2026',[['Propulsion 283','electrique','283 ch'],['Grande Autonomie 498','electrique','498 ch'],['Performance 513','electrique','513 ch']]],
- ['tesla','Model Y','2021-2026',[['Propulsion 299','electrique','299 ch'],['Grande Autonomie 498','electrique','498 ch'],['Performance 514','electrique','514 ch']]],
- ['byd','Atto 3','2022-2026',[['Electrique 204','electrique','204 ch']]],
- ['mg','MG4','2022-2026',[['Electrique 170','electrique','170 ch'],['Electrique 204','electrique','204 ch'],['XPower 435','electrique','435 ch']]],
- ['ford','Puma','2019-2026',[['1.0 EcoBoost 95','essence','95 ch'],['1.0 EcoBoost 125','essence','125 ch'],['1.0 EcoBoost 155','essence','155 ch'],['1.5 EcoBlue 120','diesel','120 ch']]]
-];
-let db, usersData = {}, brandsData = {}, motorsCache = [], deferredPrompt = null, listenersStarted = false, ensureDone = false, pwdUserTyped = false, pendCount = -1;
+/* APP.JS v20 — Moteur unique robuste : catalogue, corrélation, maintenance native, audits, MAJ manuelle */
+const ADMIN_PASSWORD = "Kevin83600";
+const SESSION_KEY = "autodiag_session";
+const DAY = 86400000, CYCLE = 30 * DAY;
+let db, usersData = {}, brandsData = {}, motorsCache = [], deferredPrompt = null, listenersStarted = false, ensureDone = false, pwdTyped = false, pendCount = -1;
 let curBrand = null, curModelId = null, curModelName = null;
 
-window.addEventListener('DOMContentLoaded', () => {
-  if ('serviceWorker' in navigator) navigator.serviceWorker.register('./sw.js').catch(() => {});
-  firebase.initializeApp(firebaseConfig);
-  db = firebase.database();
-  setupInstall(); bindAdminTable(); bindPwdGuard(); netMonitor(); boot(); checkMonthly(); selfTest(true);
+window.addEventListener("DOMContentLoaded", () => {
+  if ("serviceWorker" in navigator) navigator.serviceWorker.register("./sw.js").catch(() => {});
+  try { firebase.initializeApp(firebaseConfig); db = firebase.database(); } catch (e) { notify("❌ Firebase : config invalide", "error"); return; }
+  setupInstall(); bindAdminTable(); bindPwd(); netMonitor(); seedBrands(); boot(); selfTest(true);
 });
-window.addEventListener('pageshow', () => hardClearPwd());
+window.addEventListener("pageshow", () => clearPwd());
+
 function el(id) { return document.getElementById(id); }
-function val(id) { return el(id).value; }
+function val(id) { const e = el(id); return e ? e.value : ""; }
+function esc(s) { const d = document.createElement("div"); d.textContent = String(s == null ? "" : s); return d.innerHTML; }
+function notify(m, t) { const n = document.createElement("div"); n.className = "notification" + (t === "error" ? " error" : ""); n.textContent = m; document.body.appendChild(n); setTimeout(() => n.remove(), 4000); }
+function pushNotif(t, b) { if ("Notification" in window && Notification.permission === "granted") { try { new Notification(t, { body: b, icon: "./icon-192.png" }); } catch (e) {} } }
+function showScreen(id) { document.querySelectorAll(".screen").forEach(s => s.classList.remove("active")); const e = el(id); if (e) e.classList.add("active"); }
+function active(id) { const e = el(id); return !!e && e.classList.contains("active"); }
+function uid(p) { return p + "_" + Date.now() + "_" + Math.random().toString(36).substr(2, 6); }
 function getSession() { try { return JSON.parse(localStorage.getItem(SESSION_KEY)); } catch (e) { return null; } }
 function saveSession(s) { localStorage.setItem(SESSION_KEY, JSON.stringify(s)); }
-function showScreen(id) { document.querySelectorAll('.screen').forEach(s => s.classList.remove('active')); el(id).classList.add('active'); }
-function screenIsActive(id) { return el(id).classList.contains('active'); }
-function notify(m, t) { const n = document.createElement('div'); n.className = 'notification' + (t === 'error' ? ' error' : ''); n.textContent = m; document.body.appendChild(n); setTimeout(() => n.remove(), 3500); }
-function pushNotif(title, body) { if ('Notification' in window && Notification.permission === 'granted') { try { new Notification(title, { body: body, icon: './icon-192.png' }); } catch (e) {} } }
-function esc(s) { const d = document.createElement('div'); d.textContent = String(s); return d.innerHTML; }
-function deviceId() { let id = localStorage.getItem('autodiag_device'); if (!id) { id = 'DEV-' + Math.random().toString(36).substr(2, 8).toUpperCase(); localStorage.setItem('autodiag_device', id); } return id; }
-function uid(p) { return p + '_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5); }
-function kwMatch(kw, motor) { if (!kw) return true; if (!motor) return false; return String(motor.name).toLowerCase().includes(String(kw).toLowerCase()); }
-function guessFuel(n) { n = String(n).toLowerCase(); if (/électrique|electrique|ev\b|e-|zero emi|electri/.test(n)) return 'electrique'; if (/hybrid|hybride|phev|e:hev|e-tech|e:h/.test(n)) return 'hybride'; if (/dci|tdi|bluehdi|diesel|crdi|multijet|ecoblue|jtd|d-4d|\bd\b/.test(n)) return 'diesel'; return 'essence'; }
-function guessPower(n) { const m = String(n).match(/(\d{2,4})\s*ch\b/i) || String(n).match(/(\d{2,4})$/); return m ? m[1] + ' ch' : ''; }
-function issueFuel(i) { const t = ((i.title || '') + ' ' + (i.detail || '') + ' ' + (i.motor || '') + ' ' + (i.symptom || '')).toLowerCase(); for (const f of ['diesel', 'essence', 'hybride', 'electrique']) if (FUEL_KW[f].some(k => t.includes(k))) return f; return null; }
+function deviceId() { let i = localStorage.getItem("autodiag_device"); if (!i) { i = "DEV-" + Math.random().toString(36).substr(2, 8).toUpperCase(); localStorage.setItem("autodiag_device", i); } return i; }
+function isAdmin() { return sessionStorage.getItem("autodiag_admin") === "1"; }
 
-/* ===== CASE MOT DE PASSE : aucun point par défaut ===== */
-function hardClearPwd() { const p = el('admin-pwd'); if (!p || pwdUserTyped) return; p.value = ''; try { p.setAttribute('value', ''); } catch (e) {} }
-function showAdminLogin() { pwdUserTyped = false; hardClearPwd(); showScreen('screen-admin-login'); [0, 80, 250, 600, 1200].forEach(ms => setTimeout(hardClearPwd, ms)); }
-function bindPwdGuard() { const p = el('admin-pwd'); if (!p) return; p.addEventListener('input', () => { pwdUserTyped = true; }); p.addEventListener('focus', () => { if (!pwdUserTyped) hardClearPwd(); }); }
-
-/* ===== CONNEXION PERMANENTE 4G/5G/WiFi + statut ===== */
-function netMonitor() {
-  const set = on => { const s = el('net-status'); if (s) s.textContent = on ? '📶 en ligne' : '⚠️ hors-ligne (cache)'; };
-  set(navigator.onLine);
-  window.addEventListener('online', () => { set(true); notify('📶 Connexion rétablie (4G/5G/WiFi)'); });
-  window.addEventListener('offline', () => { set(false); notify('⚠️ Hors-ligne : bascule sur cache local', 'error'); });
-}
-/* Lecture robuste : réseau d'abord, repli miroir local (offline) */
 async function dbGet(path) {
   try {
-    const v = await Promise.race([db.ref(path).once('value'), new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), 3000))]);
-    const val = v.val();
-    try { localStorage.setItem('mir_' + path, JSON.stringify(val || {})); } catch (e) {}
-    return val || {};
-  } catch (e) {
-    try { return JSON.parse(localStorage.getItem('mir_' + path) || '{}'); } catch (e2) { return {}; }
+    const s = await Promise.race([db.ref(path).once("value"), new Promise((_, rj) => setTimeout(() => rj(new Error("timeout")), 4000))]);
+    const v = s.val() || {};
+    try { localStorage.setItem("mir_" + path, JSON.stringify(v)); } catch (e) {}
+    return v;
+  } catch (e) { try { return JSON.parse(localStorage.getItem("mir_" + path) || "{}"); } catch (x) { return {}; } }
+}
+async function dbSet(path, v) { try { await db.ref(path).set(v); return true; } catch (e) { console.warn("set", path, e); return false; } }
+
+/* ===== MOT DE PASSE ===== */
+function clearPwd() { const p = el("admin-pwd"); if (p && !pwdTyped) { p.value = ""; try { p.setAttribute("value", ""); } catch (e) {} } }
+function showAdminLogin() { pwdTyped = false; clearPwd(); showScreen("screen-admin-login"); [0, 80, 250, 600, 1200].forEach(t => setTimeout(clearPwd, t)); }
+function bindPwd() { const p = el("admin-pwd"); if (!p) return; p.addEventListener("input", () => { pwdTyped = true; }); p.addEventListener("focus", () => { if (!pwdTyped) clearPwd(); }); p.addEventListener("keydown", e => { if (e.key === "Enter") loginAdmin(); }); }
+
+/* ===== RÉSEAU ===== */
+function netMonitor() {
+  const set = on => { const s = el("net-status"); if (s) s.textContent = on ? "📶 en ligne" : "⚠️ hors-ligne (cache)"; };
+  set(navigator.onLine);
+  window.addEventListener("online", () => { set(true); notify("📶 Connexion rétablie"); });
+  window.addEventListener("offline", () => { set(false); notify("⚠️ Hors-ligne : cache local actif", "error"); });
+}
+
+/* ===== CARBURANT / MATCHERS ===== */
+function guessFuel(n) {
+  n = String(n).toLowerCase();
+  if (/electric|électrique|e-tron|ev\b|e-|ë-|folgore|propulsion|plaid|long range|grande autonomie|xpower|dual motor|single motor|twin motor|edrive|iq|z\.e|elettrica|recharge pure/.test(n)) return "electrique";
+  if (/hybrid|hybride|phev|e:hev|e-tech|etech|mhev|48v|dm-i|dm-p|erev|e-power|e-boxer|recharge|4xe|gte|ehybrid|e-hybrid|shvs|strong hybrid|hybrid\+|em-i|q4|mild/.test(n)) return "hybride";
+  if (/dci|tdi|bluehdi|hdi|diesel|crdi|multijet|ecoblue|jtd|d-4d|skyactiv-d|bluetec|cdi|ecodiesel|ecojet|ddis|di-d|cdti|d-tec|\bd[0-9]{2,3}\b|\b[0-9]\.[0-9] d\b/.test(n)) return "diesel";
+  return "essence";
+}
+function guessPower(n) { const m = String(n).match(/(\d{2,4})\s*ch\b/i) || String(n).match(/(\d{2,4})\s*$/); return m ? m[1] + " ch" : ""; }
+function famFuel(k) {
+  k = String(k).toLowerCase();
+  for (const [t, f] of Object.entries(EG_TOKEN_FUEL)) if (k.includes(t.toLowerCase())) return f;
+  return null;
+}
+const FKW = {
+ diesel: ["adblue","fap","egr","dci","tdi","bluehdi","diesel","multijet","crdi","ecoblue","skyactiv-d","préchauffage","jtd","d-4d","cdi","ecodiesel"],
+ essence: ["puretech","tce","tsi","ecoboost","gdi","thp","vtec","essence","courroie","chaîne","chaine","allumage","bougies","catalyseur","gpf","calamine"],
+ hybride: ["hybrid","hybride","phev","e:hev","e-tech","onduleur","48v","dm-i","e-power","recharge","bascule"],
+ electrique: ["électrique","electrique","iccu","obc","bms","batterie hv","charge","isolement","dc-dc","soh","servofrein","réducteur","lfp"]
+};
+function fuelOf(t) { t = String(t).toLowerCase(); for (const f of ["diesel","essence","hybride","electrique"]) if (FKW[f].some(k => t.includes(k))) return f; return null; }
+function compat(a, b) { if (!a || !b) return true; if (a === b) return true; return (a === "hybride" && b === "electrique") || (a === "electrique" && b === "hybride"); }
+function fuzzy(a, b) { if (!a) return true; if (!b) return false; a = String(a).toLowerCase(); b = String(b).toLowerCase(); if (a === b || a.includes(b) || b.includes(a)) return true; return a.split("/").some(p => { p = p.trim(); return p && (b.includes(p) || p.includes(b)); }); }
+function kwMatch(key, motor) {
+  if (!key) return true; if (!motor) return true;
+  const k = String(key).toLowerCase(), mn = String(motor.name).toLowerCase();
+  if (mn.includes(k)) return true;
+  if (curModelName) { const cm = String(curModelName).toLowerCase(); if (k.includes(cm) || cm.includes(k) || k.split("/").some(p => { p = p.trim(); return p && (cm.includes(p) || p.includes(cm)); })) return true; }
+  const f = famFuel(k) || fuelOf(k); if (f) return compat(f, motor.fuel);
+  return false;
+}
+function motorMatch(mk, motor) {
+  if (!mk) return true; if (!motor) return true;
+  const k = String(mk).toLowerCase(), mn = String(motor.name).toLowerCase();
+  if (mn.includes(k) || k.includes(mn)) return true;
+  const f = famFuel(k) || fuelOf(k); if (f) return compat(f, motor.fuel);
+  if (curModelName && k.includes(String(curModelName).toLowerCase())) return true;
+  return false;
+}
+function titleOk(text, motor) { if (!motor) return true; const f = fuelOf(text); return !f || compat(f, motor.fuel); }
+
+/* ===== GARDE-MOTEURS ===== */
+function egGroup(b) { for (const [g, l] of Object.entries(EG_GROUPS)) if (l.includes(b)) return g; return null; }
+function egTokens(name) {
+  const n = " " + String(name).toLowerCase() + " ", h = [];
+  for (const [t, f] of Object.entries(EG_TOKEN_FUEL)) if (n.includes(t.toLowerCase())) h.push({ t: t, f: f });
+  h.sort((a, b) => b.t.length - a.t.length); return h;
+}
+function egFix(brandId, m) {
+  const g = egGroup(brandId); if (!g) return { changed: false, m: m };
+  const nat = EG_NATIVE[g] || [], orig = String(m.name || ""); let name = orig, changed = false;
+  for (const h of egTokens(orig)) {
+    const tl = h.t.toLowerCase();
+    if (nat.some(x => tl.includes(x) || x.includes(tl))) continue;
+    const canon = (EG_CANON[g] || {})[h.f] || ""; if (!canon) continue;
+    const re = new RegExp(tl.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "i");
+    if (re.test(name)) { name = name.replace(re, canon); changed = true; }
   }
+  let fuel = m.fuel;
+  const tk = egTokens(name);
+  if (tk.length) fuel = tk[0].f; else if (!fuel) fuel = guessFuel(name);
+  if (fuel !== m.fuel || name !== orig) changed = true;
+  return { changed: changed, m: Object.assign({}, m, { name: name.replace(/\s+/g, " ").trim(), fuel: fuel }) };
+}
+async function engineAudit(verbose) {
+  const models = await dbGet("data/models"), motors = await dbGet("data/motors");
+  let fixed = 0, checked = 0;
+  for (const [mid, mo] of Object.entries(models)) {
+    const list = motors[mid]; if (!Array.isArray(list)) continue;
+    let ch = false;
+    const next = list.map(x => { checked++; const r = egFix(mo.brandId, x); if (r.changed) { ch = true; return r.m; } return x; });
+    if (ch) { await dbSet("data/motors/" + mid, next); fixed++; }
+  }
+  window.engineReport = { fixed: fixed, checked: checked };
+  const c = el("engine-box"); if (c) c.innerHTML = '<p style="font-size:12px;color:#94a3b8">🛡️ ' + checked + " motorisations vérifiées • " + fixed + " correction(s)</p>";
+  if (verbose) notify(fixed ? "🛡️ " + fixed + " modèle(s) corrigé(s) sur " + checked + " motorisations" : "🛡️ Aucune incohérence (" + checked + " motorisations)");
+  return fixed;
 }
 
-/* ===== AUTO-TEST APK ===== */
-async function selfTest(quiet) {
-  const R = [];
-  const t = (name, ok) => R.push({ name: name, ok: !!ok });
-  try { await db.ref('data/version').once('value'); t('Connexion Firebase', true); } catch (e) { t('Connexion Firebase', false); }
-  try { const m = await fetch('./manifest.json', { cache: 'no-store' }); t('Manifest accessible', m.ok); } catch (e) { t('Manifest accessible', false); }
-  try { const i = await fetch('./icon-192.png', { cache: 'no-store' }); t('Icônes accessibles', i.ok); } catch (e) { t('Icônes accessibles', false); }
-  t('Service Worker enregistré', !!(navigator.serviceWorker));
-  t('Réseau actif (4G/5G/WiFi)', navigator.onLine);
-  const b = await dbGet('data/brands'); t('Base marques (' + Object.keys(b).length + ')', Object.keys(b).length > 0);
-  const mo = await dbGet('data/models'); t('Base modèles (' + Object.keys(mo).length + ')', Object.keys(mo).length > 0);
-  const dt = await dbGet('data/dtc'); t('Base DTC (' + Object.keys(dt).length + ')', Object.keys(dt).length > 0);
-  t('Écrans interface', !!el('screen-home') && !!el('screen-admin') && !!el('screen-app'));
-  window.lastSelfTest = R;
-  const bad = R.filter(r => !r.ok);
-  if (bad.length) notify('🩺 Auto-test : ' + bad.length + ' anomalie(s) — détail dans admin', 'error');
-  else if (!quiet) notify('🩺 Auto-test APK : OK (' + R.length + '/' + R.length + ')');
-  renderSelfTest();
-  return R;
-}
-function renderSelfTest() { const c = el('selftest-box'); if (!c || !window.lastSelfTest) return; c.innerHTML = window.lastSelfTest.map(r => '<p style="font-size:13px;margin:3px 0">' + (r.ok ? '✅' : '❌') + ' ' + esc(r.name) + '</p>').join(''); }
-
-/* ===== IMPORTS PROGRAMMÉS 30 JOURS (pannes + modèles) ===== */
-function syncScheduler() {
-  const now = Date.now();
-  const li = parseInt(localStorage.getItem('autodiag_sync_issues') || '0', 10);
-  if (now - li > CYCLE_30) { applyBatch('issues'); localStorage.setItem('autodiag_sync_issues', String(now)); }
-  const lc = parseInt(localStorage.getItem('autodiag_sync_catalog') || '0', 10);
-  if (now - lc > CYCLE_30) { applyBatch('catalog'); localStorage.setItem('autodiag_sync_catalog', String(now)); }
-}
-async function applyBatch(kind) {
-  try {
-    if (kind === 'issues') {
-      const ex = await dbGet('data/expert');
-      const t = {}; Object.values(ex).forEach(x => t[String(x.title).toLowerCase()] = 1);
-      let n = 0;
-      for (const b of BATCH_ISSUES) {
-        if (t[b[3].toLowerCase()]) continue;
-        await db.ref('data/expert/' + uid('bat')).set({ brandId: b[0], model: b[1], motor: b[2], title: b[3], symptom: b[4], diagnosis: b[5], parts: b[6], dtc: b[7], source: b[8], years: b[9] });
-        n++;
-      }
-      if (n) notify('📥 MAJ 30 j : ' + n + ' nouvelles pannes/campagnes intégrées');
-    } else {
-      const models = await dbGet('data/models');
-      const set = {}; Object.values(models).forEach(m => set[m.brandId + '|' + String(m.name).toLowerCase()] = 1);
-      let n = 0;
-      for (const e of BATCH_MODELS) {
-        const bid = e[0];
-        if (!(await db.ref('data/brands/' + bid).once('value')).exists()) {
-          await db.ref('data/brands/' + bid).set({ name: e[4] || bid, region: e[5] || 'europeennes' });
-        }
-        if (set[bid + '|' + e[1].toLowerCase()]) continue;
-        const id = 'b_' + bid + '_' + Date.now() + '_' + n;
-        await db.ref('data/models/' + id).set({ brandId: bid, name: e[1], years: e[2] });
-        await db.ref('data/motors/' + id).set(e[3].map(m => ({ name: m[0], fuel: m[1], power: m[2] })));
-        n++;
-      }
-      if (n) notify('📥 MAJ 30 j : ' + n + ' nouveaux modèles/motorisations intégrés');
+/* ===== AUDIT ATTRIBUTIONS ===== */
+async function attributionAudit(verbose) {
+  const models = await dbGet("data/models"), exp = await dbGet("data/expert");
+  const byBrand = {}; Object.values(models).forEach(m => { (byBrand[m.brandId] = byBrand[m.brandId] || []).push(m.name); });
+  let fixed = 0;
+  for (const [id, e] of Object.entries(exp)) {
+    let mk = String(e.motor || ""), mdl = String(e.model || ""), upd = false;
+    if (mk) {
+      const names = byBrand[e.brandId] || [];
+      const hit = names.find(n => String(n).length > 2 && mk.toLowerCase().includes(String(n).toLowerCase()));
+      if (hit) {
+        const rest = mk.toLowerCase().split(String(hit).toLowerCase()).join(" ");
+        let nm = "";
+        if (/elec|électri|ev\b/.test(rest)) nm = "Electric"; else if (/hybrid|phev/.test(rest)) nm = "Hybrid";
+        else if (/dci|tdi|diesel|crdi|hdi/.test(rest)) nm = "diesel"; else if (/tce|tsi|puretech|essence/.test(rest)) nm = "essence";
+        e.model = mdl || hit; e.motor = nm; upd = true;
+      } else if (/élec|electri/.test(mk) && !/electric/i.test(mk)) { e.motor = "Electric"; upd = true; }
     }
-  } catch (e) { console.warn('batch', e); }
+    if (upd) { await db.ref("data/expert/" + id).update({ model: e.model, motor: e.motor }); fixed++; }
+  }
+  window.attribReport = { fixed: fixed, n: Object.keys(exp).length, m: Object.keys(models).length };
+  const c = el("attrib-box"); if (c) c.innerHTML = '<p style="font-size:12px;color:#94a3b8">🧬 ' + window.attribReport.n + " fiches • " + window.attribReport.m + " modèles • " + fixed + " correction(s)</p>";
+  if (verbose) notify(fixed ? "🧬 " + fixed + " attribution(s) corrigée(s)" : "🧬 Attributions cohérentes (" + window.attribReport.n + " fiches)");
+  return fixed;
 }
 
-/* ===== AUTO-VÉRIFICATION modèles + motorisations + puissances ===== */
-async function ensureCatalog() {
-  if (ensureDone) return;
+/* ===== SEED / CATALOGUE ===== */
+async function seedBrands() {
+  try {
+    const cur = await dbGet("data/brands");
+    for (const [id, name, region] of BRANDS) if (!cur[id]) await dbSet("data/brands/" + id, { name: name, region: region });
+  } catch (e) { console.warn(e); }
+}
+async function ensureCatalog(force) {
+  if (ensureDone && !force) return { models: 0, expert: 0 };
   ensureDone = true;
+  let added = 0, fixed = 0, exAdd = 0, cpAdd = 0;
   try {
-    const models = await dbGet('data/models');
-    const byName = {}; Object.entries(models).forEach(([id, m]) => byName[m.brandId + '|' + String(m.name).toLowerCase()] = id);
-    let added = 0;
-    for (let i = 0; i < ENSURE.length; i++) {
-      const e = ENSURE[i];
-      if (byName[e[0] + '|' + e[1].toLowerCase()]) continue;
-      const id = 'e_' + e[0] + '_' + i;
-      await db.ref('data/models/' + id).set({ brandId: e[0], name: e[1], years: e[2] });
-      await db.ref('data/motors/' + id).set(e[3].map(m => ({ name: m[0], fuel: m[1], power: m[2] })));
-      byName[e[0] + '|' + e[1].toLowerCase()] = id; added++;
+    await seedBrands();
+    const models = await dbGet("data/models");
+    const map = {}; Object.entries(models).forEach(([id, m]) => map[m.brandId + "|" + String(m.name).toLowerCase()] = id);
+    for (let i = 0; i < MODELS_ALL.length; i++) {
+      const [b, name, years, motors] = MODELS_ALL[i], key = b + "|" + name.toLowerCase();
+      if (map[key]) continue;
+      const id = "m_" + b + "_" + i;
+      await dbSet("data/models/" + id, { brandId: b, name: name, years: years });
+      await dbSet("data/motors/" + id, motors.map(m => egFix(b, m).m));
+      map[key] = id; added++;
     }
-    if (added) notify('🚗 ' + added + ' modèles ajoutés (Clio 6, R4, Bigster…)');
-    let fixed = 0;
-    for (const e of ENSURE) {
-      const id = byName[e[0] + '|' + e[1].toLowerCase()];
-      if (!id) continue;
-      const cur = ((await db.ref('data/motors/' + id).once('value')).val() || []).slice();
-      let changed = false;
-      e[3].forEach(n => { if (!cur.some(x => String(x.name).toLowerCase() === n[0].toLowerCase())) { cur.push({ name: n[0], fuel: n[1], power: n[2] }); changed = true; } });
+    for (const [b, name, , motors] of MODELS_ALL) {
+      const id = map[b + "|" + name.toLowerCase()]; if (!id) continue;
+      const cur = (await db.ref("data/motors/" + id).once("value")).val() || [];
+      const have = {}; cur.forEach(x => have[String(x.name).toLowerCase()] = 1);
+      let ch = false;
+      motors.forEach(m => { if (!have[String(m.name).toLowerCase()]) { cur.push(egFix(b, m).m); ch = true; } });
       for (let i = 0; i < cur.length; i++) {
-        const x = cur[i];
-        if (!x.fuel || !['essence', 'diesel', 'hybride', 'electrique'].includes(x.fuel)) { x.fuel = guessFuel(x.name); changed = true; }
-        if (!x.power || !/\d/.test(String(x.power))) { x.power = guessPower(x.name); changed = true; }
+        if (!cur[i].fuel) { cur[i].fuel = guessFuel(cur[i].name); ch = true; }
+        if (!cur[i].power) { const p = guessPower(cur[i].name); if (p) { cur[i].power = p; ch = true; } }
       }
-      if (changed) { await db.ref('data/motors/' + id).set(cur); fixed++; }
+      if (ch) { await dbSet("data/motors/" + id, cur); fixed++; }
     }
-    if (fixed) notify('🔧 Auto-vérification : ' + fixed + ' motorisations/puissances corrigées');
-    const iss = await dbGet('data/issues');
-    const tI = {}; Object.values(iss).forEach(x => tI[String(x.title).toLowerCase()] = 1);
-    let aI = 0;
-    for (const k of KEY_ISSUES) if (!tI[k.title.toLowerCase()]) { await db.ref('data/issues/' + uid('key')).set(k); aI++; }
-    const ex = await dbGet('data/expert');
-    const tE = {}; Object.values(ex).forEach(x => tE[String(x.title).toLowerCase()] = 1);
-    for (const k of KEY_EXPERT) if (!tE[k.title.toLowerCase()]) { await db.ref('data/expert/' + uid('key')).set(k); aI++; }
-    if (aI) notify('🔩 Rappels officiels vérifiés (Bigster ressorts AR)');
-  } catch (e) { console.warn('ensure', e); }
+    const exp = await dbGet("data/expert"); const te = {}; Object.values(exp).forEach(x => te[String(x.title).toLowerCase()] = 1);
+    for (const e of EXPERT) {
+      if (te[e[3].toLowerCase()]) continue;
+      await dbSet("data/expert/" + uid("ex"), { brandId: e[0], motor: e[1], type: e[2], title: e[3], symptom: e[4], diagnosis: e[5], parts: e[6], dtc: e[7], source: e[8], years: e[9], model: "" });
+      te[e[3].toLowerCase()] = 1; exAdd++;
+    }
+    const iss = await dbGet("data/issues"); const ti = {}; Object.values(iss).forEach(x => ti[String(x.title).toLowerCase()] = 1);
+    for (const c of CAMPAIGNS) {
+      if (ti[c[3].toLowerCase()]) continue;
+      await dbSet("data/issues/" + uid("cp"), { brandId: c[0], model: c[1], motor: c[2], title: c[3], detail: c[4], source: c[5], dtc: c[6], url: c[7] });
+      ti[c[3].toLowerCase()] = 1; cpAdd++;
+    }
+    if (added) notify("🚗 " + added + " modèles importés");
+    if (exAdd || cpAdd) notify("🧠 " + (exAdd + cpAdd) + " fiches expert / campagnes importées");
+  } catch (e) { console.warn("ensure", e); }
+  return { models: added, expert: exAdd + cpAdd, fixed: fixed };
 }
-async function checkMonthly() {
-  const v = (await db.ref('data/version').once('value')).val();
-  if (!v || !v.lastUpdate) return;
-  if (Date.now() - new Date(v.lastUpdate).getTime() > CYCLE_30) {
-    if (sessionStorage.getItem('autodiag_admin') === '1') { await updateBase(true); notify('📅 MAJ mensuelle diffusée automatiquement'); }
-    else notify('📅 Base > 30 jours : MAJ mensuelle en diffusion');
-  }
+
+/* ===== MAJ MANUELLE ===== */
+async function manualUpdate() {
+  if (!isAdmin()) return notify("❌ Réservé admin", "error");
+  notify("🔄 MAJ manuelle 2017-2027 en cours…");
+  const btns = document.querySelectorAll('[onclick="manualUpdate()"]'); btns.forEach(b => b.disabled = true);
+  try {
+    await seedBrands();
+    const r = await ensureCatalog(true);
+    const a = await attributionAudit(false);
+    const g = await engineAudit(false);
+    await dbSet("data/version", { version: Date.now(), lastUpdate: new Date().toISOString(), updateIntervalDays: 30 });
+    localStorage.setItem("autodiag_sync", String(Date.now()));
+    brandsData = await dbGet("data/brands");
+    fillBrandSelects();
+    if (active("screen-app")) await buildBrandSelect();
+    await selfTest(false);
+    notify("✅ MAJ terminée : +" + r.models + " modèles, +" + r.expert + " fiches, " + (a + g) + " corrections");
+  } catch (e) { notify("❌ MAJ : " + e.message, "error"); }
+  btns.forEach(b => b.disabled = false);
+}
+function syncScheduler() {
+  const last = parseInt(localStorage.getItem("autodiag_sync") || "0", 10);
+  if (Date.now() - last > CYCLE) { localStorage.setItem("autodiag_sync", String(Date.now())); ensureCatalog(true); }
 }
 async function updateBase(manual) {
-  await db.ref('data/version').set({ version: Date.now(), lastUpdate: new Date().toISOString(), updateIntervalDays: 30 });
-  if (manual) notify('✅ MAJ diffusée sur toutes les APK');
+  await dbSet("data/version", { version: Date.now(), lastUpdate: new Date().toISOString(), updateIntervalDays: 30 });
+  if (manual) notify("✅ MAJ diffusée à toutes les APK");
 }
+
+/* ===== AUTO-TEST ===== */
+async function selfTest(quiet) {
+  const R = [], t = (n, ok) => R.push({ n: n, ok: !!ok });
+  try { await db.ref("data/version").once("value"); t("Connexion Firebase", true); } catch (e) { t("Connexion Firebase", false); }
+  t("Données catalogue chargées", typeof MODELS_ALL !== "undefined" && MODELS_ALL.length > 0);
+  t("Moteur maintenance présent", typeof buildMaintenanceHTML === "function");
+  try { const r = await fetch("./manifest.json", { cache: "no-store" }); t("Manifest accessible", r.ok); } catch (e) { t("Manifest accessible", false); }
+  try { const r = await fetch("./icon-192.png", { cache: "no-store" }); t("Icônes accessibles", r.ok); } catch (e) { t("Icônes accessibles", false); }
+  t("Service Worker", !!navigator.serviceWorker);
+  t("Réseau actif", navigator.onLine);
+  const b = await dbGet("data/brands"); t("Base marques (" + Object.keys(b).length + ")", Object.keys(b).length > 0);
+  const m = await dbGet("data/models"); t("Base modèles (" + Object.keys(m).length + ")", Object.keys(m).length > 0);
+  const e2 = await dbGet("data/expert"); t("Fiches expert (" + Object.keys(e2).length + ")", Object.keys(e2).length > 0);
+  t("Écrans interface", !!el("screen-home") && !!el("screen-admin") && !!el("screen-app"));
+  t("Case maintenance", !!el("maint-box"));
+  window.lastSelfTest = R;
+  const c = el("selftest-box"); if (c) c.innerHTML = R.map(r => '<p style="font-size:13px;margin:3px 0">' + (r.ok ? "✅" : "❌") + " " + esc(r.n) + "</p>").join("");
+  const bad = R.filter(r => !r.ok).length;
+  if (bad) notify("🩺 Auto-test : " + bad + " anomalie(s)", "error"); else if (!quiet) notify("🩺 Auto-test OK (" + R.length + "/" + R.length + ")");
+  return R;
+}
+
+/* ===== ACCÈS ===== */
 function boot() {
   if (!listenersStarted) {
     listenersStarted = true;
-    db.ref('access/users').on('value', s => {
+    db.ref("access/users").on("value", s => {
       usersData = s.val() || {};
-      const pc = Object.values(usersData).filter(u => u.status === 'pending').length;
-      if (pendCount >= 0 && pc > pendCount && sessionStorage.getItem('autodiag_admin') === '1') { notify('📨 Nouvelle demande d\'accès tiers'); pushNotif('📨 Nouvelle demande', 'Un tiers attend votre validation.'); }
-      pendCount = pc;
-      routeUser(); if (screenIsActive('screen-admin')) renderAdmin();
+      const pc = Object.values(usersData).filter(u => u.status === "pending").length;
+      if (pendCount >= 0 && pc > pendCount && isAdmin()) { notify("📨 Nouvelle demande d'accès"); pushNotif("📨 Nouvelle demande", "Un tiers attend votre validation."); }
+      pendCount = pc; routeUser(); if (active("screen-admin")) renderAdmin();
     });
-    db.ref('data/brands').on('value', s => { brandsData = s.val() || {}; if (screenIsActive('screen-admin')) fillBrandSelects(); });
-    db.ref('data/version').on('value', s => { const v = s.val(); const t = v && v.lastUpdate ? new Date(v.lastUpdate).toLocaleDateString('fr-FR') : '--'; if (el('app-version')) el('app-version').textContent = t; if (el('admin-version')) el('admin-version').textContent = t; });
+    db.ref("data/brands").on("value", s => { brandsData = s.val() || {}; if (active("screen-admin")) fillBrandSelects(); });
+    db.ref("data/version").on("value", s => { const v = s.val(); const t = v && v.lastUpdate ? new Date(v.lastUpdate).toLocaleDateString("fr-FR") : "--"; ["app-version","admin-version"].forEach(i => { const e = el(i); if (e) e.textContent = t; }); });
   }
   routeUser();
 }
-function findKey(p) { return p ? Object.keys(usersData).find(k => usersData[k].prenom && usersData[k].prenom.toLowerCase() === p.toLowerCase()) || null : null; }
 function routeUser() {
-  const s = getSession();
-  if (!s || !s.prenom) { showScreen('screen-home'); return; }
-  const k = findKey(s.prenom);
-  if (!k) { showPending(s.prenom); return; }
-  const status = usersData[k].status;
-  const prev = s.lastStatus;
-  if (prev !== status) {
-    s.lastStatus = status; saveSession(s);
-    if (status === 'accepted') { notify('✅ Accès autorisé — bienvenue ' + s.prenom); pushNotif('✅ Accès autorisé', 'Votre accès à Auto Diagnostic Pro est actif. Bonne route !'); }
-    else if (status === 'refused') { notify('❌ Demande refusée', 'error'); pushNotif('❌ Accès refusé', 'Votre demande d\'accès a été refusée.'); }
-    else if (status === 'revoked') { notify('🔒 Accès révoqué', 'error'); pushNotif('🔒 Accès révoqué', 'Votre accès a été révoqué par l\'administrateur.'); }
+  const s = getSession(); if (!s || !s.prenom) { showScreen("screen-home"); return; }
+  const k = Object.keys(usersData).find(x => usersData[x].prenom && usersData[x].prenom.toLowerCase() === s.prenom.toLowerCase());
+  if (!k) { el("pending-name").textContent = s.prenom; showScreen("screen-pending"); return; }
+  const st = usersData[k].status;
+  if (s.lastStatus !== st) {
+    s.lastStatus = st; saveSession(s);
+    if (st === "accepted") { notify("✅ Accès autorisé — bienvenue " + s.prenom); pushNotif("✅ Accès autorisé", "Votre accès est actif."); }
+    else if (st === "refused") { notify("❌ Demande refusée", "error"); pushNotif("❌ Accès refusé", "Demande refusée."); }
+    else if (st === "revoked") { notify("🔒 Accès révoqué", "error"); pushNotif("🔒 Accès révoqué", "Accès révoqué."); }
   }
-  s.status = status; saveSession(s);
-  if (status === 'accepted') { el('accepted-name').textContent = s.prenom; showScreen('screen-accepted'); }
-  else if (status === 'refused') showScreen('screen-refused');
-  else if (status === 'revoked') showScreen('screen-revoked');
-  else showPending(s.prenom);
+  s.status = st; saveSession(s);
+  if (st === "accepted") { el("accepted-name").textContent = s.prenom; showScreen("screen-accepted"); }
+  else if (st === "refused") showScreen("screen-refused");
+  else if (st === "revoked") showScreen("screen-revoked");
+  else { el("pending-name").textContent = s.prenom; showScreen("screen-pending"); }
 }
-/* ===== DEMANDE D'ACCÈS SIMPLIFIÉE : prénom + 1 bouton ===== */
 async function requestAccess() {
-  const p = el('input-prenom').value.trim();
-  if (p.length < 2) return notify('Prénom invalide', 'error');
-  if ('Notification' in window && Notification.permission === 'default') Notification.requestPermission();
-  saveSession({ prenom: p, status: 'pending', lastStatus: 'pending', date: Date.now() });
-  await db.ref('access/users/user_' + p.toLowerCase().replace(/[^a-z0-9]+/g, '_')).set({ prenom: p, status: 'pending', device: deviceId(), date: Date.now() });
-  showPending(p);
-  notify('📨 Demande transmise à l\'administrateur');
-  pushNotif('📨 Demande envoyée', 'Votre demande d\'accès a été transmise. Vous serez notifié à la validation.');
+  const p = el("input-prenom").value.trim(); if (p.length < 2) return notify("Prénom invalide", "error");
+  if ("Notification" in window && Notification.permission === "default") Notification.requestPermission();
+  saveSession({ prenom: p, status: "pending", lastStatus: "pending", date: Date.now() });
+  await dbSet("access/users/user_" + p.toLowerCase().replace(/[^a-z0-9]+/g, "_"), { prenom: p, status: "pending", device: deviceId(), date: Date.now() });
+  el("pending-name").textContent = p; showScreen("screen-pending");
+  notify("📨 Demande transmise"); pushNotif("📨 Demande envoyée", "Vous serez notifié à la validation.");
 }
-function showPending(p) { el('pending-name').textContent = p; showScreen('screen-pending'); }
-function checkStatus() { routeUser(); notify('🔄 Statut vérifié'); }
-function resetSession() { localStorage.removeItem(SESSION_KEY); el('input-prenom').value = ''; showScreen('screen-home'); }
+function checkStatus() { routeUser(); notify("🔄 Statut vérifié"); }
+function resetSession() { localStorage.removeItem(SESSION_KEY); el("input-prenom").value = ""; showScreen("screen-home"); }
 function loginAdmin() {
-  if (el('admin-pwd').value === ADMIN_PASSWORD) { sessionStorage.setItem('autodiag_admin', '1'); pwdUserTyped = false; el('admin-pwd').value = ''; boot(); showScreen('screen-admin'); renderAdmin(); fillBrandSelects(); checkMonthly(); renderSelfTest(); }
-  else notify('❌ Mot de passe incorrect', 'error');
+  if (val("admin-pwd") === ADMIN_PASSWORD) { sessionStorage.setItem("autodiag_admin", "1"); pwdTyped = false; el("admin-pwd").value = ""; showScreen("screen-admin"); renderAdmin(); fillBrandSelects(); }
+  else notify("❌ Mot de passe incorrect", "error");
 }
-function logoutAdmin() { sessionStorage.removeItem('autodiag_admin'); pwdUserTyped = false; const p = el('admin-pwd'); if (p) p.value = ''; showScreen('screen-home'); }
-function adminTab(id) { el('tab-access').classList.toggle('hidden', id !== 'tab-access'); el('tab-data').classList.toggle('hidden', id !== 'tab-data'); if (id === 'tab-data') { fillBrandSelects(); fillModelSelectAdmin(); } }
+function logoutAdmin() { sessionStorage.removeItem("autodiag_admin"); pwdTyped = false; clearPwd(); showScreen("screen-home"); }
+function adminTab(id) { el("tab-access").classList.toggle("hidden", id !== "tab-access"); el("tab-data").classList.toggle("hidden", id !== "tab-data"); if (id === "tab-data") fillBrandSelects(); }
 function renderAdmin() {
-  const c = el('users-table-container'); const keys = Object.keys(usersData).sort((a, b) => (usersData[b].date || 0) - (usersData[a].date || 0));
+  const c = el("users-table-container"), keys = Object.keys(usersData).sort((a, b) => (usersData[b].date || 0) - (usersData[a].date || 0));
   if (!keys.length) { c.innerHTML = '<p style="color:#94a3b8;text-align:center">Aucun tiers</p>'; return; }
-  const L = { pending: '⏳ Attente', accepted: '✅ Accepté', refused: '❌ Refusé', revoked: '🔒 Révoqué' };
-  let h = '<table><thead><tr><th>Prénom</th><th>Statut</th><th>Date</th><th>Actions</th></tr></thead><tbody>';
+  const L = { pending: "⏳ Attente", accepted: "✅ Accepté", refused: "❌ Refusé", revoked: "🔒 Révoqué" };
+  let h = "<table><thead><tr><th>Prénom</th><th>Statut</th><th>Date</th><th>Actions</th></tr></thead><tbody>";
   keys.forEach(k => {
-    const u = usersData[k], st = u.status || 'pending'; let a = '';
-    if (st === 'pending') a += '<button class="btn btn-sm btn-success" data-action="accept" data-key="' + k + '">✓</button><button class="btn btn-sm btn-danger" data-action="refuse" data-key="' + k + '">✗</button>';
-    else if (st === 'accepted') a += '<button class="btn btn-sm btn-danger" data-action="revoke" data-key="' + k + '">Révoquer</button>';
-    else a += '<button class="btn btn-sm btn-success" data-action="accept" data-key="' + k + '">Réautoriser</button>';
-    a += '<button class="btn btn-sm btn-secondary" data-action="delete" data-key="' + k + '">🗑️</button>';
-    h += '<tr><td>' + esc(u.prenom) + '</td><td><span class="badge badge-' + st + '">' + L[st] + '</span></td><td style="font-size:11px">' + (u.date ? new Date(u.date).toLocaleDateString('fr-FR') : '--') + '</td><td>' + a + '</td></tr>';
+    const u = usersData[k], st = u.status || "pending"; let a = "";
+    if (st === "pending") a += '<button class="btn btn-sm btn-success" data-a="accept" data-k="' + k + '">✓</button><button class="btn btn-sm btn-danger" data-a="refuse" data-k="' + k + '">✗</button>';
+    else if (st === "accepted") a += '<button class="btn btn-sm btn-danger" data-a="revoke" data-k="' + k + '">Révoquer</button>';
+    else a += '<button class="btn btn-sm btn-success" data-a="accept" data-k="' + k + '">Réautoriser</button>';
+    a += '<button class="btn btn-sm btn-secondary" data-a="delete" data-k="' + k + '">🗑️</button>';
+    h += "<tr><td>" + esc(u.prenom) + '</td><td><span class="badge badge-' + st + '">' + (L[st] || st) + '</span></td><td style="font-size:11px">' + (u.date ? new Date(u.date).toLocaleDateString("fr-FR") : "--") + "</td><td>" + a + "</td></tr>";
   });
-  c.innerHTML = h + '</tbody></table>';
+  c.innerHTML = h + "</tbody></table>";
 }
 function bindAdminTable() {
-  el('users-table-container').addEventListener('click', e => {
-    const b = e.target.closest('button[data-action]'); if (!b) return;
-    const k = b.dataset.key, a = b.dataset.action;
-    if (a === 'delete') { if (confirm('Supprimer ?')) db.ref('access/users/' + k).remove(); return; }
-    db.ref('access/users/' + k).update({ status: a === 'accept' ? 'accepted' : a === 'refuse' ? 'refused' : 'revoked' });
+  el("users-table-container").addEventListener("click", e => {
+    const b = e.target.closest("button[data-a]"); if (!b) return;
+    const k = b.dataset.k, a = b.dataset.a;
+    if (a === "delete") { if (confirm("Supprimer ce tiers ?")) db.ref("access/users/" + k).remove(); return; }
+    db.ref("access/users/" + k).update({ status: a === "accept" ? "accepted" : a === "refuse" ? "refused" : "revoked" });
   });
 }
 async function addUser() {
-  const p = el('new-prenom').value.trim(); if (p.length < 2) return notify('Prénom invalide', 'error');
-  await db.ref('access/users/user_' + p.toLowerCase().replace(/[^a-z0-9]+/g, '_')).set({ prenom: p, status: 'accepted', device: 'admin', date: Date.now() });
-  el('new-prenom').value = ''; notify('✅ ' + p + ' autorisé');
+  const p = el("new-prenom").value.trim(); if (p.length < 2) return notify("Prénom invalide", "error");
+  await dbSet("access/users/user_" + p.toLowerCase().replace(/[^a-z0-9]+/g, "_"), { prenom: p, status: "accepted", device: "admin", date: Date.now() });
+  el("new-prenom").value = ""; notify("✅ " + p + " autorisé");
 }
 function shareAPK() {
-  if (sessionStorage.getItem('autodiag_admin') !== '1') return notify('❌ Réservé admin', 'error');
-  const u = new URL('./index.html', location.href).href;
-  if (navigator.share) navigator.share({ title: 'Auto Diagnostic Pro', text: 'Installez l\'APK :', url: u }).catch(() => {});
-  else if (navigator.clipboard) navigator.clipboard.writeText(u).then(() => notify('🔗 Lien copié'));
-  else prompt('Lien :', u);
+  if (!isAdmin()) return notify("❌ Réservé admin", "error");
+  const u = new URL("./index.html", location.href).href;
+  if (navigator.share) navigator.share({ title: "KEV FUSION 2026", text: "Installez l'application :", url: u }).catch(() => {});
+  else if (navigator.clipboard) navigator.clipboard.writeText(u).then(() => notify("🔗 Lien copié"));
+  else prompt("Lien :", u);
 }
+
+/* ===== FORMULAIRES ===== */
 function fillBrandSelects() {
-  ['nm-brand', 'is-brand', 'ex-brand'].forEach(id => { const s = el(id); if (!s) return; s.innerHTML = ''; Object.entries(brandsData).sort((a, b) => a[1].name.localeCompare(b[1].name)).forEach(([k, b]) => { s.innerHTML += '<option value="' + k + '">' + esc(b.name) + '</option>'; }); });
-  fillModelSelect(); fillModelSelectAdmin();
+  ["nm-brand","is-brand","ex-brand"].forEach(id => {
+    const s = el(id); if (!s) return; const prev = s.value; s.innerHTML = "";
+    Object.entries(brandsData).sort((a, b) => a[1].name.localeCompare(b[1].name)).forEach(([k, b]) => s.innerHTML += '<option value="' + k + '">' + esc(b.name) + "</option>");
+    if (prev) s.value = prev;
+  });
+  fillModelSelect(); fillMotorSelectAdmin();
 }
-function fillModelSelect() {
-  const b = val('is-brand');
-  dbGet('data/models').then(s => { const sel = el('is-model'); sel.innerHTML = ''; Object.values(s).filter(m => m.brandId === b).forEach(m => { sel.innerHTML += '<option value="' + esc(m.name) + '">' + esc(m.name) + '</option>'; }); });
+async function fillModelSelect() {
+  const b = val("is-brand"), ms = await dbGet("data/models"), s = el("is-model"); if (!s) return;
+  s.innerHTML = '<option value="">(tous modèles)</option>';
+  Object.values(ms).filter(m => m.brandId === b).sort((a, c) => a.name.localeCompare(c.name)).forEach(m => s.innerHTML += '<option value="' + esc(m.name) + '">' + esc(m.name) + "</option>");
 }
-function fillModelSelectAdmin() {
-  dbGet('data/models').then(s => { const sel = el('mo-model'); if (!sel) return; sel.innerHTML = ''; Object.entries(s).forEach(([k, m]) => { const bn = brandsData[m.brandId] ? brandsData[m.brandId].name : m.brandId; sel.innerHTML += '<option value="' + k + '">' + esc(bn + ' ' + m.name) + '</option>'; }); });
-}
-async function addBrand() { const n = el('nb-name').value.trim(); if (!n) return notify('Nom requis', 'error'); await db.ref('data/brands/' + n.toLowerCase().replace(/[^a-z0-9]+/g, '-')).set({ name: n, region: val('nb-region') }); el('nb-name').value = ''; notify('✅ Marque ajoutée'); }
-async function addModel() { const b = val('nm-brand'), n = el('nm-name').value.trim(); if (!b || !n) return notify('Infos requises', 'error'); await db.ref('data/models/' + b + '_' + Date.now()).set({ brandId: b, name: n, years: el('nm-years').value.trim() || '2017-2026' }); el('nm-name').value = ''; notify('✅ Modèle ajouté'); }
-async function addMotor() {
-  const mid = val('mo-model'), n = el('mo-name').value.trim(); if (!mid || !n) return notify('Infos requises', 'error');
-  const ref = db.ref('data/motors/' + mid); const s = await ref.once('value'); const a = s.val() || [];
-  a.push({ name: n, fuel: val('mo-fuel'), power: el('mo-power').value.trim() || guessPower(n) }); await ref.set(a);
-  el('mo-name').value = ''; notify('✅ Motorisation ajoutée (vérifiée)');
-}
-async function addIssue() {
-  const t = el('is-title').value.trim(); if (!t) return notify('Titre requis', 'error');
-  await db.ref('data/issues/iss_' + Date.now()).set({ brandId: val('is-brand'), model: val('is-model'), title: t, detail: el('is-detail').value.trim(), source: val('is-source'), dtc: el('is-dtc').value.trim(), url: el('is-url') ? el('is-url').value.trim() : '' });
-  el('is-title').value = ''; el('is-detail').value = ''; notify('✅ Panne ajoutée');
-}
-async function addExpert() {
-  const t = el('ex-title').value.trim(); if (!t) return notify('Titre requis', 'error');
-  await db.ref('data/expert/ex_' + Date.now()).set({ brandId: val('ex-brand'), model: el('ex-model').value.trim(), motor: el('ex-motor').value.trim(), title: t, symptom: el('ex-symptom').value.trim(), diagnosis: el('ex-diag').value.trim(), parts: el('ex-parts').value.trim(), dtc: el('ex-dtc').value.trim(), years: el('ex-years').value.trim(), source: val('ex-source'), url: el('ex-url') ? el('ex-url').value.trim() : '' });
-  el('ex-title').value = ''; el('ex-diag').value = ''; notify('🧠 Fiche expert ajoutée');
-}
-async function addDTC() {
-  const c = el('dt-code').value.trim().toUpperCase(), d = el('dt-desc').value.trim(); if (!c || !d) return notify('Code+description requis', 'error');
-  await db.ref('data/dtc/' + c.replace(/[^A-Z0-9]+/g, '_')).set({ code: c, description: d, cause: el('dt-cause').value.trim(), solution: el('dt-sol').value.trim() });
-  el('dt-code').value = ''; notify('✅ DTC ajouté');
-}
-async function importJSON() {
-  const txt = el('import-json').value.trim(); if (!txt) return notify('Collez un JSON', 'error');
-  let arr; try { arr = JSON.parse(txt); } catch (e) { return notify('❌ JSON invalide', 'error'); }
-  if (!Array.isArray(arr)) arr = [arr];
-  const ms = await dbGet('data/models');
-  let n = 0;
-  for (const it of arr) {
-    if (it.type === 'motor' && it.brand && it.model && it.name) {
-      const e2 = Object.entries(ms).find(([k, m]) => m.brandId === it.brand && m.name.toLowerCase() === String(it.model).toLowerCase());
-      if (e2) { const ref = db.ref('data/motors/' + e2[0]); const s = await ref.once('value'); const a = s.val() || []; a.push({ name: it.name, fuel: it.fuel || guessFuel(it.name), power: it.power || guessPower(it.name) }); await ref.set(a); n++; }
-    } else if (it.type === 'issue' && it.brand && it.title) {
-      await db.ref('data/issues/' + uid('imp')).set({ brandId: it.brand, model: it.model || '', motor: it.motor || '', title: it.title, detail: it.detail || '', source: it.source || 'Import', dtc: it.dtc || '', url: it.url || '' }); n++;
-    } else if (it.type === 'expert' && it.brand && it.title) {
-      await db.ref('data/expert/' + uid('imp')).set({ brandId: it.brand, model: it.model || '', motor: it.motor || '', title: it.title, symptom: it.symptom || '', diagnosis: it.diagnosis || '', parts: it.parts || '', dtc: it.dtc || '', years: it.years || '', source: it.source || 'Import', url: it.url || '' }); n++;
-    } else if (it.type === 'dtc' && it.code) {
-      await db.ref('data/dtc/' + String(it.code).toUpperCase().replace(/[^A-Z0-9]+/g, '_')).set({ code: String(it.code).toUpperCase(), description: it.description || '', cause: it.cause || '', solution: it.solution || '' }); n++;
-    }
-  }
-  el('import-json').value = ''; notify('✅ ' + n + ' fiches importées');
-}
-/* ===== RECHERCHE APPROFONDIE MULTI-SOURCES (mode ingénieur-chercheur) ===== */
-function slink(l, u) { const S = 'display:inline-block;background:#1e293b;color:#4ade80;padding:6px 10px;border-radius:8px;margin:3px;font-size:12px;font-weight:600;text-decoration:none'; return '<a style="' + S + '" target="_blank" rel="noopener" href="' + u + '">' + l + '</a>'; }
-function sourceLinks(q) {
-  const e = encodeURIComponent(q);
-  const dom = BRAND_SITE[curBrand] || '';
-  const isCode = /^[pubc]\d{3,4}$/i.test(q.trim());
-  let h = '<div class="issue-card" style="border-left-color:#38bdf8"><strong>🌐 Recherche approfondie multi-sources : « ' + esc(q) + ' »</strong><p style="margin:8px 0 4px">';
-  if (dom) h += slink('🏭 Constructeur', 'https://www.google.com/search?q=site:' + dom + '+rappel+campagne+' + e);
-  h += slink('🇫🇷 Rappel Conso', 'https://www.google.com/search?q=site:rappel.conso.gouv.fr+' + e);
-  h += slink('🇫🇷 Rappel Conso (site)', 'https://www.rappel.conso.gouv.fr/');
-  h += slink('🇪🇺 Safety Gate', 'https://ec.europa.eu/safety-gate-alerts/screen/webReport/searchAdvanced');
-  h += slink('🇪 Safety Gate (recherche)', 'https://www.google.com/search?q=site:ec.europa.eu+safety+gate+' + e);
-  h += slink('🇺🇸 NHTSA', 'https://www.nhtsa.gov/recalls');
-  h += slink('🇺🇸 NHTSA (recherche)', 'https://www.google.com/search?q=site:nhtsa.gov+' + e);
-  h += slink('🇬🇧 GOV.UK rappels', 'https://www.gov.uk/check-vehicle-recall');
-  h += slink('🇩🇪 KBA rappels', 'https://www.kba.de/DE/Home/home_node.html');
-  h += slink('📰 L\'Argus', 'https://www.google.com/search?q=site:largus.fr+' + e);
-  h += slink('📰 Caradisiac', 'https://www.google.com/search?q=site:caradisiac.com+' + e);
-  h += slink('📰 Auto Plus', 'https://www.google.com/search?q=site:autoplus.fr+' + e);
-  h += slink('📰 Auto Moto', 'https://www.google.com/search?q=site:automoto.com+' + e);
-  h += slink('📰 Turbo', 'https://www.google.com/search?q=site:turbo.fr+' + e);
-  h += slink('📰 Motorlegend', 'https://www.google.com/search?q=site:motorlegend.com+' + e);
-  h += slink('⚖️ Que Choisir', 'https://www.google.com/search?q=site:que-choisir.org+' + e);
-  h += slink('⚖️ 60 Millions', 'https://www.google.com/search?q=site:60millions-mag.com+' + e);
-  h += slink('💬 Forum Auto', 'https://www.google.com/search?q=site:forum-auto.caradisiac.com+' + e);
-  h += slink('💬 Futura Auto', 'https://www.google.com/search?q=site:forums.futura-sciences.com+auto+' + e);
-  if (isCode) { h += slink('🔧 OBD-Codes', 'https://www.obd-codes.com/' + q.trim().toLowerCase()); h += slink('🔧 Signification DTC', 'https://www.google.com/search?q=' + e + '+code+défaut+signification+causes'); }
-  h += slink('🔎 Internet (avis/pannes)', 'https://www.google.com/search?q=' + e + '+rappel+campagne+panne+problème+avis');
-  h += slink('🔎 TSB / bulletins', 'https://www.google.com/search?q=' + e + '+TSB+bulletin+service+technique');
-  h += '</p></div>';
-  return h;
-}
-let expertTimer = null;
-function expertSearch() { clearTimeout(expertTimer); expertTimer = setTimeout(doExpertSearch, 300); }
-async function doExpertSearch() {
-  const q = el('expert-search').value.trim().toLowerCase();
-  const box = el('expert-results');
-  if (q.length < 3) { box.innerHTML = ''; return; }
-  const ex = await dbGet('data/expert');
-  const iss = await dbGet('data/issues');
-  let html = '';
-  Object.values(ex).filter(e => ((e.title || '') + ' ' + (e.symptom || '') + ' ' + (e.diagnosis || '') + ' ' + (e.parts || '') + ' ' + (e.dtc || '') + ' ' + (e.motor || '') + ' ' + (e.model || '')).toLowerCase().includes(q)).slice(0, 15).forEach(e => html += expertCard(e, '🧠 '));
-  Object.values(iss).filter(i => ((i.title || '') + ' ' + (i.detail || '') + ' ' + (i.dtc || '') + ' ' + (i.model || '')).toLowerCase().includes(q)).slice(0, 10).forEach(i => html += issueCard(i, ''));
-  BRAND_EXPERT.filter(e => (e[2] + ' ' + e[3] + ' ' + e[4] + ' ' + e[5] + ' ' + e[6]).toLowerCase().includes(q)).slice(0, 15).forEach(e => html += bexCard(e));
-  UNIV.filter(u => (u[0] + ' ' + u[1]).toLowerCase().includes(q)).forEach(u => html += univCard(u));
-  Object.entries(GENERIC).forEach(([f, g]) => g.issues.forEach(i => { if ((i[0] + ' ' + i[1]).toLowerCase().includes(q)) html += '<div class="issue-card"><strong>' + i[0] + '</strong><span class="src">Typique ' + FUELS[f] + '</span><p>' + i[1] + '</p><p style="color:#fbbf24;font-size:12px">DTC : ' + i[2] + '</p></div>'; }));
-  Object.entries(GENERIC_EXPERT).forEach(([f, list]) => list.forEach(g => { if ((g[0] + ' ' + g[1] + ' ' + g[2]).toLowerCase().includes(q)) html += genCard(g, f); }));
-  html += sourceLinks(q);
-  box.innerHTML = html || '<p style="color:#94a3b8">Aucune fiche pour « ' + esc(q) + ' »</p>';
-}
-function srcLink(u) { return u ? '<p><a href="' + u + '" target="_blank" rel="noopener" style="color:#4ade80;font-size:12px;font-weight:600">🔗 Source officielle / spécialisée</a></p>' : ''; }
-function univCard(u) { return '<div class="issue-card" style="border-left-color:#f59e0b"><strong>🌐 ' + u[0] + '</strong><span class="src">' + u[3] + '</span><p>' + u[1] + '</p>' + (u[2] ? '<p style="color:#fbbf24;font-size:12px">DTC : ' + u[2] + '</p>' : '') + '</div>'; }
-function bexCard(e) {
-  const bn = brandsData[e[0]] ? brandsData[e[0]].name : e[0];
-  return '<div class="issue-card" style="border-left-color:#f59e0b"><strong>🧠 ' + esc(e[2]) + '</strong><span class="src">' + esc(e[7]) + '</span><span class="src">' + esc(bn) + '</span>' + (e[1] ? '<span class="src">' + esc(e[1]) + '</span>' : '') +
-    '<p><strong>⚠️ Symptômes :</strong> ' + esc(e[3]) + '</p><p><strong>🔬 Diagnostic ingénieur :</strong> ' + esc(e[4]) + '</p><p><strong>🔩 Pièces :</strong> ' + esc(e[5]) + '</p>' +
-    (e[6] ? '<p style="color:#fbbf24;font-size:12px">DTC : ' + esc(e[6]) + '</p>' : '') + '<p style="font-size:11px;color:#94a3b8">Années : ' + esc(e[8]) + ' • Tous modèles</p></div>';
-}
-function genCard(g, f) { return '<div class="issue-card" style="border-left-color:#38bdf8"><strong>🔬 ' + g[0] + '</strong><span class="src">Procédure ingénieur ' + FUELS[f] + '</span><p><strong>⚠️ Symptômes :</strong> ' + g[1] + '</p><p><strong>🧪 Protocole :</strong> ' + g[2] + '</p><p><strong>🔩 Pièces :</strong> ' + g[3] + '</p><p style="color:#fbbf24;font-size:12px">DTC : ' + g[4] + '</p></div>'; }
-function expertCard(e, prefix) {
-  const bn = brandsData[e.brandId] ? brandsData[e.brandId].name : '';
-  return '<div class="issue-card" style="border-left-color:#f59e0b"><strong>' + prefix + esc(e.title) + '</strong><span class="src">🧠 ' + esc(e.source || 'Expert') + '</span>' + (bn ? '<span class="src">' + esc(bn) + '</span>' : '') + (e.model ? '<span class="src">' + esc(e.model) + '</span>' : '') + (e.motor ? '<span class="src">' + esc(e.motor) + '</span>' : '') +
-    (e.symptom ? '<p><strong>⚠️ Symptômes :</strong> ' + esc(e.symptom) + '</p>' : '') +
-    (e.diagnosis ? '<p><strong>🔬 Diagnostic ingénieur :</strong> ' + esc(e.diagnosis) + '</p>' : '') +
-    (e.parts ? '<p><strong>🔩 Pièces :</strong> ' + esc(e.parts) + '</p>' : '') +
-    (e.dtc ? '<p style="color:#fbbf24;font-size:12px">DTC : ' + esc(e.dtc) + '</p>' : '') +
-    (e.years ? '<p style="font-size:11px;color:#94a3b8">Années : ' + esc(e.years) + '</p>' : '') + srcLink(e.url) + '</div>';
-}
-function issueCard(i, prefix) { return '<div class="issue-card"><strong>' + prefix + esc(i.title) + '</strong><span class="src">' + esc(i.source || '') + '</span>' + (i.motor ? '<span class="src">' + esc(i.motor) + '</span>' : '') + '<p>' + esc(i.detail || i.symptom || '') + '</p>' + (i.dtc ? '<p style="color:#fbbf24;font-size:12px">DTC : ' + esc(i.dtc) + '</p>' : '') + srcLink(i.url) + '</div>'; }
-async function enterApp() {
-  const s = getSession(); const isAdmin = sessionStorage.getItem('autodiag_admin') === '1';
-  if (!isAdmin && (!s || s.status !== 'accepted')) return notify('Accès non autorisé', 'error');
-  await ensureCatalog();
-  syncScheduler();
-  el('app-user').textContent = isAdmin ? '👑 Admin' : s.prenom;
-  showScreen('screen-app');
-  brandsData = await dbGet('data/brands');
-  const sel = el('sel-marque');
-  const regions = { francaises: '🇫🇷 Françaises', europeennes: '🇪🇺 Européennes', asiatiques: '🌏 Asiatiques', chinoises: '🇨🇳 Chinoises', americaines: '🇺🇸 Américaines' };
-  sel.innerHTML = '<option value="">-- Choisir --</option>';
-  Object.entries(regions).forEach(([r, label]) => {
-    const items = Object.entries(brandsData).filter(([, b]) => b.region === r);
-    if (!items.length) return;
-    sel.innerHTML += '<optgroup label="' + label + '">' + items.map(([k, b]) => '<option value="' + k + '">' + esc(b.name) + '</option>').join('') + '</optgroup>';
+async function fillMotorSelectAdmin() {
+  const ms = await dbGet("data/models"), s = el("mo-model"); if (!s) return;
+  s.innerHTML = "";
+  Object.entries(ms).sort((a, b) => (brandsData[a[1].brandId] ? brandsData[a[1].brandId].name : "").localeCompare(brandsData[b[1].brandId] ? brandsData[b[1].brandId].name : "")).forEach(([k, m]) => {
+    const bn = brandsData[m.brandId] ? brandsData[m.brandId].name : m.brandId;
+    s.innerHTML += '<option value="' + k + '">' + esc(bn + " " + m.name) + "</option>";
   });
 }
-function logoutApp() { showScreen(sessionStorage.getItem('autodiag_admin') === '1' ? 'screen-admin' : 'screen-accepted'); }
+async function addBrand() { const n = el("nb-name").value.trim(); if (!n) return notify("Nom requis", "error"); await dbSet("data/brands/" + n.toLowerCase().replace(/[^a-z0-9]+/g, "-"), { name: n, region: val("nb-region") }); el("nb-name").value = ""; notify("✅ Marque ajoutée"); }
+async function addModel() { const b = val("nm-brand"), n = el("nm-name").value.trim(); if (!b || !n) return notify("Infos requises", "error"); await dbSet("data/models/" + b + "_" + Date.now(), { brandId: b, name: n, years: el("nm-years").value.trim() || "2017-2027" }); el("nm-name").value = ""; fillMotorSelectAdmin(); notify("✅ Modèle ajouté"); }
+async function addMotor() {
+  const mid = val("mo-model"), n = el("mo-name").value.trim(); if (!mid || !n) return notify("Infos requises", "error");
+  const mo = (await db.ref("data/models/" + mid).once("value")).val();
+  const cur = (await db.ref("data/motors/" + mid).once("value")).val() || [];
+  cur.push(egFix(mo ? mo.brandId : null, { name: n, fuel: val("mo-fuel"), power: el("mo-power").value.trim() || guessPower(n) }).m);
+  await dbSet("data/motors/" + mid, cur); el("mo-name").value = ""; notify("✅ Motorisation ajoutée (vérifiée)");
+}
+async function addIssue() {
+  const t = el("is-title").value.trim(); if (!t) return notify("Titre requis", "error");
+  await dbSet("data/issues/" + uid("is"), { brandId: val("is-brand"), model: val("is-model"), motor: "", title: t, detail: el("is-detail").value.trim(), source: val("is-source"), dtc: el("is-dtc").value.trim(), url: el("is-url").value.trim() });
+  el("is-title").value = ""; el("is-detail").value = ""; notify("✅ Panne / campagne ajoutée");
+}
+async function addExpert() {
+  const t = el("ex-title").value.trim(); if (!t) return notify("Titre requis", "error");
+  await dbSet("data/expert/" + uid("ex"), { brandId: val("ex-brand"), model: el("ex-model").value.trim(), motor: el("ex-motor").value.trim(), type: el("ex-type").value.trim(), title: t, symptom: el("ex-symptom").value.trim(), diagnosis: el("ex-diag").value.trim(), parts: el("ex-parts").value.trim(), dtc: el("ex-dtc").value.trim(), years: el("ex-years").value.trim(), source: val("ex-source"), url: el("ex-url").value.trim() });
+  el("ex-title").value = ""; el("ex-diag").value = ""; notify("🧠 Fiche expert ajoutée");
+}
+async function addDTC() {
+  const c = el("dt-code").value.trim().toUpperCase(), d = el("dt-desc").value.trim(); if (!c || !d) return notify("Code + description requis", "error");
+  await dbSet("data/dtc/" + c.replace(/[^A-Z0-9]+/g, "_"), { code: c, description: d, cause: el("dt-cause").value.trim(), solution: el("dt-sol").value.trim() });
+  el("dt-code").value = ""; notify("✅ DTC ajouté");
+}
+async function importJSON() {
+  const txt = el("import-json").value.trim(); if (!txt) return notify("Collez un JSON", "error");
+  let arr; try { arr = JSON.parse(txt); } catch (e) { return notify("❌ JSON invalide", "error"); }
+  if (!Array.isArray(arr)) arr = [arr];
+  let n = 0;
+  for (const it of arr) {
+    if (it.type === "issue" && it.brand && it.title) { await dbSet("data/issues/" + uid("im"), { brandId: it.brand, model: it.model || "", motor: it.motor || "", title: it.title, detail: it.detail || "", source: it.source || "Import", dtc: it.dtc || "", url: it.url || "" }); n++; }
+    else if (it.type === "expert" && it.brand && it.title) { await dbSet("data/expert/" + uid("im"), { brandId: it.brand, model: it.model || "", motor: it.motor || "", type: it.category || "", title: it.title, symptom: it.symptom || "", diagnosis: it.diagnosis || "", parts: it.parts || "", dtc: it.dtc || "", years: it.years || "", source: it.source || "Import", url: it.url || "" }); n++; }
+    else if (it.type === "dtc" && it.code) { await dbSet("data/dtc/" + String(it.code).toUpperCase().replace(/[^A-Z0-9]+/g, "_"), { code: String(it.code).toUpperCase(), description: it.description || "", cause: it.cause || "", solution: it.solution || "" }); n++; }
+  }
+  el("import-json").value = ""; notify("✅ " + n + " fiches importées");
+}
+
+/* ===== EXPORT / RESTAURATION ===== */
+async function buildExport() {
+  const [marques, modeles, motorisations, pannes, expert, dtc, version] = await Promise.all(["data/brands","data/models","data/motors","data/issues","data/expert","data/dtc","data/version"].map(dbGet));
+  return { app: "KEV FUSION 2026", exportVersion: 3, exportedAt: new Date().toISOString(), counts: { marques: Object.keys(marques).length, modeles: Object.keys(modeles).length, motorisations: Object.keys(motorisations).length, pannes: Object.keys(pannes).length, expert: Object.keys(expert).length, dtc: Object.keys(dtc).length }, marques, modeles, motorisations, pannes, expert, dtc, version };
+}
+async function exportJSON() {
+  if (!isAdmin()) return notify("❌ Réservé admin", "error");
+  notify("📤 Export en cours…");
+  try {
+    const p = await buildExport(), blob = new Blob([JSON.stringify(p, null, 2)], { type: "application/json" }), url = URL.createObjectURL(blob), d = new Date();
+    const a = document.createElement("a"); a.href = url; a.download = "kev-fusion-export-" + d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0") + ".json";
+    document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(url), 5000);
+    notify("✅ Export : " + p.counts.modeles + " modèles, " + (p.counts.pannes + p.counts.expert) + " fiches");
+  } catch (e) { notify("❌ Export : " + e.message, "error"); }
+}
+async function copyJSON() {
+  if (!isAdmin()) return notify("❌ Réservé admin", "error");
+  try { const t = JSON.stringify(await buildExport(), null, 2); await navigator.clipboard.writeText(t); notify("📋 JSON copié (" + t.length + " car.)"); } catch (e) { notify("❌ Copie impossible", "error"); }
+}
+async function restoreJSON() {
+  if (!isAdmin()) return notify("❌ Réservé admin", "error");
+  const f = el("restore-file"); if (!f || !f.files[0]) return notify("Choisissez un fichier JSON", "error");
+  notify("📥 Restauration…");
+  try {
+    const d = JSON.parse(await f.files[0].text()); let n = 0;
+    for (const [k, v] of Object.entries(d.marques || {})) { if (!(await db.ref("data/brands/" + k).once("value")).exists()) { await dbSet("data/brands/" + k, v); n++; } }
+    const ex = await dbGet("data/models"), byName = {}; Object.values(ex).forEach(m => byName[m.brandId + "|" + String(m.name).toLowerCase()] = 1);
+    const idMap = {};
+    for (const [k, m] of Object.entries(d.modeles || {})) {
+      const key = m.brandId + "|" + String(m.name).toLowerCase();
+      if (byName[key]) { idMap[k] = Object.keys(ex).find(i => ex[i].brandId === m.brandId && String(ex[i].name).toLowerCase() === String(m.name).toLowerCase()); continue; }
+      const nid = "r_" + k; await dbSet("data/models/" + nid, m); byName[key] = 1; idMap[k] = nid; n++;
+    }
+    for (const [k, list] of Object.entries(d.motorisations || {})) {
+      const nid = idMap[k]; if (!nid || !Array.isArray(list)) continue;
+      const cur = (await db.ref("data/motors/" + nid).once("value")).val() || [], have = {}; cur.forEach(x => have[String(x.name).toLowerCase()] = 1);
+      let ch = false; list.forEach(x => { if (!have[String(x.name).toLowerCase()]) { cur.push(x); ch = true; } });
+      if (ch) { await dbSet("data/motors/" + nid, cur); n++; }
+    }
+    for (const key of ["pannes","expert"]) {
+      const path = key === "pannes" ? "data/issues" : "data/expert";
+      const cur = await dbGet(path), t = {}; Object.values(cur).forEach(x => t[String(x.title).toLowerCase()] = 1);
+      for (const v of Object.values(d[key] || {})) { if (t[String(v.title).toLowerCase()]) continue; await dbSet(path + "/" + uid("rs"), v); n++; }
+    }
+    for (const [k, v] of Object.entries(d.dtc || {})) { if (!(await db.ref("data/dtc/" + k).once("value")).exists()) { await dbSet("data/dtc/" + k, v); n++; } }
+    notify("✅ Restauration : " + n + " éléments ajoutés");
+  } catch (e) { notify("❌ Fichier invalide : " + e.message, "error"); }
+}
+
+/* ===== SOURCES ===== */
+function slink(l, u) { return '<a class="srclink" target="_blank" rel="noopener" href="' + u + '">' + l + "</a>"; }
+function sourceLinks(q) {
+  const e = encodeURIComponent(q), dom = BRAND_SITE[curBrand] || "", code = /^[pubc]\d{3,4}$/i.test(q.trim());
+  let h = '<div class="issue-card deep"><strong>🌐 Recherche approfondie multi-sources : « ' + esc(q) + ' »</strong><p style="margin:8px 0 4px">';
+  if (dom) h += slink("🏭 Constructeur", "https://www.google.com/search?q=site:" + dom + "+rappel+campagne+TSB+" + e);
+  h += slink("🇫🇷 Rappel Conso", "https://www.google.com/search?q=site:rappel.conso.gouv.fr+" + e);
+  h += slink("🇫🇷 Rappel Conso (site)", "https://www.rappel.conso.gouv.fr/");
+  h += slink("🇪🇺 Safety Gate", "https://ec.europa.eu/safety-gate-alerts/screen/webReport/searchAdvanced");
+  h += slink("🇪🇺 Safety Gate (recherche)", "https://www.google.com/search?q=site:ec.europa.eu+safety+gate+" + e);
+  h += slink("🇺🇸 NHTSA", "https://www.nhtsa.gov/recalls");
+  h += slink("🇺🇸 NHTSA (recherche)", "https://www.google.com/search?q=site:nhtsa.gov+" + e);
+  h += slink("🇬🇧 GOV.UK", "https://www.gov.uk/check-vehicle-recall");
+  h += slink("🇩🇪 KBA", "https://www.kba.de/DE/Home/home_node.html");
+  h += slink("📰 L'Argus", "https://www.google.com/search?q=site:largus.fr+" + e);
+  h += slink("📰 Caradisiac", "https://www.google.com/search?q=site:caradisiac.com+" + e);
+  h += slink("📰 Auto Plus", "https://www.google.com/search?q=site:autoplus.fr+" + e);
+  h += slink("📰 Auto Moto", "https://www.google.com/search?q=site:automoto.com+" + e);
+  h += slink("📰 Turbo", "https://www.google.com/search?q=site:turbo.fr+" + e);
+  h += slink("📰 Motorlegend", "https://www.google.com/search?q=site:motorlegend.com+" + e);
+  h += slink("⚖️ Que Choisir", "https://www.google.com/search?q=site:que-choisir.org+" + e);
+  h += slink("⚖️ 60 Millions", "https://www.google.com/search?q=site:60millions-mag.com+" + e);
+  h += slink("💬 Forum Auto", "https://www.google.com/search?q=site:forum-auto.caradisiac.com+" + e);
+  h += slink("💬 Futura Auto", "https://www.google.com/search?q=site:forums.futura-sciences.com+auto+" + e);
+  if (code) { h += slink("🔧 OBD-Codes", "https://www.obd-codes.com/" + q.trim().toLowerCase()); h += slink("🔧 Signification DTC", "https://www.google.com/search?q=" + e + "+code+defaut+signification"); }
+  h += slink("🔎 Internet (avis/pannes)", "https://www.google.com/search?q=" + e + "+rappel+campagne+panne+probleme+avis");
+  h += slink("🔎 TSB / bulletins", "https://www.google.com/search?q=" + e + "+TSB+bulletin+service+technique");
+  return h + "</p></div>";
+}
+
+/* ===== CARTES ===== */
+function srcLink(u) { return u ? '<p><a href="' + esc(u) + '" target="_blank" rel="noopener" style="color:#4ade80;font-size:12px;font-weight:600">🔗 Source officielle / spécialisée</a></p>' : ""; }
+function univCard(u) { return '<div class="issue-card camp"><strong>🌐 ' + esc(u[0]) + '</strong><span class="src">' + esc(u[3]) + "</span><p>" + esc(u[1]) + "</p>" + (u[2] ? '<p class="dtcline">DTC : ' + esc(u[2]) + "</p>" : "") + "</div>"; }
+function listCard(g) { return '<div class="issue-card deep"><strong>🔬 ' + esc(g[2]) + '</strong><span class="src">' + esc(g[1]) + '</span><span class="src">Procédure systématique</span><p><b>⚠️ Symptômes :</b> ' + esc(g[3]) + "</p><p><b>🧪 Protocole :</b> " + esc(g[4]) + "</p><p><b>🔩 Organes :</b> " + esc(g[5]) + "</p>" + (g[6] ? '<p class="dtcline">🔗 DTC : ' + esc(g[6]) + "</p>" : "") + '<p class="meta">Source : ' + esc(g[7]) + "</p></div>"; }
+function issueCard(i, p) { return '<div class="issue-card"><strong>' + (p || "") + esc(i.title) + '</strong><span class="src">' + esc(i.source || "") + "</span>" + (i.motor ? '<span class="src">' + esc(i.motor) + "</span>" : "") + "<p>" + esc(i.detail || i.symptom || "") + "</p>" + (i.dtc ? '<p class="dtcline">DTC : ' + esc(i.dtc) + "</p>" : "") + srcLink(i.url) + "</div>"; }
+function expertCard(e, p) {
+  const bn = brandsData[e.brandId] ? brandsData[e.brandId].name : "";
+  return '<div class="issue-card camp"><strong>' + (p || "") + esc(e.title) + '</strong><span class="src">🧠 ' + esc(e.source || "Expert") + "</span>" + (e.type ? '<span class="src">🔬 ' + esc(e.type) + "</span>" : "") + (bn ? '<span class="src">' + esc(bn) + "</span>" : "") + (e.model ? '<span class="src">' + esc(e.model) + "</span>" : "") + (e.motor ? '<span class="src">' + esc(e.motor) + "</span>" : "") +
+    (e.symptom ? "<p><b>⚠️ Symptômes :</b> " + esc(e.symptom) + "</p>" : "") +
+    (e.diagnosis ? "<p><b>🔬 Protocole ingénieur :</b> " + esc(e.diagnosis) + "</p>" : "") +
+    (e.parts ? "<p><b>🔩 Organes :</b> " + esc(e.parts) + "</p>" : "") +
+    (e.dtc ? '<p class="dtcline">🔗 DTC : ' + esc(e.dtc) + "</p>" : "") +
+    (e.years ? '<p class="meta">Années : ' + esc(e.years) + "</p>" : "") + srcLink(e.url) + "</div>";
+}
+function arrToExpert(e) { return { brandId: e[0], motor: e[1], type: e[2], title: e[3], symptom: e[4], diagnosis: e[5], parts: e[6], dtc: e[7], source: e[8], years: e[9], model: "" }; }
+function fuelCards(f) {
+  let h = "";
+  EV_LIST.forEach(g => { if ((g[0] === "E" && f === "electrique") || (g[0] === "EH" && (f === "electrique" || f === "hybride"))) h += listCard(g); });
+  TH_LIST.forEach(g => { if ((g[0] === "GD" && (f === "essence" || f === "diesel")) || (g[0] === "G" && f === "essence") || (g[0] === "D" && f === "diesel")) h += listCard(g); });
+  HY_LIST.forEach(g => { if (g[0] === "H" && f === "hybride") h += listCard(g); });
+  return h;
+}
+
+/* ===== RECHERCHE ===== */
+let eT = null;
+function expertSearch() { clearTimeout(eT); eT = setTimeout(doExpertSearch, 250); }
+function qs(t) { const i = el("expert-search"); if (i) i.value = t; expertSearch(); }
+async function doExpertSearch() {
+  const q = val("expert-search").trim().toLowerCase(), box = el("expert-results");
+  if (q.length < 3) { box.innerHTML = ""; return; }
+  const ex = await dbGet("data/expert"), iss = await dbGet("data/issues");
+  let h = "";
+  Object.values(ex).filter(e => [e.title,e.type,e.symptom,e.diagnosis,e.parts,e.dtc,e.motor,e.model].join(" ").toLowerCase().includes(q)).slice(0, 20).forEach(e => h += expertCard(e, "🧠 "));
+  Object.values(iss).filter(i => [i.title,i.detail,i.dtc,i.model].join(" ").toLowerCase().includes(q)).slice(0, 15).forEach(i => h += issueCard(i));
+  EXPERT.filter(e => e.slice(2, 8).join(" ").toLowerCase().includes(q)).slice(0, 20).forEach(e => h += expertCard(arrToExpert(e), "🧠 "));
+  UNIV.filter(u => (u[0] + " " + u[1]).toLowerCase().includes(q)).forEach(u => h += univCard(u));
+  EV_LIST.concat(TH_LIST, HY_LIST).filter(g => g.slice(1, 7).join(" ").toLowerCase().includes(q)).forEach(g => h += listCard(g));
+  Object.entries(GENERIC).forEach(([f, g]) => g.issues.forEach(i => { if ((i[0] + " " + i[1]).toLowerCase().includes(q)) h += '<div class="issue-card"><strong>' + esc(i[0]) + '</strong><span class="src">Typique ' + FUELS[f] + "</span><p>" + esc(i[1]) + '</p><p class="dtcline">DTC : ' + esc(i[2]) + "</p></div>"; }));
+  Object.entries(GENERIC_EXPERT).forEach(([f, l]) => l.forEach(g => { if ((g[0] + " " + g[1] + " " + g[2]).toLowerCase().includes(q)) h += '<div class="issue-card deep"><strong>🔬 ' + esc(g[0]) + '</strong><span class="src">Ingénieur ' + FUELS[f] + "</span><p><b>Symptômes :</b> " + esc(g[1]) + "</p><p><b>Protocole :</b> " + esc(g[2]) + "</p><p><b>Organes :</b> " + esc(g[3]) + '</p><p class="dtcline">DTC : ' + esc(g[4]) + "</p></div>"; }));
+  h += sourceLinks(q);
+  box.innerHTML = h;
+}
+
+/* ===== APP ===== */
+async function buildBrandSelect() {
+  brandsData = await dbGet("data/brands");
+  const sel = el("sel-marque"); if (!sel) return;
+  const prev = sel.value;
+  sel.innerHTML = '<option value="">-- Choisir une marque --</option>';
+  Object.entries(REGIONS).forEach(([r, label]) => {
+    const items = Object.entries(brandsData).filter(([, b]) => b.region === r).sort((a, b) => a[1].name.localeCompare(b[1].name));
+    if (!items.length) return;
+    sel.innerHTML += '<optgroup label="' + label + '">' + items.map(([k, b]) => '<option value="' + k + '">' + esc(b.name) + "</option>").join("") + "</optgroup>";
+  });
+  if (prev) sel.value = prev;
+}
+async function enterApp() {
+  const s = getSession();
+  if (!isAdmin() && (!s || s.status !== "accepted")) return notify("Accès non autorisé", "error");
+  showScreen("screen-app");
+  el("app-user").textContent = isAdmin() ? "👑 Admin" : s.prenom;
+  await ensureCatalog(false);
+  syncScheduler();
+  await buildBrandSelect();
+}
+function logoutApp() { showScreen(isAdmin() ? "screen-admin" : "screen-accepted"); }
 async function loadModels() {
-  curBrand = val('sel-marque'); curModelId = null; motorsCache = [];
-  el('sel-model').innerHTML = '<option value="">-- Modèle --</option>';
-  el('sel-motor').innerHTML = '<option value="">-- Motorisation --</option>';
-  ['issues-box', 'dtc-box', 'expert-box'].forEach(id => el(id).innerHTML = '<p style="color:#94a3b8">Sélectionnez…</p>');
+  curBrand = val("sel-marque"); curModelId = null; curModelName = null; motorsCache = [];
+  el("sel-model").innerHTML = '<option value="">-- Modèle --</option>';
+  el("sel-motor").innerHTML = '<option value="">-- Motorisation --</option>';
+  ["issues-box","expert-box","dtc-box","maint-box"].forEach(i => { const e = el(i); if (e) e.innerHTML = '<p style="color:#94a3b8">Sélectionnez…</p>'; });
   if (!curBrand) return;
-  const s = await dbGet('data/models');
-  Object.entries(s).filter(([k, m]) => m.brandId === curBrand).sort((a, b) => a[1].name.localeCompare(b[1].name)).forEach(([k, m]) => { el('sel-model').innerHTML += '<option value="' + k + '">' + esc(m.name) + ' (' + esc(m.years) + ')</option>'; });
+  const ms = await dbGet("data/models");
+  Object.entries(ms).filter(([, m]) => m.brandId === curBrand).sort((a, b) => a[1].name.localeCompare(b[1].name)).forEach(([k, m]) => {
+    el("sel-model").innerHTML += '<option value="' + k + '">' + esc(m.name) + " (" + esc(m.years) + ")</option>";
+  });
 }
 async function loadMotors() {
-  curModelId = val('sel-model'); motorsCache = [];
-  el('sel-motor').innerHTML = '<option value="">-- Motorisation --</option>';
+  curModelId = val("sel-model"); motorsCache = []; curModelName = null;
+  el("sel-motor").innerHTML = '<option value="">-- Motorisation --</option>';
   if (!curModelId) { correlate(); return; }
-  const m = (await db.ref('data/models/' + curModelId).once('value')).val();
-  curModelName = m ? m.name : '';
-  motorsCache = (await db.ref('data/motors/' + curModelId).once('value')).val() || [];
-  motorsCache.forEach((mo, i) => { el('sel-motor').innerHTML += '<option value="' + i + '">' + esc(mo.name) + ' • ' + (FUELS[mo.fuel] || mo.fuel) + (mo.power ? ' • ' + esc(mo.power) : '') + '</option>'; });
+  const m = (await db.ref("data/models/" + curModelId).once("value")).val();
+  curModelName = m ? m.name : "";
+  motorsCache = (await db.ref("data/motors/" + curModelId).once("value")).val() || [];
+  motorsCache.forEach((mo, i) => {
+    el("sel-motor").innerHTML += '<option value="' + i + '">' + esc(mo.name) + " • " + (FUELS[mo.fuel] || mo.fuel) + (mo.power ? " • " + esc(mo.power) : "") + "</option>";
+  });
   correlate();
 }
-function motorMatch(e, motor) { if (!e.motor) return true; if (!motor) return false; const a = String(e.motor).toLowerCase(), b = String(motor.name).toLowerCase(); return b.includes(a) || a.includes(b); }
+
+/* ===== CORRÉLATION : pannes → expert → DTC → MAINTENANCE ===== */
 async function correlate() {
-  const box = el('issues-box'), dbox = el('dtc-box'), ebox = el('expert-box');
-  if (!curBrand || !curModelName) { box.innerHTML = dbox.innerHTML = ebox.innerHTML = '<p style="color:#94a3b8">Sélectionnez un véhicule…</p>'; return; }
-  const mi = val('sel-motor'); const motor = mi !== '' ? motorsCache[mi] : null;
-  const fuel = motor ? motor.fuel : null;
-  const all = Object.values(await dbGet('data/issues')).filter(i => i.brandId === curBrand && (!i.model || i.model === curModelName));
-  const specific = motor ? all.filter(i => i.motor && String(motor.name).toLowerCase().includes(String(i.motor).toLowerCase())) : [];
-  const general = all.filter(i => !specific.includes(i));
-  let html = '', hidden = 0;
-  specific.forEach(i => html += issueCard(i, '🎯 '));
-  if (motor) {
-    general.forEach(i => { const f = issueFuel(i); if (!f || f === fuel) html += issueCard(i, ''); else hidden++; });
-    if (hidden) html += '<p style="font-size:12px;color:#94a3b8">🔎 ' + hidden + ' panne(s) d\'autres motorisations masquée(s) — filtre actif : ' + FUELS[fuel] + ' (' + esc(motor.name) + ')</p>';
-  } else {
-    general.forEach(i => html += issueCard(i, ''));
-  }
-  if (fuel && GENERIC[fuel]) GENERIC[fuel].issues.forEach(g => { html += '<div class="issue-card"><strong>' + g[0] + '</strong><span class="src">Typique ' + FUELS[fuel] + '</span><p>' + g[1] + '</p><p style="color:#fbbf24;font-size:12px">DTC : ' + g[2] + '</p></div>'; });
-  UNIV.forEach(u => html += univCard(u));
+  const box = el("issues-box"), ebox = el("expert-box"), dbox = el("dtc-box"), mbox = el("maint-box");
+  if (!curBrand || !curModelName) { [box,ebox,dbox,mbox].forEach(b => { if (b) b.innerHTML = '<p style="color:#94a3b8">Sélectionnez un véhicule…</p>'; }); return; }
+  const mi = val("sel-motor"), motor = mi !== "" ? motorsCache[mi] : null, fuel = motor ? motor.fuel : null;
   const bn = brandsData[curBrand] ? brandsData[curBrand].name : curBrand;
-  html += sourceLinks(bn + ' ' + curModelName + (motor ? ' ' + motor.name : '') + ' rappel panne 2017-2026');
-  box.innerHTML = html || '<p style="color:#94a3b8">Aucune panne — vérifiez les sites officiels.</p>';
-  const exAll = Object.values(await dbGet('data/expert'));
-  const exHits = exAll.filter(e => e.brandId === curBrand && (!e.model || e.model === curModelName) && motorMatch(e, motor));
-  const bex = BRAND_EXPERT.filter(e => e[0] === curBrand && kwMatch(e[1], motor));
-  let eh = '';
-  exHits.forEach(e => eh += expertCard(e, '🧠 '));
-  bex.forEach(e => eh += bexCard(e));
-  if (fuel && GENERIC_EXPERT[fuel]) GENERIC_EXPERT[fuel].forEach(g => eh += genCard(g, fuel));
-  ebox.innerHTML = eh || '<p style="color:#94a3b8">Aucune fiche expert — recherche par symptôme ci-dessus.</p>';
-  const codes = new Set();
-  all.forEach(i => { const f = issueFuel(i); if (motor && f && f !== fuel) return; String(i.dtc || '').split(/[,\/\s]+/).forEach(c => { if (/^[A-Z0-9]{4,}$/i.test(c)) codes.add(c.toUpperCase()); }); });
-  exHits.forEach(e => String(e.dtc || '').split(/[,\/\s]+/).forEach(c => { if (/^[A-Z0-9]{4,}$/i.test(c)) codes.add(c.toUpperCase()); }));
-  bex.forEach(e => String(e[6] || '').split(/[,\/\s]+/).forEach(c => { if (/^[A-Z0-9]{4,}$/i.test(c)) codes.add(c.toUpperCase()); }));
-  UNIV.forEach(u => String(u[2] || '').split(/[,\/\s]+/).forEach(c => { if (/^[A-Z0-9]{4,}$/i.test(c)) codes.add(c.toUpperCase()); }));
+
+  /* 1. PANNES & CAMPAGNES */
+  const all = Object.values(await dbGet("data/issues")).filter(i => i.brandId === curBrand && fuzzy(i.model, curModelName));
+  const spec = motor ? all.filter(i => i.motor && motorMatch(i.motor, motor)) : [];
+  const gen = all.filter(i => !spec.includes(i));
+  let h = "", hidden = 0;
+  spec.forEach(i => h += issueCard(i, "🎯 "));
+  if (motor) { gen.forEach(i => { const f = fuelOf([i.title,i.detail,i.motor].join(" ")); if (!f || compat(f, fuel)) h += issueCard(i); else hidden++; }); }
+  else gen.forEach(i => h += issueCard(i));
+  CAMPAIGNS.filter(c => c[0] === curBrand && fuzzy(c[1], curModelName) && (!c[2] || motorMatch(c[2], motor))).forEach(c => {
+    if (!all.some(a => a.title === c[3])) h += issueCard({ title: c[3], detail: c[4], source: c[5], dtc: c[6], url: c[7], motor: c[2] }, "📢 ");
+  });
+  if (hidden) h += '<p class="meta">🔎 ' + hidden + " fiche(s) d'autres motorisations masquée(s) — filtre : " + FUELS[fuel] + " (" + esc(motor.name) + ")</p>";
+  if (fuel && GENERIC[fuel]) GENERIC[fuel].issues.forEach(g => h += '<div class="issue-card"><strong>' + esc(g[0]) + '</strong><span class="src">Typique ' + FUELS[fuel] + "</span><p>" + esc(g[1]) + '</p><p class="dtcline">DTC : ' + esc(g[2]) + "</p></div>");
+  UNIV.forEach(u => h += univCard(u));
+  h += sourceLinks(bn + " " + curModelName + (motor ? " " + motor.name : "") + " rappel panne TSB");
+  box.innerHTML = h;
+
+  /* 2. FICHES EXPERT */
+  const exAll = Object.values(await dbGet("data/expert"));
+  const exHits = exAll.filter(e => e.brandId === curBrand && fuzzy(e.model, curModelName) && motorMatch(e.motor, motor) && (e.motor || titleOk(e.title + " " + (e.symptom || ""), motor)));
+  const bex = EXPERT.filter(e => e[0] === curBrand && kwMatch(e[1], motor) && (e[1] || titleOk(e[2] + " " + e[3] + " " + e[4], motor)));
+  let eh = "";
+  exHits.forEach(e => eh += expertCard(e, "🧠 "));
+  bex.forEach(e => eh += expertCard(arrToExpert(e), "🧠 "));
+  if (fuel && GENERIC_EXPERT[fuel]) GENERIC_EXPERT[fuel].forEach(g => eh += '<div class="issue-card deep"><strong>🔬 ' + esc(g[0]) + '</strong><span class="src">Ingénieur ' + FUELS[fuel] + "</span><p><b>Symptômes :</b> " + esc(g[1]) + "</p><p><b>Protocole :</b> " + esc(g[2]) + "</p><p><b>Organes :</b> " + esc(g[3]) + '</p><p class="dtcline">DTC : ' + esc(g[4]) + "</p></div>");
+  eh += fuelCards(fuel);
+  if (motor) {
+    const q = val("expert-search") || "";
+    let tech = null;
+    for (const [t, kws] of Object.entries(TECH_MAP)) if (kws.some(k => q.toLowerCase().includes(k))) { tech = t; break; }
+    if (!tech) tech = fuel === "electrique" ? "bms" : fuel === "hybride" ? "bms" : fuel === "diesel" ? "egr" : "injection";
+    const yr = (String(curModelName).match(/20\d{2}/) || ["2020"])[0];
+    const norm = parseInt(yr) >= 2024 ? "Euro 6E / Euro 7" : (fuel === "electrique" || fuel === "hybride" ? "WLTP / ISO 26262" : "Euro 6D / RDE");
+    eh += '<hr class="sep"><h4 class="deepTitle">🤖 Analyse ingénieur automatique</h4>';
+    eh += '<div class="issue-card deep"><strong>🔬 Diagnostic ' + tech.toUpperCase() + " — " + esc(bn) + " " + esc(curModelName) + '</strong><span class="src">Ingénieur sapiteur</span><div class="deepbox"><b>🧪 Protocole :</b><br>' + esc(TECH_PROTOCOL[tech]) + "<br><b>🔩 Organes clés :</b> " + esc(TECH_ORGANS[tech]) + '<br><b>🔗 DTC :</b> <span class="dtcinline">' + esc(TECH_DTC[tech]) + "</span></div></div>";
+    eh += '<div class="issue-card deep"><strong>⚖️ Conformité ' + norm + ' & veille rappels</strong><div class="regbox">Vérifiez le VIN sur Rappel Conso, Safety Gate, NHTSA, KBA et le portail constructeur. Toute campagne ouverte lie la garantie et la sécurité — contrôle obligatoire avant restitution.</div></div>';
+  }
+  ebox.innerHTML = eh;
+
+  /* 3. DTC */
+  const codes = new Set(), add = s => String(s || "").split(/[,\/\s]+/).forEach(c => { if (/^[A-Z0-9]{4,}$/i.test(c)) codes.add(c.toUpperCase()); });
+  all.forEach(i => { const f = fuelOf([i.title,i.detail].join(" ")); if (motor && f && !compat(f, fuel)) return; add(i.dtc); });
+  exHits.forEach(e => add(e.dtc)); bex.forEach(e => add(e[7])); UNIV.forEach(u => add(u[2]));
   if (fuel && GENERIC[fuel]) GENERIC[fuel].dtc.forEach(c => codes.add(c));
-  if (fuel && GENERIC_EXPERT[fuel]) GENERIC_EXPERT[fuel].forEach(g => String(g[4] || '').split(/[,\/\s]+/).forEach(c => { if (/^[A-Z0-9]{4,}$/i.test(c)) codes.add(c.toUpperCase()); }));
-  const D = await dbGet('data/dtc');
-  let dh = '';
-  codes.forEach(c => { const d = D[c] || D[c.replace(/[^A-Z0-9]+/g, '_')]; dh += d ? '<div class="dtc-card"><strong>' + esc(d.code) + '</strong><p>' + esc(d.description) + '</p>' + (d.cause ? '<p>🔍 ' + esc(d.cause) + '</p>' : '') + (d.solution ? '<p>🔧 ' + esc(d.solution) + '</p>' : '') + '</div>' : '<div class="dtc-card"><strong>' + esc(c) + '</strong><p>Code corrélé (détail à importer)</p></div>'; });
+  if (fuel && GENERIC_EXPERT[fuel]) GENERIC_EXPERT[fuel].forEach(g => add(g[4]));
+  EV_LIST.concat(TH_LIST, HY_LIST).forEach(g => { if ((g[0] === "E" && fuel === "electrique") || (g[0] === "EH" && (fuel === "electrique" || fuel === "hybride")) || (g[0] === "GD" && (fuel === "essence" || fuel === "diesel")) || (g[0] === "G" && fuel === "essence") || (g[0] === "D" && fuel === "diesel") || (g[0] === "H" && fuel === "hybride")) add(g[6]); });
+  const D = await dbGet("data/dtc"); let dh = "";
+  codes.forEach(c => {
+    const d = D[c] || D[c.replace(/[^A-Z0-9]+/g, "_")];
+    dh += d ? '<div class="dtc-card"><strong>' + esc(d.code) + "</strong><p>" + esc(d.description) + "</p>" + (d.cause ? "<p>🔍 " + esc(d.cause) + "</p>" : "") + (d.solution ? "<p>🔧 " + esc(d.solution) + "</p>" : "") + slink("🔎 Fiche OBD", "https://www.obd-codes.com/" + c.toLowerCase()) + "</div>"
+            : '<div class="dtc-card"><strong>' + esc(c) + '</strong><p>Code corrélé au véhicule.</p>' + slink("🔎 Fiche OBD", "https://www.obd-codes.com/" + c.toLowerCase()) + "</div>";
+  });
   dbox.innerHTML = dh || '<p style="color:#94a3b8">—</p>';
+
+  /* 4. MAINTENANCE — appel natif, garanti */
+  if (mbox) {
+    if (typeof buildMaintenanceHTML === "function") mbox.innerHTML = buildMaintenanceHTML(curBrand, curModelName, motor);
+    else mbox.innerHTML = '<p style="color:#ef4444">⚠️ Module maintenance non chargé (maintenance.js).</p>';
+  }
+
+  /* Historique */
+  try {
+    const hist = JSON.parse(localStorage.getItem("autodiag_hist") || "[]");
+    const entry = { date: new Date().toISOString(), marque: bn, modele: curModelName, motorisation: motor ? motor.name : "" };
+    const last = hist[0];
+    if (!last || last.marque !== entry.marque || last.modele !== entry.modele || last.motorisation !== entry.motorisation) {
+      hist.unshift(entry); localStorage.setItem("autodiag_hist", JSON.stringify(hist.slice(0, 60)));
+    }
+  } catch (e) {}
 }
-let dtcTimer = null;
-function searchDTC() { clearTimeout(dtcTimer); dtcTimer = setTimeout(doSearchDTC, 300); }
+let dT = null;
+function searchDTC() { clearTimeout(dT); dT = setTimeout(doSearchDTC, 250); }
 async function doSearchDTC() {
-  const q = el('dtc-search').value.toUpperCase().trim(); const c = el('dtc-results');
-  if (q.length < 2) { c.innerHTML = ''; return; }
-  const m = Object.values(await dbGet('data/dtc')).filter(d => (d.code || '').toUpperCase().includes(q) || (d.description || '').toLowerCase().includes(q.toLowerCase()));
-  let html = m.length ? m.slice(0, 12).map(d => '<div class="dtc-card"><strong>' + esc(d.code) + '</strong><p>' + esc(d.description) + '</p>' + (d.cause ? '<p>🔍 ' + esc(d.cause) + '</p>' : '') + (d.solution ? '<p>🔧 ' + esc(d.solution) + '</p>' : '') + '</div>').join('') : '<p style="color:#94a3b8">Aucun DTC trouvé</p>';
-  html += sourceLinks(q);
-  c.innerHTML = html;
+  const q = val("dtc-search").toUpperCase().trim(), c = el("dtc-results");
+  if (q.length < 2) { c.innerHTML = ""; return; }
+  const m = Object.values(await dbGet("data/dtc")).filter(d => (d.code || "").toUpperCase().includes(q) || (d.description || "").toLowerCase().includes(q.toLowerCase()));
+  let h = m.length ? m.slice(0, 15).map(d => '<div class="dtc-card"><strong>' + esc(d.code) + "</strong><p>" + esc(d.description) + "</p>" + (d.cause ? "<p>🔍 " + esc(d.cause) + "</p>" : "") + (d.solution ? "<p>🔧 " + esc(d.solution) + "</p>" : "") + slink("🔎 Fiche OBD", "https://www.obd-codes.com/" + String(d.code).toLowerCase()) + "</div>").join("") : '<p style="color:#94a3b8">Aucun DTC en base — consultez les sources ci-dessous.</p>';
+  c.innerHTML = h + sourceLinks(q);
 }
+
+/* ===== HISTORIQUE / RAPPORT ===== */
+function toggleHistory() {
+  const b = el("hist-box"); if (!b) return;
+  b.classList.toggle("hidden"); if (b.classList.contains("hidden")) return;
+  let h = []; try { h = JSON.parse(localStorage.getItem("autodiag_hist") || "[]"); } catch (e) {}
+  b.innerHTML = h.length ? h.map(x => '<p class="meta">📅 ' + new Date(x.date).toLocaleString("fr-FR") + " — <b>" + esc(x.marque) + " " + esc(x.modele) + "</b> " + esc(x.motorisation || "") + "</p>").join("") + '<button class="btn btn-danger btn-sm" onclick="clearHistory()">🗑️ Effacer</button>' : '<p style="color:#94a3b8">Aucun historique.</p>';
+}
+function clearHistory() { localStorage.removeItem("autodiag_hist"); const b = el("hist-box"); if (b) b.innerHTML = '<p style="color:#94a3b8">Aucun historique.</p>'; }
+function printReport() {
+  const bn = brandsData[curBrand] ? brandsData[curBrand].name : (curBrand || ""), mi = val("sel-motor"), motor = mi !== "" ? motorsCache[mi] : null;
+  const pr = el("print-report");
+  pr.innerHTML = "<h1>🚗 KEV FUSION 2026 — Rapport de diagnostic & entretien</h1><p>Date : " + new Date().toLocaleString("fr-FR") + " • Appareil : " + esc(deviceId()) + "</p><p>Véhicule : <b>" + esc(bn) + " " + esc(curModelName || "") + "</b></p><p>Motorisation : <b>" + esc(motor ? motor.name + " • " + (FUELS[motor.fuel] || "") + " • " + (motor.power || "") : "non sélectionnée") + "</b></p><h2>⚠️ Pannes & campagnes</h2>" + (el("issues-box") ? el("issues-box").innerHTML : "") + "<h2>🧠 Fiches expert</h2>" + (el("expert-box") ? el("expert-box").innerHTML : "") + "<h2>🔧 DTC</h2>" + (el("dtc-box") ? el("dtc-box").innerHTML : "") + "<h2>🧰 Plan d'entretien</h2>" + (el("maint-box") ? el("maint-box").innerHTML : "");
+  window.print();
+}
+
+/* ===== INSTALL ===== */
 function setupInstall() {
-  window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); deferredPrompt = e; el('install-btn').classList.remove('hidden'); });
-  window.addEventListener('appinstalled', () => { el('install-btn').classList.add('hidden'); notify('🎉 APK installée !'); });
+  window.addEventListener("beforeinstallprompt", e => { e.preventDefault(); deferredPrompt = e; const b = el("install-btn"); if (b) b.classList.remove("hidden"); });
+  window.addEventListener("appinstalled", () => { const b = el("install-btn"); if (b) b.classList.add("hidden"); notify("🎉 Application installée"); });
 }
-async function installApp() { if (!deferredPrompt) return notify('Non disponible ici', 'error'); deferredPrompt.prompt(); await deferredPrompt.userChoice; deferredPrompt = null; el('install-btn').classList.add('hidden'); }
+async function installApp() { if (!deferredPrompt) return notify("Installation non disponible ici", "error"); deferredPrompt.prompt(); await deferredPrompt.userChoice; deferredPrompt = null; const b = el("install-btn"); if (b) b.classList.add("hidden"); }
