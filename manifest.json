@@ -1,7 +1,7 @@
 {
   "name": "KEV FUSION 2026 — Auto Diagnostic Pro",
   "short_name": "KEV FUSION 2026",
-  "description": "Diagnostic auto expert : pannes, rappels, TSB, DTC, plans d'entretien. Toutes marques 2017-2027.",
+  "description": "Diagnostic auto expert : pannes, campagnes de rappel, TSB, DTC et plans d'entretien détaillés. Toutes marques 2017-2027.",
   "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",
@@ -9,6 +9,7 @@
   "background_color": "#0a0e27",
   "theme_color": "#0a0e27",
   "lang": "fr",
+  "categories": ["utilities", "productivity", "business"],
   "icons": [
     { "src": "./icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
     { "src": "./icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "maskable" },
