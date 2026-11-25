@@ -13,6 +13,7 @@
 </head>
 <body>
 <noscript><p style="padding:20px;color:#ef4444;font-weight:700">⚠️ JavaScript doit être activé.</p></noscript>
+
 <div class="bg3d" aria-hidden="true">
   <div class="bg3d-car"></div>
   <svg class="bg3d-obd" viewBox="0 0 300 170">
@@ -26,8 +27,12 @@
     <rect x="206" y="122" width="46" height="10" rx="5" fill="#334155"/>
   </svg>
 </div>
+
 <div class="container">
-<header><h1>🚗 KEV FUSION 2026</h1><p>Auto Diagnostic Pro • Ingénieur expert • 2017-2027 • Pannes • Rappels • TSB • DTC • Entretien</p></header>
+<header>
+  <h1>🚗 KEV FUSION 2026</h1>
+  <p>Auto Diagnostic Pro • Ingénieur expert • 2017-2027 • Pannes • Rappels • TSB • DTC • Entretien</p>
+</header>
 
 <section id="screen-home" class="screen active"><div class="card">
 <h2>👋 Bienvenue</h2>
@@ -70,17 +75,18 @@
 
 <section id="screen-admin" class="screen"><div class="card">
 <h2>🛠️ Administration</h2>
-<p class="meta">Base du : <span id="admin-version">--</span> • MAJ auto 30 j • garde-moteurs + audits actifs</p>
+<p class="meta">Base du : <span id="admin-version">--</span> • <span id="update-badge" class="pill">—</span></p>
 <div class="tabs">
-<button class="btn btn-primary" onclick="adminTab('tab-access')">👥 Accès</button>
-<button class="btn btn-secondary" onclick="adminTab('tab-data')">🗄️ Base</button>
-<button class="btn btn-success" onclick="enterApp()">🚗 App</button>
+<button class="btn btn-primary tab-on" data-tab="tab-access" onclick="adminTab('tab-access')">👥 Accès</button>
+<button class="btn btn-secondary" data-tab="tab-data" onclick="adminTab('tab-data')">🗄️ Base</button>
+<button class="btn btn-secondary" data-tab="tab-update" onclick="adminTab('tab-update')">🔄 Mise à jour</button>
+<button class="btn btn-success" data-tab="app" onclick="enterApp()">🚗 App</button>
 </div>
+
 <div id="tab-access">
 <div class="grid-2"><input type="text" id="new-prenom" placeholder="Prénom"><button class="btn btn-success" onclick="addUser()">Ajouter</button></div>
 <h3>📊 Tableau récapitulatif (temps réel)</h3>
 <div id="users-table-container"><div class="loader">Chargement…</div></div>
-<button class="btn btn-admin" onclick="manualUpdate()">🔄 MAJ manuelle 2017-2027 (marques, modèles, motorisations, pannes, TSB)</button>
 <button class="btn btn-secondary" onclick="attributionAudit(true)">🧬 Auto-vérification attributions</button>
 <div id="attrib-box"></div>
 <button class="btn btn-admin" onclick="engineAudit(true)">🛡️ Audit & correction motorisations</button>
@@ -88,9 +94,9 @@
 <button class="btn btn-secondary" onclick="selfTest(false)">🩺 Auto-test APK</button>
 <div id="selftest-box"></div>
 <button class="btn btn-success" onclick="shareAPK()">📤 Partager / télécharger l'APK</button>
-<button class="btn btn-secondary" onclick="updateBase(true)">🔄 Diffuser MAJ (toutes APK)</button>
 <button class="btn btn-danger" onclick="logoutAdmin()">Déconnexion</button>
 </div>
+
 <div id="tab-data" class="hidden">
 <h3>📤 EXPORT JSON COMPLET</h3>
 <button class="btn btn-success" onclick="exportJSON()">📤 Télécharger le fichier JSON</button>
@@ -127,11 +133,32 @@
 <textarea id="import-json" rows="4" placeholder='[{"type":"issue","brand":"dacia","model":"Bigster","title":"…","detail":"…","source":"Rappel Conso"}]'></textarea>
 <button class="btn btn-success" onclick="importJSON()">📥 Importer</button>
 </div>
+
+<div id="tab-update" class="hidden">
+<h3>🔄 Mise à jour de la base</h3>
+<p class="meta" id="update-next">—</p>
+<div class="updrow">
+  <label class="updlabel">Cycle automatique
+    <select id="cycle-select"><option value="7">7 jours</option><option value="15">15 jours</option><option value="30">30 jours</option><option value="60">60 jours</option></select>
+  </label>
+  <label class="switch"><input type="checkbox" id="auto-toggle"><span class="slider"></span><span class="swtxt">MAJ automatique</span></label>
+</div>
+<button class="btn btn-admin" data-update-btn onclick="manualUpdate()">🔄 MAJ manuelle complète 2017-2027</button>
+<button class="btn btn-secondary" data-update-btn onclick="runUpdate('auto')">⚡ Forcer la recherche d'actualisation</button>
+<div class="progress"><div id="update-bar" class="progress-bar"></div></div>
+<p class="meta" id="update-label">En attente</p>
+<div id="update-log" class="logbox"></div>
+<h3>🌐 Recherche d'actualisation multi-sources</h3>
+<div id="veille-box" class="linkwrap"></div>
+<p class="meta">Ces requêtes interrogent les portails officiels (Rappel Conso, Safety Gate, NHTSA, KBA, DVSA), les TSB constructeurs, la presse spécialisée et les retours propriétaires pour l'année en cours.</p>
+</div>
 </div></section>
 
 <section id="screen-app" class="screen"><div class="card">
 <h2>🚗 Diagnostic Expert</h2>
-<p>Bienvenue <strong id="app-user"></strong> • Base du : <span id="app-version">--</span> • <span id="net-status">📶 en ligne</span></p>
+<p>Bienvenue <strong id="app-user"></strong> • Base du : <span id="app-version">--</span> • <span id="net-status" class="net on">📶 en ligne</span></p>
+<p class="meta" id="brand-count"></p>
+
 <h3>🧠 Recherche par symptôme</h3>
 <input type="text" id="expert-search" placeholder="Ex: courroie, AdBlue, servofrein, P0420…" oninput="expertSearch()">
 <p class="chips">
@@ -148,21 +175,40 @@
 <button class="chip" onclick="qs('ADAS')">ADAS</button>
 <button class="chip" onclick="qs('suspension')">Suspension</button>
 <button class="chip" onclick="qs('boîte')">Boîte</button>
+<button class="chip" onclick="qs('surchauffe')">Surchauffe</button>
+<button class="chip" onclick="qs('TSB')">TSB</button>
 <button class="chip" onclick="qs('rappel')">Rappels</button>
 </p>
 <div id="expert-results"></div>
+
 <h3>1️⃣ Marque</h3><select id="sel-marque" onchange="loadModels()"></select>
 <h3>2️⃣ Modèle</h3><select id="sel-model" onchange="loadMotors()"></select>
+<p class="meta" id="model-count"></p>
 <h3>3️⃣ Motorisation / Puissance</h3><select id="sel-motor" onchange="correlate()"></select>
+<p class="meta" id="motor-count"></p>
+
 <h3>⚠️ Pannes connues & campagnes de rappel</h3><div id="issues-box"><p class="muted">Sélectionnez un véhicule…</p></div>
+<h3>📄 Bulletins techniques & TSB</h3><div id="tsb-box"><p class="muted">Sélectionnez un véhicule…</p></div>
 <h3>🧠 Fiches expert corrélées</h3><div id="expert-box"><p class="muted">Sélectionnez un véhicule…</p></div>
 <h3>🔧 Codes défaut DTC corrélés</h3><div id="dtc-box"><p class="muted">—</p></div>
-<h3>🧰 Maintenance / plan d'entretien du véhicule</h3><div id="maint-box"><p class="muted">Sélectionnez une motorisation…</p></div>
+
+<h3>🧰 Maintenance / plan d'entretien du véhicule</h3>
+<div id="maint-wrap" class="maint-wrap">
+  <canvas id="maint-tools" aria-hidden="true"></canvas>
+  <div id="maint-box"><p class="muted">Sélectionnez une motorisation…</p></div>
+</div>
+
 <h3>🔎 Recherche DTC libre</h3>
 <input type="text" id="dtc-search" placeholder="Ex: P0300, turbo…" oninput="searchDTC()">
 <div id="dtc-results"></div>
+
+<h3>🌐 Recherche d'actualisation</h3>
+<div id="veille-box-app"></div>
+<div class="linkwrap" id="veille-box"></div>
+
 <h3>🕘 Historique</h3><button class="btn btn-secondary" onclick="toggleHistory()">📋 Voir / masquer</button><div id="hist-box" class="hidden"></div>
 <h3>🖨️ Rapport</h3><button class="btn btn-admin" onclick="printReport()">🖨️ Rapport PDF (diagnostic + entretien)</button>
+
 <h3>🌐 Sources officielles & spécialisées</h3>
 <div class="links-row">
 <a target="_blank" rel="noopener" href="https://www.rappel.conso.gouv.fr/">Rappel Conso 🇫🇷</a>
@@ -178,8 +224,10 @@
 <button class="btn btn-secondary" onclick="logoutApp()">🚪 Retour</button>
 </div></section>
 </div>
+
 <button id="install-btn" class="install-fab hidden" onclick="installApp()">📲 Installer l'APK</button>
 <div id="print-report"></div>
+
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
 <script src="./firebase-config.js"></script>
