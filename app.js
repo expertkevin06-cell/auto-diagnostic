@@ -1,21 +1,22 @@
 /* ============================================================
-   KEV FUSION 2026 — APP v21
-   Moteur : catalogue, corrélation, maintenance, audits,
-   mise à jour automatique + manuelle avec journal
+   KEV FUSION 2026 — APP v22
+   Rôles : ADMIN = MAJ manuelle + auto-enrichissement + import/export
+           TIERS = MAJ automatique de la base au lancement uniquement
    ============================================================ */
 const ADMIN_PASSWORD="Kevin83600";
 const SESSION_KEY="autodiag_session";
 const DAY=86400000;
 let CYCLE_DAYS=parseInt(localStorage.getItem("autodiag_cycle")||"30",10);
-let db,usersData={},brandsData={},motorsCache=[],deferredPrompt=null,started=false,ensured=false,pwdTyped=false,pendCount=-1,updating=false;
+let ENRICH_QUOTA=parseInt(localStorage.getItem("autodiag_quota")||"600",10);
+let db,usersData={},brandsData={},motorsCache=[],deferredPrompt=null,started=false,ensured=false,pwdTyped=false,pendCount=-1,updating=false,tierSynced=false;
 let curBrand=null,curModelId=null,curModelName=null;
 
 window.addEventListener("DOMContentLoaded",()=>{
-  if("serviceWorker" in navigator) navigator.serviceWorker.register("./sw.js").catch(()=>{});
-  try{ firebase.initializeApp(firebaseConfig); db=firebase.database(); }
-  catch(e){ notify("❌ Firebase : configuration invalide","error"); return; }
-  setupInstall(); bindAdminTable(); bindPwd(); netMonitor(); bindUpdateUI();
-  seedBrands(); boot(); selfTest(true); autoUpdateWatch();
+  if("serviceWorker" in navigator)navigator.serviceWorker.register("./sw.js").catch(()=>{});
+  try{firebase.initializeApp(firebaseConfig);db=firebase.database();}
+  catch(e){notify("❌ Firebase : configuration invalide","error");return;}
+  setupInstall();bindAdminTable();bindPwd();netMonitor();bindUpdateUI();lockUI();
+  boot();selfTest(true);
 });
 window.addEventListener("pageshow",()=>clearPwd());
 
@@ -33,7 +34,11 @@ function saveSession(s){localStorage.setItem(SESSION_KEY,JSON.stringify(s));}
 function deviceId(){let i=localStorage.getItem("autodiag_device");if(!i){i="DEV-"+Math.random().toString(36).substr(2,8).toUpperCase();localStorage.setItem("autodiag_device",i);}return i;}
 function isAdmin(){return sessionStorage.getItem("autodiag_admin")==="1";}
 function fmt(n){return Number(n).toLocaleString("fr-FR");}
-
+function guardAdmin(){
+  if(isAdmin())return true;
+  notify("🔒 Fonction réservée à l'administrateur","error");
+  return false;
+}
 async function dbGet(p){
   try{
     const s=await Promise.race([db.ref(p).once("value"),new Promise((_,r)=>setTimeout(()=>r(new Error("timeout")),4500))]);
@@ -45,6 +50,22 @@ async function dbGet(p){
 async function dbSet(p,v){try{await db.ref(p).set(v);return true;}catch(e){console.warn("set",p,e);return false;}}
 async function dbUpd(p,v){try{await db.ref(p).update(v);return true;}catch(e){return false;}}
 
+/* ── verrouillage interface selon rôle ── */
+function lockUI(){
+  const admin=isAdmin();
+  document.querySelectorAll("[data-admin-only]").forEach(e=>{
+    e.classList.toggle("hidden",!admin);
+    e.querySelectorAll("button,input,select,textarea").forEach(c=>{c.disabled=!admin;});
+  });
+  const badge=el("role-badge");
+  if(badge){
+    badge.textContent=admin?"👑 Administrateur":"👤 Tiers — lecture + MAJ auto";
+    badge.className="pill "+(admin?"pill-ok":"pill-tier");
+  }
+  const t=el("tier-note");
+  if(t)t.classList.toggle("hidden",admin);
+}
+
 /* ── mot de passe ── */
 function clearPwd(){const p=el("admin-pwd");if(p&&!pwdTyped){p.value="";try{p.setAttribute("value","");}catch(e){}}}
 function showAdminLogin(){pwdTyped=false;clearPwd();showScreen("screen-admin-login");[0,80,250,600,1200].forEach(t=>setTimeout(clearPwd,t));}
@@ -54,7 +75,7 @@ function bindPwd(){const p=el("admin-pwd");if(!p)return;p.addEventListener("inpu
 function netMonitor(){
   const set=on=>{const s=el("net-status");if(s){s.textContent=on?"📶 en ligne":"⚠️ hors-ligne (cache)";s.className=on?"net on":"net off";}};
   set(navigator.onLine);
-  addEventListener("online",()=>{set(true);notify("📶 Connexion rétablie");autoUpdateWatch();});
+  addEventListener("online",()=>{set(true);notify("📶 Connexion rétablie");});
   addEventListener("offline",()=>{set(false);notify("⚠️ Hors-ligne : cache local actif","error");});
 }
 
@@ -78,24 +99,24 @@ function fuelOf(t){t=String(t).toLowerCase();for(const f of["diesel","essence","
 function compat(a,b){if(!a||!b)return true;if(a===b)return true;return(a==="hybride"&&b==="electrique")||(a==="electrique"&&b==="hybride");}
 function fuzzy(a,b){if(!a)return true;if(!b)return false;a=String(a).toLowerCase();b=String(b).toLowerCase();if(a===b||a.includes(b)||b.includes(a))return true;return a.split("/").some(p=>{p=p.trim();return p&&(b.includes(p)||p.includes(b));});}
 function kwMatch(key,motor){
-  if(!key)return true; if(!motor)return true;
+  if(!key)return true;if(!motor)return true;
   const k=String(key).toLowerCase(),mn=String(motor.name).toLowerCase();
   if(mn.includes(k))return true;
   if(curModelName){const cm=String(curModelName).toLowerCase();if(k.includes(cm)||cm.includes(k)||k.split("/").some(p=>{p=p.trim();return p&&(cm.includes(p)||p.includes(cm));}))return true;}
-  const f=famFuel(k)||fuelOf(k); if(f)return compat(f,motor.fuel);
+  const f=famFuel(k)||fuelOf(k);if(f)return compat(f,motor.fuel);
   return false;
 }
 function motorMatch(mk,motor){
-  if(!mk)return true; if(!motor)return true;
+  if(!mk)return true;if(!motor)return true;
   const k=String(mk).toLowerCase(),mn=String(motor.name).toLowerCase();
   if(mn.includes(k)||k.includes(mn))return true;
-  const f=famFuel(k)||fuelOf(k); if(f)return compat(f,motor.fuel);
+  const f=famFuel(k)||fuelOf(k);if(f)return compat(f,motor.fuel);
   if(curModelName&&k.includes(String(curModelName).toLowerCase()))return true;
   return false;
 }
 function titleOk(t,motor){if(!motor)return true;const f=fuelOf(t);return !f||compat(f,motor.fuel);}
 
-/* ── garde-moteurs ── */
+/* ── garde-moteurs (admin) ── */
 function egGroup(b){for(const[g,l]of Object.entries(EG_GROUPS))if(l.includes(b))return g;return null;}
 function egTokens(name){
   const n=" "+String(name).toLowerCase()+" ",h=[];
@@ -103,25 +124,26 @@ function egTokens(name){
   h.sort((a,b)=>b.t.length-a.t.length);return h;
 }
 function egFix(brandId,m){
-  const g=egGroup(brandId); if(!g)return{changed:false,m:m};
+  const g=egGroup(brandId);if(!g)return{changed:false,m:m};
   const nat=EG_NATIVE[g]||[],orig=String(m.name||"");let name=orig,changed=false;
   for(const h of egTokens(orig)){
     const tl=h.t.toLowerCase();
     if(nat.some(x=>tl.includes(x)||x.includes(tl)))continue;
-    const canon=(EG_CANON[g]||{})[h.f]||""; if(!canon)continue;
+    const canon=(EG_CANON[g]||{})[h.f]||"";if(!canon)continue;
     const re=new RegExp(tl.replace(/[.*+?^${}()|[\]\\]/g,"\\$&"),"i");
     if(re.test(name)){name=name.replace(re,canon);changed=true;}
   }
-  let fuel=m.fuel; const tk=egTokens(name);
-  if(tk.length)fuel=tk[0].f; else if(!fuel)fuel=guessFuel(name);
+  let fuel=m.fuel;const tk=egTokens(name);
+  if(tk.length)fuel=tk[0].f;else if(!fuel)fuel=guessFuel(name);
   if(fuel!==m.fuel||name!==orig)changed=true;
   return{changed:changed,m:Object.assign({},m,{name:name.replace(/\s+/g," ").trim(),fuel:fuel})};
 }
 async function engineAudit(verbose){
+  if(!guardAdmin())return 0;
   const models=await dbGet("data/models"),motors=await dbGet("data/motors");
   let fixed=0,checked=0;
   for(const[mid,mo]of Object.entries(models)){
-    const list=motors[mid]; if(!Array.isArray(list))continue;
+    const list=motors[mid];if(!Array.isArray(list))continue;
     let ch=false;
     const next=list.map(x=>{checked++;const r=egFix(mo.brandId,x);if(r.changed){ch=true;return r.m;}return x;});
     if(ch){await dbSet("data/motors/"+mid,next);fixed++;}
@@ -131,13 +153,13 @@ async function engineAudit(verbose){
   if(verbose)notify(fixed?"🛡️ "+fixed+" modèle(s) corrigé(s) sur "+fmt(checked)+" motorisations":"🛡️ Aucune incohérence ("+fmt(checked)+" motorisations)");
   return fixed;
 }
-
-/* ── audit attributions ── */
 async function attributionAudit(verbose){
+  if(!guardAdmin())return 0;
   const models=await dbGet("data/models"),exp=await dbGet("data/expert");
   const byBrand={};Object.values(models).forEach(m=>{(byBrand[m.brandId]=byBrand[m.brandId]||[]).push(m.name);});
   let fixed=0;
   for(const[id,e]of Object.entries(exp)){
+    if(e.derived)continue;
     let mk=String(e.motor||""),mdl=String(e.model||""),upd=false;
     if(mk){
       const names=byBrand[e.brandId]||[];
@@ -160,15 +182,13 @@ async function attributionAudit(verbose){
   return fixed;
 }
 
-/* ── seed marques ── */
+/* ── catalogue ── */
 async function seedBrands(){
   try{
     const cur=await dbGet("data/brands");
     for(const[id,name,region]of BRANDS)if(!cur[id])await dbSet("data/brands/"+id,{name,region});
   }catch(e){console.warn(e);}
 }
-
-/* ── catalogue ── */
 async function ensureCatalog(force,log){
   if(ensured&&!force)return{models:0,expert:0,camp:0,fixed:0};
   ensured=true;
@@ -178,7 +198,6 @@ async function ensureCatalog(force,log){
     await seedBrands();
     const models=await dbGet("data/models");
     const map={};Object.entries(models).forEach(([id,m])=>map[m.brandId+"|"+String(m.name).toLowerCase()]=id);
-    L("Marques en base : "+fmt(Object.keys(await dbGet("data/brands")).length));
     for(let i=0;i<MODELS_ALL.length;i++){
       const[b,name,years,motors]=MODELS_ALL[i],key=b+"|"+name.toLowerCase();
       if(map[key])continue;
@@ -212,16 +231,31 @@ async function ensureCatalog(force,log){
       await dbSet("data/issues/"+uid("cp"),{brandId:c[0],model:c[1],motor:c[2],title:c[3],detail:c[4],source:c[5],dtc:c[6],url:c[7]});
       ti[c[3].toLowerCase()]=1;cpAdd++;
     }
-    L("Fiches expert ajoutées : "+exAdd+" · campagnes : "+cpAdd+" · motorisations complétées : "+fixed);
+    L("Fiches expert : +"+exAdd+" · campagnes : +"+cpAdd+" · motorisations complétées : "+fixed);
   }catch(e){console.warn("ensure",e);L("⚠️ "+e.message);}
   return{models:added,expert:exAdd,camp:cpAdd,fixed};
 }
 
-/* ══════════ MISE À JOUR ══════════ */
+/* ══════════ SYNCHRONISATION TIERS (auto, au lancement) ══════════ */
+async function tierAutoSync(){
+  if(tierSynced)return;
+  tierSynced=true;
+  const st=el("tier-sync");
+  if(st)st.textContent="🔄 Synchronisation de la base…";
+  try{
+    await ensureCatalog(false);
+    brandsData=await dbGet("data/brands");
+    localStorage.setItem("autodiag_tier_sync",String(Date.now()));
+    if(st)st.textContent="✅ Base synchronisée au lancement · "+new Date().toLocaleTimeString("fr-FR");
+  }catch(e){
+    if(st)st.textContent="⚠️ Hors-ligne : base locale utilisée";
+  }
+}
+
+/* ══════════ MISE À JOUR ADMIN ══════════ */
 function logLine(txt){
   const box=el("update-log");if(!box)return;
-  const p=document.createElement("p");
-  p.className="logline";
+  const p=document.createElement("p");p.className="logline";
   p.innerHTML='<span class="logtime">'+new Date().toLocaleTimeString("fr-FR")+"</span> "+esc(txt);
   box.appendChild(p);box.scrollTop=box.scrollHeight;
 }
@@ -233,80 +267,82 @@ function setProgress(pct,label){
 function bindUpdateUI(){
   const sel=el("cycle-select");
   if(sel){sel.value=String(CYCLE_DAYS);sel.addEventListener("change",()=>{
+    if(!guardAdmin()){sel.value=String(CYCLE_DAYS);return;}
     CYCLE_DAYS=parseInt(sel.value,10);localStorage.setItem("autodiag_cycle",String(CYCLE_DAYS));
-    notify("🔄 Cycle de mise à jour : "+CYCLE_DAYS+" jours");renderUpdateState();
+    notify("🔄 Cycle : "+CYCLE_DAYS+" jours");renderUpdateState();
   });}
-  const auto=el("auto-toggle");
-  if(auto){auto.checked=localStorage.getItem("autodiag_auto")!=="0";auto.addEventListener("change",()=>{
-    localStorage.setItem("autodiag_auto",auto.checked?"1":"0");
-    notify(auto.checked?"✅ Mise à jour automatique activée":"⏸️ Mise à jour automatique désactivée");renderUpdateState();
+  const q=el("quota-select");
+  if(q){q.value=String(ENRICH_QUOTA);q.addEventListener("change",()=>{
+    if(!guardAdmin()){q.value=String(ENRICH_QUOTA);return;}
+    ENRICH_QUOTA=parseInt(q.value,10);localStorage.setItem("autodiag_quota",String(ENRICH_QUOTA));
+    notify("🧠 Auto-enrichissement : "+fmt(ENRICH_QUOTA)+" fiches par palier");
   });}
-  renderUpdateState();
+  renderUpdateState();renderEnrichStats();
+}
+function renderEnrichStats(){
+  const b=el("enrich-stats");if(!b||typeof enrichStats!=="function")return;
+  const s=enrichStats();
+  b.innerHTML='<p class="meta">🧠 Palier atteint : <b>'+s.level+'</b> · fiches dérivées cumulées : <b>'+fmt(s.total)+'</b> · axes techniques : '+s.axes+' · synonymes de recherche : '+s.synonyms+"</p>";
 }
 function renderUpdateState(){
   const last=parseInt(localStorage.getItem("autodiag_last_update")||"0",10);
   const n=el("update-next");
   if(n){
-    if(!last)n.textContent="Jamais effectuée — lancez une mise à jour.";
+    if(!last)n.textContent="Aucune mise à jour admin effectuée.";
     else{
       const due=last+CYCLE_DAYS*DAY,left=Math.ceil((due-Date.now())/DAY);
-      n.textContent="Dernière : "+new Date(last).toLocaleString("fr-FR")+" · "+(left<=0?"échéance atteinte":"prochaine dans "+left+" j")+" (cycle "+CYCLE_DAYS+" j)";
+      n.textContent="Dernière MAJ admin : "+new Date(last).toLocaleString("fr-FR")+" · "+(left<=0?"nouveau palier disponible":"prochain palier dans "+left+" j")+" (cycle "+CYCLE_DAYS+" j)";
     }
   }
   const badge=el("update-badge");
   if(badge){
     const due=!last||Date.now()-last>CYCLE_DAYS*DAY;
-    badge.textContent=due?"⚠️ MAJ requise":"✅ À jour";
+    badge.textContent=due?"⚠️ MAJ admin requise":"✅ À jour";
     badge.className="pill "+(due?"pill-warn":"pill-ok");
   }
 }
-async function runUpdate(mode){
+async function runUpdate(){
+  if(!guardAdmin())return;
   if(updating)return notify("⏳ Mise à jour déjà en cours","error");
-  if(mode==="manual"&&!isAdmin())return notify("❌ Réservé admin","error");
   updating=true;
-  const btns=document.querySelectorAll('[data-update-btn]');btns.forEach(b=>b.disabled=true);
+  const btns=document.querySelectorAll("[data-update-btn]");btns.forEach(b=>b.disabled=true);
   const box=el("update-log");if(box)box.innerHTML="";
-  setProgress(4,"Démarrage…");
-  logLine("── Mise à jour "+(mode==="manual"?"MANUELLE":"AUTOMATIQUE")+" ──");
+  setProgress(3,"Démarrage…");
+  logLine("── MISE À JOUR MANUELLE ADMIN ──");
   logLine("Catalogue embarqué : "+fmt(BRANDS.length)+" marques · "+fmt(MODELS_ALL.length)+" modèles · "+fmt(MODELS_ALL.reduce((a,m)=>a+m[3].length,0))+" motorisations");
   try{
-    setProgress(12,"Marques…"); await seedBrands();
+    setProgress(10,"Marques…");await seedBrands();
     logLine("Marques vérifiées / créées : "+fmt(BRANDS.length));
-    setProgress(26,"Modèles & motorisations…");
+    setProgress(22,"Modèles & motorisations…");
     const r=await ensureCatalog(true,logLine);
-    setProgress(58,"Attributions…");
-    const a=await attributionAudit(false);
-    logLine("Audit attributions : "+a+" correction(s)");
-    setProgress(74,"Garde-moteurs…");
-    const g=await engineAudit(false);
-    logLine("Garde-moteurs : "+g+" modèle(s) corrigé(s)");
-    setProgress(88,"Auto-test…");
-    await dbSet("data/version",{version:Date.now(),lastUpdate:new Date().toISOString(),updateIntervalDays:CYCLE_DAYS,counts:{brands:BRANDS.length,models:MODELS_ALL.length}});
+    setProgress(45,"Auto-enrichissement massif…");
+    let enriched=0;
+    if(typeof autoEnrich==="function")enriched=await autoEnrich(ENRICH_QUOTA,logLine);
+    else logLine("⚠️ Module enrich.js absent");
+    setProgress(72,"Audit attributions…");
+    const a=await attributionAudit(false);logLine("Attributions : "+a+" correction(s)");
+    setProgress(84,"Garde-moteurs…");
+    const g=await engineAudit(false);logLine("Garde-moteurs : "+g+" modèle(s) corrigé(s)");
+    setProgress(94,"Version & auto-test…");
+    await dbSet("data/version",{version:Date.now(),lastUpdate:new Date().toISOString(),updateIntervalDays:CYCLE_DAYS,enrichLevel:parseInt(localStorage.getItem("autodiag_enrich_level")||"0",10)});
     localStorage.setItem("autodiag_last_update",String(Date.now()));
     brandsData=await dbGet("data/brands");
     fillBrandSelects();
     if(active("screen-app"))await buildBrandSelect();
     await selfTest(true);
     setProgress(100,"Terminé");
-    logLine("✅ Terminé : +"+r.models+" modèles · +"+r.expert+" fiches expert · +"+r.camp+" campagnes · "+(a+g)+" corrections");
-    logLine("Recherche d'actualisation multi-sources disponible ci-dessous.");
-    renderVeille();
-    notify("✅ MAJ : +"+r.models+" modèles, +"+(r.expert+r.camp)+" fiches");
-    if(mode==="auto")pushNotif("🔄 Base actualisée","Nouveaux modèles, pannes et campagnes intégrés.");
+    logLine("✅ Terminé : +"+r.models+" modèles · +"+r.expert+" fiches expert · +"+r.camp+" campagnes · +"+fmt(enriched)+" fiches dérivées · "+(a+g)+" corrections");
+    renderEnrichStats();renderVeille();
+    notify("✅ MAJ : +"+r.models+" modèles, +"+fmt(enriched+r.expert+r.camp)+" fiches");
+    pushNotif("🔄 Base enrichie","Nouveaux modèles, fiches et protocoles intégrés.");
   }catch(e){logLine("❌ "+e.message);notify("❌ MAJ : "+e.message,"error");setProgress(0,"Erreur");}
   btns.forEach(b=>b.disabled=false);
   updating=false;renderUpdateState();
 }
-function manualUpdate(){runUpdate("manual");}
-function autoUpdateWatch(){
-  if(localStorage.getItem("autodiag_auto")==="0")return;
-  const last=parseInt(localStorage.getItem("autodiag_last_update")||"0",10);
-  if(!last||Date.now()-last>CYCLE_DAYS*DAY){ setTimeout(()=>runUpdate("auto"),1500); }
-}
-setInterval(()=>{if(!document.hidden)autoUpdateWatch();},6*3600*1000);
+function manualUpdate(){runUpdate();}
 
 function renderVeille(){
-  const box=el("veille-box");if(!box)return;
+  const boxes=[el("veille-box"),el("veille-app")];
   const b=curBrand?(brandsData[curBrand]?brandsData[curBrand].name:curBrand):"";
   const q=encodeURIComponent((b+" "+(curModelName||"")).trim()||"automobile");
   const yr=new Date().getFullYear();
@@ -319,10 +355,11 @@ function renderVeille(){
     ["🇬🇧 DVSA","https://www.google.com/search?q=site:gov.uk+vehicle+recall+"+q],
     ["🔧 TSB / bulletins","https://www.google.com/search?q="+q+"+TSB+technical+service+bulletin+"+yr],
     ["📰 Presse spécialisée","https://www.google.com/search?q="+q+"+panne+rappel+fiabilit%C3%A9+"+yr],
-    ["💬 Retours propriétaires","https://www.google.com/search?q="+q+"+forum+probl%C3%A8me+avis+propri%C3%A9taires"],
+    ["💬 Retours propriétaires","https://www.google.com/search?q="+q+"+forum+probl%C3%A8me+avis"],
     ["🆕 Nouveautés "+yr,"https://www.google.com/search?q="+q+"+nouveau+mod%C3%A8le+motorisation+puissance+"+yr]
   ];
-  box.innerHTML=items.map(([l,u])=>'<a class="srclink" target="_blank" rel="noopener" href="'+u+'">'+l+"</a>").join("");
+  const html=items.map(([l,u])=>'<a class="srclink" target="_blank" rel="noopener" href="'+u+'">'+l+"</a>").join("");
+  boxes.forEach(x=>{if(x)x.innerHTML=html;});
 }
 
 /* ── auto-test ── */
@@ -331,6 +368,7 @@ async function selfTest(quiet){
   try{await db.ref("data/version").once("value");t("Connexion Firebase",true);}catch(e){t("Connexion Firebase",false);}
   t("Catalogue chargé",typeof MODELS_ALL!=="undefined"&&MODELS_ALL.length>0);
   t("Moteur maintenance",typeof buildMaintenanceHTML==="function");
+  t("Moteur enrichissement",typeof autoEnrich==="function");
   t("Fond outils maintenance",!!el("maint-tools"));
   try{const r=await fetch("./manifest.json",{cache:"no-store"});t("Manifest accessible",r.ok);}catch(e){t("Manifest accessible",false);}
   try{const r=await fetch("./icon-192.png",{cache:"no-store"});t("Icônes accessibles",r.ok);}catch(e){t("Icônes accessibles",false);}
@@ -341,7 +379,7 @@ async function selfTest(quiet){
   const e2=await dbGet("data/expert");t("Fiches expert ("+fmt(Object.keys(e2).length)+")",Object.keys(e2).length>0);
   const i2=await dbGet("data/issues");t("Campagnes ("+fmt(Object.keys(i2).length)+")",Object.keys(i2).length>0);
   t("Écrans interface",!!el("screen-home")&&!!el("screen-admin")&&!!el("screen-app"));
-  t("Case maintenance",!!el("maint-box"));
+  t("Verrouillage import/export",!!document.querySelector("[data-admin-only]"));
   window.lastSelfTest=R;
   const c=el("selftest-box");if(c)c.innerHTML=R.map(r=>'<p class="testline">'+(r.ok?"✅":"❌")+" "+esc(r.n)+"</p>").join("");
   const bad=R.filter(r=>!r.ok).length;
@@ -365,7 +403,7 @@ function boot(){
   routeUser();
 }
 function routeUser(){
-  const s=getSession();if(!s||!s.prenom){showScreen("screen-home");return;}
+  const s=getSession();if(!s||!s.prenom){showScreen("screen-home");lockUI();return;}
   const k=Object.keys(usersData).find(x=>usersData[x].prenom&&usersData[x].prenom.toLowerCase()===s.prenom.toLowerCase());
   if(!k){el("pending-name").textContent=s.prenom;showScreen("screen-pending");return;}
   const st=usersData[k].status;
@@ -376,7 +414,7 @@ function routeUser(){
     else if(st==="revoked"){notify("🔒 Accès révoqué","error");pushNotif("🔒 Accès révoqué","Accès révoqué.");}
   }
   s.status=st;saveSession(s);
-  if(st==="accepted"){el("accepted-name").textContent=s.prenom;showScreen("screen-accepted");}
+  if(st==="accepted"){el("accepted-name").textContent=s.prenom;showScreen("screen-accepted");if(!isAdmin())setTimeout(tierAutoSync,400);}
   else if(st==="refused")showScreen("screen-refused");
   else if(st==="revoked")showScreen("screen-revoked");
   else{el("pending-name").textContent=s.prenom;showScreen("screen-pending");}
@@ -390,17 +428,20 @@ async function requestAccess(){
   notify("📨 Demande transmise");pushNotif("📨 Demande envoyée","Vous serez notifié à la validation.");
 }
 function checkStatus(){routeUser();notify("🔄 Statut vérifié");}
-function resetSession(){localStorage.removeItem(SESSION_KEY);el("input-prenom").value="";showScreen("screen-home");}
+function resetSession(){localStorage.removeItem(SESSION_KEY);tierSynced=false;el("input-prenom").value="";showScreen("screen-home");lockUI();}
 function loginAdmin(){
-  if(val("admin-pwd")===ADMIN_PASSWORD){sessionStorage.setItem("autodiag_admin","1");pwdTyped=false;el("admin-pwd").value="";showScreen("screen-admin");renderAdmin();fillBrandSelects();renderUpdateState();renderVeille();}
-  else notify("❌ Mot de passe incorrect","error");
+  if(val("admin-pwd")===ADMIN_PASSWORD){
+    sessionStorage.setItem("autodiag_admin","1");pwdTyped=false;el("admin-pwd").value="";
+    showScreen("screen-admin");renderAdmin();fillBrandSelects();renderUpdateState();renderEnrichStats();renderVeille();lockUI();
+  }else notify("❌ Mot de passe incorrect","error");
 }
-function logoutAdmin(){sessionStorage.removeItem("autodiag_admin");pwdTyped=false;clearPwd();showScreen("screen-home");}
+function logoutAdmin(){sessionStorage.removeItem("autodiag_admin");pwdTyped=false;clearPwd();showScreen("screen-home");lockUI();}
 function adminTab(id){
+  if(!guardAdmin())return;
   ["tab-access","tab-data","tab-update"].forEach(t=>{const e=el(t);if(e)e.classList.toggle("hidden",t!==id);});
-  document.querySelectorAll(".tabs .btn").forEach(b=>b.classList.toggle("tab-on",b.dataset.tab===id));
+  document.querySelectorAll(".tabs .btn[data-tab]").forEach(b=>b.classList.toggle("tab-on",b.dataset.tab===id));
   if(id==="tab-data")fillBrandSelects();
-  if(id==="tab-update"){renderUpdateState();renderVeille();}
+  if(id==="tab-update"){renderUpdateState();renderEnrichStats();renderVeille();}
 }
 function renderAdmin(){
   const c=el("users-table-container"),keys=Object.keys(usersData).sort((a,b)=>(usersData[b].date||0)-(usersData[a].date||0));
@@ -419,6 +460,7 @@ function renderAdmin(){
 }
 function bindAdminTable(){
   el("users-table-container").addEventListener("click",e=>{
+    if(!guardAdmin())return;
     const b=e.target.closest("button[data-a]");if(!b)return;
     const k=b.dataset.k,a=b.dataset.a;
     if(a==="delete"){if(confirm("Supprimer ce tiers ?"))db.ref("access/users/"+k).remove();return;}
@@ -426,19 +468,20 @@ function bindAdminTable(){
   });
 }
 async function addUser(){
+  if(!guardAdmin())return;
   const p=el("new-prenom").value.trim();if(p.length<2)return notify("Prénom invalide","error");
   await dbSet("access/users/user_"+p.toLowerCase().replace(/[^a-z0-9]+/g,"_"),{prenom:p,status:"accepted",device:"admin",date:Date.now()});
   el("new-prenom").value="";notify("✅ "+p+" autorisé");
 }
 function shareAPK(){
-  if(!isAdmin())return notify("❌ Réservé admin","error");
+  if(!guardAdmin())return;
   const u=new URL("./index.html",location.href).href;
   if(navigator.share)navigator.share({title:"KEV FUSION 2026",text:"Installez l'application :",url:u}).catch(()=>{});
   else if(navigator.clipboard)navigator.clipboard.writeText(u).then(()=>notify("🔗 Lien copié"));
   else prompt("Lien :",u);
 }
 
-/* ── formulaires ── */
+/* ── formulaires (admin) ── */
 function fillBrandSelects(){
   ["nm-brand","is-brand","ex-brand"].forEach(id=>{
     const s=el(id);if(!s)return;const prev=s.value;s.innerHTML="";
@@ -460,9 +503,10 @@ async function fillMotorSelectAdmin(){
     s.innerHTML+='<option value="'+k+'">'+esc(bn+" "+m.name)+"</option>";
   });
 }
-async function addBrand(){const n=el("nb-name").value.trim();if(!n)return notify("Nom requis","error");await dbSet("data/brands/"+n.toLowerCase().replace(/[^a-z0-9]+/g,"-"),{name:n,region:val("nb-region")});el("nb-name").value="";notify("✅ Marque ajoutée");}
-async function addModel(){const b=val("nm-brand"),n=el("nm-name").value.trim();if(!b||!n)return notify("Infos requises","error");await dbSet("data/models/"+b+"_"+Date.now(),{brandId:b,name:n,years:el("nm-years").value.trim()||"2017-2027"});el("nm-name").value="";fillMotorSelectAdmin();notify("✅ Modèle ajouté");}
+async function addBrand(){if(!guardAdmin())return;const n=el("nb-name").value.trim();if(!n)return notify("Nom requis","error");await dbSet("data/brands/"+n.toLowerCase().replace(/[^a-z0-9]+/g,"-"),{name:n,region:val("nb-region")});el("nb-name").value="";notify("✅ Marque ajoutée");}
+async function addModel(){if(!guardAdmin())return;const b=val("nm-brand"),n=el("nm-name").value.trim();if(!b||!n)return notify("Infos requises","error");await dbSet("data/models/"+b+"_"+Date.now(),{brandId:b,name:n,years:el("nm-years").value.trim()||"2017-2027"});el("nm-name").value="";fillMotorSelectAdmin();notify("✅ Modèle ajouté");}
 async function addMotor(){
+  if(!guardAdmin())return;
   const mid=val("mo-model"),n=el("mo-name").value.trim();if(!mid||!n)return notify("Infos requises","error");
   const mo=(await db.ref("data/models/"+mid).once("value")).val();
   const cur=(await db.ref("data/motors/"+mid).once("value")).val()||[];
@@ -470,42 +514,46 @@ async function addMotor(){
   await dbSet("data/motors/"+mid,cur);el("mo-name").value="";notify("✅ Motorisation ajoutée (vérifiée)");
 }
 async function addIssue(){
+  if(!guardAdmin())return;
   const t=el("is-title").value.trim();if(!t)return notify("Titre requis","error");
   await dbSet("data/issues/"+uid("is"),{brandId:val("is-brand"),model:val("is-model"),motor:"",title:t,detail:el("is-detail").value.trim(),source:val("is-source"),dtc:el("is-dtc").value.trim(),url:el("is-url").value.trim()});
   el("is-title").value="";el("is-detail").value="";notify("✅ Panne / campagne ajoutée");
 }
 async function addExpert(){
+  if(!guardAdmin())return;
   const t=el("ex-title").value.trim();if(!t)return notify("Titre requis","error");
   await dbSet("data/expert/"+uid("ex"),{brandId:val("ex-brand"),model:el("ex-model").value.trim(),motor:el("ex-motor").value.trim(),type:el("ex-type").value.trim(),title:t,symptom:el("ex-symptom").value.trim(),diagnosis:el("ex-diag").value.trim(),parts:el("ex-parts").value.trim(),dtc:el("ex-dtc").value.trim(),years:el("ex-years").value.trim(),source:val("ex-source"),url:el("ex-url").value.trim()});
   el("ex-title").value="";el("ex-diag").value="";notify("🧠 Fiche expert ajoutée");
 }
 async function addDTC(){
+  if(!guardAdmin())return;
   const c=el("dt-code").value.trim().toUpperCase(),d=el("dt-desc").value.trim();if(!c||!d)return notify("Code + description requis","error");
   await dbSet("data/dtc/"+c.replace(/[^A-Z0-9]+/g,"_"),{code:c,description:d,cause:el("dt-cause").value.trim(),solution:el("dt-sol").value.trim()});
   el("dt-code").value="";notify("✅ DTC ajouté");
 }
+
+/* ── IMPORT / EXPORT : ADMIN UNIQUEMENT ── */
 async function importJSON(){
+  if(!guardAdmin())return;
   const txt=el("import-json").value.trim();if(!txt)return notify("Collez un JSON","error");
   let arr;try{arr=JSON.parse(txt);}catch(e){return notify("❌ JSON invalide","error");}
   if(!Array.isArray(arr))arr=[arr];
   let n=0;
   for(const it of arr){
-    if(it.type==="issue"&&it.brand&&it.title){await dbSet("data/issues/"+uid("im"),{brandId:it.brand,model:it.model||"",motor:it.motor||"",title:it.title,detail:it.detail||"",source:it.source||"Import",dtc:it.dtc||"",url:it.url||""});n++;}
-    else if(it.type==="expert"&&it.brand&&it.title){await dbSet("data/expert/"+uid("im"),{brandId:it.brand,model:it.model||"",motor:it.motor||"",type:it.category||"",title:it.title,symptom:it.symptom||"",diagnosis:it.diagnosis||"",parts:it.parts||"",dtc:it.dtc||"",years:it.years||"",source:it.source||"Import",url:it.url||""});n++;}
+    if(it.type==="issue"&&it.brand&&it.title){await dbSet("data/issues/"+uid("im"),{brandId:it.brand,model:it.model||"",motor:it.motor||"",title:it.title,detail:it.detail||"",source:it.source||"Import admin",dtc:it.dtc||"",url:it.url||""});n++;}
+    else if(it.type==="expert"&&it.brand&&it.title){await dbSet("data/expert/"+uid("im"),{brandId:it.brand,model:it.model||"",motor:it.motor||"",type:it.category||"",title:it.title,symptom:it.symptom||"",diagnosis:it.diagnosis||"",parts:it.parts||"",dtc:it.dtc||"",years:it.years||"",source:it.source||"Import admin",url:it.url||""});n++;}
     else if(it.type==="dtc"&&it.code){await dbSet("data/dtc/"+String(it.code).toUpperCase().replace(/[^A-Z0-9]+/g,"_"),{code:String(it.code).toUpperCase(),description:it.description||"",cause:it.cause||"",solution:it.solution||""});n++;}
   }
   el("import-json").value="";notify("✅ "+n+" fiches importées");
 }
-
-/* ── export / restauration ── */
 async function buildExport(){
   const[marques,modeles,motorisations,pannes,expert,dtc,version]=await Promise.all(["data/brands","data/models","data/motors","data/issues","data/expert","data/dtc","data/version"].map(dbGet));
-  return{app:"KEV FUSION 2026",exportVersion:4,exportedAt:new Date().toISOString(),
+  return{app:"KEV FUSION 2026",exportVersion:5,exportedAt:new Date().toISOString(),
     counts:{marques:Object.keys(marques).length,modeles:Object.keys(modeles).length,motorisations:Object.keys(motorisations).length,pannes:Object.keys(pannes).length,expert:Object.keys(expert).length,dtc:Object.keys(dtc).length,bulletins:BULLETINS.length},
     marques,modeles,motorisations,pannes,expert,dtc,bulletins:BULLETINS,version};
 }
 async function exportJSON(){
-  if(!isAdmin())return notify("❌ Réservé admin","error");
+  if(!guardAdmin())return;
   notify("📤 Export en cours…");
   try{
     const p=await buildExport(),blob=new Blob([JSON.stringify(p,null,2)],{type:"application/json"}),url=URL.createObjectURL(blob),d=new Date();
@@ -515,11 +563,11 @@ async function exportJSON(){
   }catch(e){notify("❌ Export : "+e.message,"error");}
 }
 async function copyJSON(){
-  if(!isAdmin())return notify("❌ Réservé admin","error");
+  if(!guardAdmin())return;
   try{const t=JSON.stringify(await buildExport(),null,2);await navigator.clipboard.writeText(t);notify("📋 JSON copié ("+fmt(t.length)+" car.)");}catch(e){notify("❌ Copie impossible","error");}
 }
 async function restoreJSON(){
-  if(!isAdmin())return notify("❌ Réservé admin","error");
+  if(!guardAdmin())return;
   const f=el("restore-file");if(!f||!f.files[0])return notify("Choisissez un fichier JSON","error");
   notify("📥 Restauration…");
   try{
@@ -585,12 +633,15 @@ function listCard(g){return '<div class="issue-card deep"><strong>🔬 '+esc(g[2
 function issueCard(i,p){return '<div class="issue-card"><strong>'+(p||"")+esc(i.title)+'</strong><span class="src">'+esc(i.source||"")+"</span>"+(i.motor?'<span class="src">'+esc(i.motor)+"</span>":"")+"<p>"+esc(i.detail||i.symptom||"")+"</p>"+(i.dtc?'<p class="dtcline">DTC : '+esc(i.dtc)+"</p>":"")+srcLink(i.url)+"</div>";}
 function expertCard(e,p){
   const bn=brandsData[e.brandId]?brandsData[e.brandId].name:"";
-  return '<div class="issue-card camp"><strong>'+(p||"")+esc(e.title)+'</strong><span class="src">🧠 '+esc(e.source||"Expert")+"</span>"+(e.type?'<span class="src">🔬 '+esc(e.type)+"</span>":"")+(bn?'<span class="src">'+esc(bn)+"</span>":"")+(e.model?'<span class="src">'+esc(e.model)+"</span>":"")+(e.motor?'<span class="src">'+esc(e.motor)+"</span>":"")+
+  const der=e.derived?'<span class="src src-der">🧠 protocole dérivé</span>':"";
+  return '<div class="issue-card '+(e.derived?"deep":"camp")+'"><strong>'+(p||"")+esc(e.title)+'</strong><span class="src">'+esc(e.source||"Expert")+"</span>"+der+(e.type?'<span class="src">🔬 '+esc(e.type)+"</span>":"")+(bn?'<span class="src">'+esc(bn)+"</span>":"")+(e.model?'<span class="src">'+esc(e.model)+"</span>":"")+(e.motor?'<span class="src">'+esc(e.motor)+"</span>":"")+
    (e.symptom?"<p><b>⚠️ Symptômes :</b> "+esc(e.symptom)+"</p>":"")+
    (e.diagnosis?"<p><b>🔬 Protocole ingénieur :</b> "+esc(e.diagnosis)+"</p>":"")+
    (e.parts?"<p><b>🔩 Organes :</b> "+esc(e.parts)+"</p>":"")+
    (e.dtc?'<p class="dtcline">🔗 DTC : '+esc(e.dtc)+"</p>":"")+
-   (e.years?'<p class="meta">Années : '+esc(e.years)+"</p>":"")+srcLink(e.url)+"</div>";
+   (e.years?'<p class="meta">Années : '+esc(e.years)+"</p>":"")+
+   (e.derived?'<p class="meta">⚠️ Analyse technique dérivée — confirmer par source officielle avant intervention.</p>':"")+
+   srcLink(e.url)+"</div>";
 }
 function arrToExpert(e){return{brandId:e[0],motor:e[1],type:e[2],title:e[3],symptom:e[4],diagnosis:e[5],parts:e[6],dtc:e[7],source:e[8],years:e[9],model:""};}
 function bulletinCard(b){
@@ -605,24 +656,30 @@ function fuelCards(f){
   return h;
 }
 
-/* ── recherche ── */
+/* ── recherche élargie ── */
 let eT=null;
 function expertSearch(){clearTimeout(eT);eT=setTimeout(doExpertSearch,250);}
 function qs(t){const i=el("expert-search");if(i)i.value=t;expertSearch();}
 async function doExpertSearch(){
-  const q=val("expert-search").trim().toLowerCase(),box=el("expert-results");
-  if(q.length<3){box.innerHTML="";return;}
+  const raw=val("expert-search").trim(),box=el("expert-results");
+  if(raw.length<3){box.innerHTML="";return;}
+  const terms=(typeof expandQuery==="function")?expandQuery(raw):[raw.toLowerCase()];
   const ex=await dbGet("data/expert"),iss=await dbGet("data/issues");
+  const exArr=Object.values(ex);
+  const hitEx=exArr.filter(e=>hayMatches([e.title,e.type,e.symptom,e.diagnosis,e.parts,e.dtc,e.motor,e.model,e.keywords].join(" "),terms));
+  const official=hitEx.filter(e=>!e.derived),derived=hitEx.filter(e=>e.derived);
   let h="";
-  Object.values(ex).filter(e=>[e.title,e.type,e.symptom,e.diagnosis,e.parts,e.dtc,e.motor,e.model].join(" ").toLowerCase().includes(q)).slice(0,20).forEach(e=>h+=expertCard(e,"🧠 "));
-  Object.values(iss).filter(i=>[i.title,i.detail,i.dtc,i.model].join(" ").toLowerCase().includes(q)).slice(0,15).forEach(i=>h+=issueCard(i));
-  EXPERT.filter(e=>e.slice(2,8).join(" ").toLowerCase().includes(q)).slice(0,20).forEach(e=>h+=expertCard(arrToExpert(e),"🧠 "));
-  BULLETINS.filter(b=>b.join(" ").toLowerCase().includes(q)).forEach(b=>h+=bulletinCard(b));
-  UNIV.filter(u=>(u[0]+" "+u[1]).toLowerCase().includes(q)).forEach(u=>h+=univCard(u));
-  EV_LIST.concat(TH_LIST,HY_LIST).filter(g=>g.slice(1,7).join(" ").toLowerCase().includes(q)).forEach(g=>h+=listCard(g));
-  Object.entries(GENERIC).forEach(([f,g])=>g.issues.forEach(i=>{if((i[0]+" "+i[1]).toLowerCase().includes(q))h+='<div class="issue-card"><strong>'+esc(i[0])+'</strong><span class="src">Typique '+FUELS[f]+"</span><p>"+esc(i[1])+'</p><p class="dtcline">DTC : '+esc(i[2])+"</p></div>";}));
-  Object.entries(GENERIC_EXPERT).forEach(([f,l])=>l.forEach(g=>{if((g[0]+" "+g[1]+" "+g[2]).toLowerCase().includes(q))h+='<div class="issue-card deep"><strong>🔬 '+esc(g[0])+'</strong><span class="src">Ingénieur '+FUELS[f]+"</span><p><b>Symptômes :</b> "+esc(g[1])+"</p><p><b>Protocole :</b> "+esc(g[2])+"</p><p><b>Organes :</b> "+esc(g[3])+'</p><p class="dtcline">DTC : '+esc(g[4])+"</p></div>";}));
-  h+=sourceLinks(q);
+  h+='<p class="meta">🔎 Recherche élargie : '+terms.length+' termes techniques · '+official.length+" fiche(s) expert · "+derived.length+" protocole(s) dérivé(s)</p>";
+  official.slice(0,20).forEach(e=>h+=expertCard(e,"🧠 "));
+  Object.values(iss).filter(i=>hayMatches([i.title,i.detail,i.dtc,i.model].join(" "),terms)).slice(0,15).forEach(i=>h+=issueCard(i));
+  EXPERT.filter(e=>hayMatches(e.slice(2,8).join(" "),terms)).slice(0,20).forEach(e=>h+=expertCard(arrToExpert(e),"🧠 "));
+  BULLETINS.filter(b=>hayMatches(b.join(" "),terms)).forEach(b=>h+=bulletinCard(b));
+  UNIV.filter(u=>hayMatches(u[0]+" "+u[1],terms)).forEach(u=>h+=univCard(u));
+  EV_LIST.concat(TH_LIST,HY_LIST).filter(g=>hayMatches(g.slice(1,7).join(" "),terms)).forEach(g=>h+=listCard(g));
+  Object.entries(GENERIC).forEach(([f,g])=>g.issues.forEach(i=>{if(hayMatches(i[0]+" "+i[1],terms))h+='<div class="issue-card"><strong>'+esc(i[0])+'</strong><span class="src">Typique '+FUELS[f]+"</span><p>"+esc(i[1])+'</p><p class="dtcline">DTC : '+esc(i[2])+"</p></div>";}));
+  Object.entries(GENERIC_EXPERT).forEach(([f,l])=>l.forEach(g=>{if(hayMatches(g[0]+" "+g[1]+" "+g[2],terms))h+='<div class="issue-card deep"><strong>🔬 '+esc(g[0])+'</strong><span class="src">Ingénieur '+FUELS[f]+"</span><p><b>Symptômes :</b> "+esc(g[1])+"</p><p><b>Protocole :</b> "+esc(g[2])+"</p><p><b>Organes :</b> "+esc(g[3])+'</p><p class="dtcline">DTC : '+esc(g[4])+"</p></div>";}));
+  derived.slice(0,25).forEach(e=>h+=expertCard(e,"🧠 "));
+  h+=sourceLinks(raw);
   box.innerHTML=h;
 }
 
@@ -643,13 +700,14 @@ async function buildBrandSelect(){
 async function enterApp(){
   const s=getSession();
   if(!isAdmin()&&(!s||s.status!=="accepted"))return notify("Accès non autorisé","error");
-  showScreen("screen-app");
+  showScreen("screen-app");lockUI();
   el("app-user").textContent=isAdmin()?"👑 Admin":s.prenom;
-  await ensureCatalog(false);
+  if(isAdmin()){await ensureCatalog(false);}
+  else{await tierAutoSync();}
   await buildBrandSelect();
   renderVeille();
 }
-function logoutApp(){showScreen(isAdmin()?"screen-admin":"screen-accepted");}
+function logoutApp(){showScreen(isAdmin()?"screen-admin":"screen-accepted");lockUI();}
 async function loadModels(){
   curBrand=val("sel-marque");curModelId=null;curModelName=null;motorsCache=[];
   el("sel-model").innerHTML='<option value="">-- Modèle --</option>';
@@ -697,7 +755,7 @@ async function correlate(){
   box.innerHTML=h;
 
   const bl=BULLETINS.filter(b=>b[1]===curBrand||(b[3]&&curModelName&&b[3].toLowerCase().includes(String(curModelName).split(" ")[0].toLowerCase())));
-  tbox.innerHTML=(bl.length?bl.map(bulletinCard).join(""):'<p class="muted">Aucun bulletin spécifique en base — consultez la recherche TSB ci-dessus.</p>')+
+  tbox.innerHTML=(bl.length?bl.map(bulletinCard).join(""):'<p class="muted">Aucun bulletin spécifique en base — consultez la recherche TSB ci-dessous.</p>')+
     '<div class="issue-card deep"><strong>📄 Veille bulletins techniques</strong><p class="linkwrap">'+
     slink("🔎 TSB "+esc(bn),"https://www.google.com/search?q="+encodeURIComponent(bn+" "+curModelName)+"+TSB+technical+service+bulletin")+
     slink("🔎 NHTSA TSB","https://www.nhtsa.gov/recalls")+
@@ -706,12 +764,17 @@ async function correlate(){
 
   const exAll=Object.values(await dbGet("data/expert"));
   const exHits=exAll.filter(e=>e.brandId===curBrand&&fuzzy(e.model,curModelName)&&motorMatch(e.motor,motor)&&(e.motor||titleOk(e.title+" "+(e.symptom||""),motor)));
+  const exOff=exHits.filter(e=>!e.derived),exDer=exHits.filter(e=>e.derived);
   const bex=EXPERT.filter(e=>e[0]===curBrand&&kwMatch(e[1],motor)&&(e[1]||titleOk(e[2]+" "+e[3]+" "+e[4],motor)));
   let eh="";
-  exHits.forEach(e=>eh+=expertCard(e,"🧠 "));
+  exOff.forEach(e=>eh+=expertCard(e,"🧠 "));
   bex.forEach(e=>eh+=expertCard(arrToExpert(e),"🧠 "));
   if(fuel&&GENERIC_EXPERT[fuel])GENERIC_EXPERT[fuel].forEach(g=>eh+='<div class="issue-card deep"><strong>🔬 '+esc(g[0])+'</strong><span class="src">Ingénieur '+FUELS[fuel]+"</span><p><b>Symptômes :</b> "+esc(g[1])+"</p><p><b>Protocole :</b> "+esc(g[2])+"</p><p><b>Organes :</b> "+esc(g[3])+'</p><p class="dtcline">DTC : '+esc(g[4])+"</p></div>");
   eh+=fuelCards(fuel);
+  if(exDer.length){
+    eh+='<hr class="sep"><h4 class="deepTitle">🧠 Protocoles dérivés pour cette motorisation ('+exDer.length+')</h4>';
+    exDer.slice(0,30).forEach(e=>eh+=expertCard(e,""));
+  }
   if(motor){
     const q=val("expert-search")||"";
     let tech=null;
@@ -743,7 +806,6 @@ async function correlate(){
     mbox.innerHTML=(typeof buildMaintenanceHTML==="function")?buildMaintenanceHTML(curBrand,curModelName,motor):'<p style="color:#ef4444">⚠️ Module maintenance non chargé.</p>';
     if(window.__maintToolsRefresh)window.__maintToolsRefresh();
   }
-
   try{
     const hist=JSON.parse(localStorage.getItem("autodiag_hist")||"[]");
     const entry={date:new Date().toISOString(),marque:bn,modele:curModelName,motorisation:motor?motor.name:""};
