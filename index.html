@@ -4,8 +4,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#05070f">
-<meta name="description" content="KEV FUSION 2026 — Diagnostic auto expert">
-<title>KEV FUSION 2026</title>
+<meta name="description" content="KEV FUSION 2026 — Diagnostic auto expert : pannes, rappels, TSB, DTC, entretien. Toutes marques 2017-2027.">
+<title>KEV FUSION 2026 — Auto Diagnostic Pro</title>
 <link rel="manifest" href="./manifest.json">
 <link rel="icon" type="image/png" href="./icon-192.png">
 <link rel="apple-touch-icon" href="./icon-192.png">
@@ -14,13 +14,15 @@
 <link rel="dns-prefetch" href="https://www.rappel.conso.gouv.fr">
 <link rel="dns-prefetch" href="https://ec.europa.eu">
 <link rel="dns-prefetch" href="https://www.nhtsa.gov">
+<link rel="preload" as="image" fetchpriority="low"
+      href="https://images.unsplash.com/photo-1552519507-da3b142c6e3d?auto=format&fit=crop&w=900&q=55">
 
-<!-- ══════════ CRITICAL CSS INLINE (premier paint < 100 ms) ══════════ -->
+<!-- ══════════ CRITICAL CSS INLINE ══════════ -->
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-:root{--void:#05070f;--deep:#080d1a;--surface:#0c1424;--surface-2:#101c31;--raise:#15243d;--line:#1e3050;--line-soft:rgba(120,170,220,.14);--signal:#4ade80;--signal-2:#22c55e;--hv:#22d3ee;--hv-2:#0ea5e9;--oil:#f59e0b;--oil-2:#d97706;--critical:#ef4444;--data:#a78bfa;--text:#eef4fb;--text-2:#b9c9dd;--muted:#7f93ad;--faint:#5b6d85;--r-s:9px;--r-m:13px;--r-l:18px;--r-xl:24px;--top:66px;--shadow:0 18px 50px rgba(0,0,0,.55);--mono:ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,monospace}
+:root{--void:#05070f;--deep:#080d1a;--surface:#0c1424;--surface-2:#101c31;--raise:#15243d;--line:#1e3050;--line-soft:rgba(120,170,220,.14);--signal:#4ade80;--signal-2:#22c55e;--hv:#22d3ee;--hv-2:#0ea5e9;--oil:#f59e0b;--oil-2:#d97706;--critical:#ef4444;--critical-2:#dc2626;--data:#a78bfa;--data-2:#8b5cf6;--text:#eef4fb;--text-2:#b9c9dd;--muted:#7f93ad;--faint:#5b6d85;--r-s:9px;--r-m:13px;--r-l:18px;--r-xl:24px;--top:66px;--shadow:0 18px 50px rgba(0,0,0,.55);--mono:ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,monospace}
 html{scroll-behavior:smooth;-webkit-text-size-adjust:100%}
-body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;background:var(--void);color:var(--text);min-height:100vh;line-height:1.55;padding:calc(var(--top)+18px) 16px 120px;overflow-x:hidden;font-feature-settings:"tnum" 1}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",sans-serif;background:var(--void);color:var(--text);min-height:100vh;line-height:1.55;padding:calc(var(--top)+18px) 16px 120px;overflow-x:hidden;font-feature-settings:"tnum" 1}
 .bg-stage{position:fixed;inset:0;z-index:-4;pointer-events:none;overflow:hidden;background:radial-gradient(1200px 700px at 12% -8%,#0d1c33 0%,transparent 60%),radial-gradient(1000px 620px at 92% 8%,#101a2e 0%,transparent 62%),linear-gradient(180deg,#05070f,#070c18 55%,#05070f)}
 .bg3d{position:fixed;inset:0;z-index:-2;display:flex;align-items:center;justify-content:center;pointer-events:none;overflow:hidden}
 .bg3d::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse at 50% 64%,rgba(74,222,128,.09),transparent 60%),radial-gradient(ellipse at 50% 112%,rgba(8,13,26,.92),transparent 70%)}
@@ -37,7 +39,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;b
 .brand-txt i{font-style:normal;font-size:10.5px;color:var(--muted);letter-spacing:.04em}
 .topbar-meta{display:flex;align-items:center;gap:8px}
 .topbar-act{display:flex;gap:6px}
-.icon-btn{width:34px;height:34px;border-radius:10px;border:1px solid var(--line);background:var(--surface-2);color:var(--text-2);font-size:15px;cursor:pointer;display:grid;place-items:center}
+.icon-btn{width:34px;height:34px;border-radius:10px;border:1px solid var(--line);background:var(--surface-2);color:var(--text-2);font-size:15px;cursor:pointer;display:grid;place-items:center;transition:.18s}
+.icon-btn:hover{border-color:var(--signal);color:var(--signal)}
 .container{max-width:900px;margin:0 auto;position:relative;z-index:1}
 .screen{display:none}
 .screen.active{display:block;animation:screenIn .3s ease}
@@ -145,7 +148,6 @@ input[type=file]{padding:0;border:none;background:none;margin:0}
 .pulse-ring.warn{color:var(--oil);background:radial-gradient(circle,rgba(245,158,11,.16),transparent 70%)}
 .pulse-ring.bad{color:var(--critical);background:radial-gradient(circle,rgba(239,68,68,.16),transparent 70%)}
 @keyframes ripple{0%{transform:scale(1);opacity:.5}100%{transform:scale(1.55);opacity:0}}
-.status-icon{font-size:3.2em;text-align:center;margin:14px 0}
 .timeline{display:flex;flex-direction:column;gap:10px;margin:18px 0;text-align:left}
 .tl{display:flex;align-items:center;gap:12px;font-size:13px;color:var(--faint)}
 .tl i{width:26px;height:26px;flex:none;border-radius:50%;display:grid;place-items:center;font-style:normal;font-size:12px;font-weight:700;border:1.5px solid var(--line);background:var(--surface)}
@@ -266,6 +268,8 @@ tbody tr:hover{background:rgba(74,222,128,.045)}
 .foot span{color:var(--signal);font-weight:700;display:block;margin-bottom:3px;letter-spacing:.14em}
 .foot i{font-style:normal}
 #print-report{display:none}
+.perf-spin::after{content:'';display:inline-block;width:12px;height:12px;margin-left:8px;border:2px solid #334155;border-top-color:#4ade80;border-radius:50%;animation:perfspin .7s linear infinite;vertical-align:-2px}
+@keyframes perfspin{to{transform:rotate(360deg)}}
 @media (max-width:640px){body{padding:calc(var(--top)+12px) 12px 110px}.card{padding:18px;border-radius:var(--r-l)}.grid-2,.btn-row{grid-template-columns:1fr}.hero-stats{grid-template-columns:repeat(2,1fr)}.feature-grid{grid-template-columns:1fr}.links-row{grid-template-columns:repeat(2,1fr)}.tabs .btn{min-width:calc(50% - 4px);flex:1 1 calc(50% - 4px)}.brand-txt i{display:none}.topbar-meta .net{display:none}.hero-title{font-size:clamp(1.6rem,7.5vw,2.2rem)}.veh-recap{gap:6px;padding:10px}.vr-arrow{display:none}.vr-item{flex:1 1 100%}.install-fab{left:12px;right:76px;bottom:14px;padding:12px 16px;font-size:13px}.totop{bottom:14px;right:12px;width:42px;height:42px}.step{padding-left:48px}.control-deck{padding:12px}}
 @media (max-width:380px){.hero-stats{grid-template-columns:1fr 1fr;gap:8px}.links-row{grid-template-columns:1fr}.card-ico{width:38px;height:38px;font-size:18px}}
 @media (prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}html{scroll-behavior:auto}.card,.feature{opacity:1;transform:none}}
@@ -276,7 +280,7 @@ tbody tr:hover{background:rgba(74,222,128,.045)}
 
 <noscript><div class="noscript">⚠️ JavaScript est requis pour utiliser KEV FUSION 2026.</div></noscript>
 
-<!-- ══════════ SCÈNE DE FOND (légère) ══════════ -->
+<!-- ══════════ SCÈNE DE FOND ══════════ -->
 <div class="bg-stage" aria-hidden="true">
   <div class="aurora a1"></div>
   <div class="aurora a2"></div>
@@ -455,6 +459,7 @@ tbody tr:hover{background:rgba(74,222,128,.045)}
         <button class="btn btn-success" data-tab="app" onclick="enterApp()">🚗 Diagnostic</button>
       </nav>
 
+      <!-- ── ACCÈS ── -->
       <div id="tab-access">
         <h3 class="sec-title"><i style="--sc:#4ade80"></i>Autoriser un tiers</h3>
         <div class="grid-2">
@@ -476,6 +481,7 @@ tbody tr:hover{background:rgba(74,222,128,.045)}
         </div>
       </div>
 
+      <!-- ── BASE ── -->
       <div id="tab-data" class="hidden">
         <div class="locknote">🔒 Import et export de la base : administrateur uniquement.</div>
         <h3 class="sec-title"><i style="--sc:#4ade80"></i>Export complet</h3>
@@ -595,6 +601,7 @@ tbody tr:hover{background:rgba(74,222,128,.045)}
         </div>
       </div>
 
+      <!-- ── MAJ & DIFFUSION ── -->
       <div id="tab-update" class="hidden">
         <h3 class="sec-title"><i style="--sc:#f59e0b"></i>Mise à jour manuelle massive</h3>
         <p class="meta" id="update-next">—</p>
@@ -658,6 +665,7 @@ tbody tr:hover{background:rgba(74,222,128,.045)}
       </nav>
     </div>
 
+    <!-- Recherche par symptôme -->
     <div class="card" id="sec-search">
       <h3 class="sec-title"><i style="--sc:#a78bfa"></i>Recherche par symptôme</h3>
       <div class="search-shell">
@@ -686,8 +694,9 @@ tbody tr:hover{background:rgba(74,222,128,.045)}
       <div id="expert-results"></div>
     </div>
 
+    <!-- Sélection véhicule — FILTRES PRÉDICTIFS -->
     <div class="card vehicle-card" id="sec-vehicle">
-      <h3 class="sec-title"><i style="--sc:#4ade80"></i>Sélection du véhicule</h3>
+      <h3 class="sec-title"><i style="--sc:#4ade80"></i>Sélection du véhicule — mode prédictif</h3>
       <div class="veh-recap" id="veh-recap">
         <span class="vr-item" id="vr-brand">Marque</span><span class="vr-arrow">›</span>
         <span class="vr-item" id="vr-model">Modèle</span><span class="vr-arrow">›</span>
@@ -696,36 +705,46 @@ tbody tr:hover{background:rgba(74,222,128,.045)}
       <div class="stepper">
         <div class="step" id="step-1">
           <span class="step-n">1</span>
-          <label class="field"><span class="field-lbl">Marque</span><select id="sel-marque" onchange="loadModels()"></select></label>
+          <label class="field"><span class="field-lbl">Marque</span>
+            <select id="sel-marque" onchange="loadModels()"></select>
+          </label>
         </div>
         <div class="step" id="step-2">
           <span class="step-n">2</span>
-          <label class="field"><span class="field-lbl">Modèle</span><select id="sel-model" onchange="loadMotors()"></select></label>
+          <label class="field"><span class="field-lbl">Modèle</span>
+            <select id="sel-model" onchange="loadMotors()"></select>
+          </label>
           <p class="meta" id="model-count"></p>
         </div>
         <div class="step" id="step-3">
           <span class="step-n">3</span>
-          <label class="field"><span class="field-lbl">Motorisation / puissance</span><select id="sel-motor" onchange="correlate()"></select></label>
+          <label class="field"><span class="field-lbl">Motorisation / puissance</span>
+            <select id="sel-motor" onchange="correlate()"></select>
+          </label>
           <p class="meta" id="motor-count"></p>
         </div>
       </div>
     </div>
 
+    <!-- Pannes -->
     <div class="card" id="sec-pannes">
       <h3 class="sec-title"><i style="--sc:#ef4444"></i>Pannes connues & campagnes de rappel</h3>
       <div id="issues-box"><p class="muted">Sélectionnez un véhicule pour lancer la corrélation.</p></div>
     </div>
 
+    <!-- TSB -->
     <div class="card" id="sec-tsb">
       <h3 class="sec-title"><i style="--sc:#22d3ee"></i>Bulletins techniques & TSB</h3>
       <div id="tsb-box"><p class="muted">Sélectionnez un véhicule…</p></div>
     </div>
 
+    <!-- Expert -->
     <div class="card" id="sec-expert">
       <h3 class="sec-title"><i style="--sc:#a78bfa"></i>Fiches expert corrélées</h3>
       <div id="expert-box"><p class="muted">Sélectionnez un véhicule…</p></div>
     </div>
 
+    <!-- DTC -->
     <div class="card" id="sec-dtc">
       <h3 class="sec-title"><i style="--sc:#f59e0b"></i>Codes défaut DTC corrélés</h3>
       <div id="dtc-box"><p class="muted">—</p></div>
@@ -737,6 +756,7 @@ tbody tr:hover{background:rgba(74,222,128,.045)}
       <div id="dtc-results"></div>
     </div>
 
+    <!-- Recherche massive -->
     <div class="card mass-card" id="sec-mass">
       <h3 class="sec-title"><i style="--sc:#22d3ee"></i>Recherche massive corrélée</h3>
       <div class="control-deck">
@@ -754,6 +774,7 @@ tbody tr:hover{background:rgba(74,222,128,.045)}
       <div id="release-info"></div>
     </div>
 
+    <!-- Maintenance -->
     <div class="card" id="sec-maint">
       <h3 class="sec-title"><i style="--sc:#f59e0b"></i>Maintenance / plan d'entretien du véhicule</h3>
       <div id="maint-wrap" class="maint-wrap">
@@ -762,6 +783,7 @@ tbody tr:hover{background:rgba(74,222,128,.045)}
       </div>
     </div>
 
+    <!-- Veille / historique / rapport -->
     <div class="card">
       <h3 class="sec-title"><i style="--sc:#22d3ee"></i>Veille & actualisation</h3>
       <div id="veille-app" class="linkwrap"></div>
@@ -793,7 +815,7 @@ tbody tr:hover{background:rgba(74,222,128,.045)}
 <button class="totop" id="totop" onclick="__toTop()" aria-label="Remonter">↑</button>
 <div id="print-report"></div>
 
-<!-- ══════════ SCRIPTS CHARGÉS EN PARALLÈLE ══════════ -->
+<!-- ══════════ SCRIPTS — ordre de chargement critique ══════════ -->
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js" defer></script>
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js" defer></script>
 <script src="./firebase-config.js" defer></script>
@@ -802,12 +824,14 @@ tbody tr:hover{background:rgba(74,222,128,.045)}
 <script src="./maintenance.js" defer></script>
 <script src="./app.js" defer></script>
 <script src="./perf.js" defer></script>
+<script src="./fix-filters.js" defer></script>
 
-<!-- ══════════ SCRIPT CRITIQUE INLINE (non-bloquant) ══════════ -->
+<!-- ══════════ COUCHE UX INLINE (non-bloquante) ══════════ -->
 <script>
-/* ══════════ Couche d'expérience ultra-légère ══════════ */
 (function(){
   "use strict";
+
+  /* ── Son ── */
   var AC=null, soundOn=(localStorage.getItem("kev_sound")!=="0");
   function ctx(){ if(!AC){ try{ AC=new (window.AudioContext||window.webkitAudioContext)(); }catch(e){ AC=null; } } return AC; }
   function beep(f,d,t,v){
@@ -836,6 +860,7 @@ tbody tr:hover{background:rgba(74,222,128,.045)}
   window.__toggleSound=function(){ soundOn=!soundOn; localStorage.setItem("kev_sound",soundOn?"1":"0"); paintSound(); if(soundOn) sfx("tick"); };
   paintSound();
 
+  /* Hook notify */
   function hookNotify(){
     if(typeof window.notify!=="function"||window.notify.__hooked) return;
     var orig=window.notify;
@@ -843,9 +868,12 @@ tbody tr:hover{background:rgba(74,222,128,.045)}
     w.__hooked=true; window.notify=w;
   }
   hookNotify(); setTimeout(hookNotify,600); setTimeout(hookNotify,2000);
+
+  /* SFX sur clics */
   document.addEventListener("click",function(e){ var b=e.target.closest(".btn,.chip,.icon-btn,.tabs .btn"); if(b&&!b.disabled) sfx("tick"); },true);
   document.addEventListener("change",function(e){ if(e.target&&e.target.tagName==="SELECT") sfx("tick"); },true);
 
+  /* ── Récap véhicule + étapes ── */
   function txt(id){ var e=document.getElementById(id); return e&&e.options&&e.selectedIndex>=0?e.options[e.selectedIndex].text:""; }
   function paintVehicle(){
     var b=document.getElementById("sel-marque"), m=document.getElementById("sel-model"), mo=document.getElementById("sel-motor");
@@ -864,6 +892,7 @@ tbody tr:hover{background:rgba(74,222,128,.045)}
   });
   setTimeout(paintVehicle,900); setInterval(paintVehicle,2500);
 
+  /* ── Stats hero ── */
   function count(k){ try{ return Object.keys(JSON.parse(localStorage.getItem(k)||"{}")).length; }catch(e){ return 0; } }
   function animNum(e,to){
     if(!e) return;
@@ -886,6 +915,7 @@ tbody tr:hover{background:rgba(74,222,128,.045)}
   if(typeof BRANDS!=="undefined"){ var hb=document.getElementById("hs-brands"); if(hb&&hb.textContent==="—") hb.textContent=BRANDS.length.toLocaleString("fr-FR"); }
   if(typeof MODELS_ALL!=="undefined"){ var hm=document.getElementById("hs-models"); if(hm&&hm.textContent==="—") hm.textContent=MODELS_ALL.length.toLocaleString("fr-FR"); }
 
+  /* ── Navigation ── */
   window.__toTop=function(){ window.scrollTo({top:0,behavior:"smooth"}); sfx("tick"); };
   var tt=document.getElementById("totop");
   function onScroll(){
@@ -908,12 +938,14 @@ tbody tr:hover{background:rgba(74,222,128,.045)}
     sfx("tick");
   });
 
+  /* ── Révélation progressive ── */
   if("IntersectionObserver" in window){
     var io=new IntersectionObserver(function(es){ es.forEach(function(en){ if(en.isIntersecting){ en.target.classList.add("in"); io.unobserve(en.target); } }); },{threshold:0.06,rootMargin:"0px 0px -40px 0px"});
     function scan(){ document.querySelectorAll(".screen.active .card,.screen.active .feature").forEach(function(c){ if(!c.classList.contains("in")) io.observe(c); }); }
     scan(); setInterval(scan,1200);
   } else { document.querySelectorAll(".card,.feature").forEach(function(c){c.classList.add("in");}); }
 
+  /* ── Unlock audio au premier geste ── */
   var unlock=function(){ var a=ctx(); if(a&&a.state==="suspended") a.resume().catch(function(){}); document.removeEventListener("pointerdown",unlock); document.removeEventListener("keydown",unlock); };
   document.addEventListener("pointerdown",unlock); document.addEventListener("keydown",unlock);
 })();
