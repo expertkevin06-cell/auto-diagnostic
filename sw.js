@@ -1,4 +1,4 @@
-const CACHE_NAME="kev-fusion-v22";
+const CACHE_NAME="kev-fusion-v23";
 const CORE=["./","./index.html","./manifest.json","./styles.css","./data.js","./enrich.js","./maintenance.js","./app.js","./firebase-config.js","./icon-192.png","./icon-512.png"];
 self.addEventListener("install",e=>{self.skipWaiting();e.waitUntil(caches.open(CACHE_NAME).then(c=>Promise.all(CORE.map(u=>c.add(u).catch(()=>{})))));});
 self.addEventListener("activate",e=>{e.waitUntil(caches.keys().then(k=>Promise.all(k.filter(x=>x!==CACHE_NAME).map(x=>caches.delete(x)))).then(()=>self.clients.claim()));});
