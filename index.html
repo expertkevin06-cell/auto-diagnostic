@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="theme-color" content="#0a0e27">
-<meta name="description" content="KEV FUSION 2026 — Diagnostic auto expert : pannes, rappels, TSB, DTC et plans d'entretien. Toutes marques 2017-2027.">
+<meta name="description" content="KEV FUSION 2026 — Diagnostic auto expert : pannes, campagnes de rappel, TSB, DTC et plans d'entretien. Toutes marques 2017-2027.">
 <title>KEV FUSION 2026 — Auto Diagnostic Pro</title>
 <link rel="manifest" href="./manifest.json">
 <link rel="icon" type="image/png" href="./icon-192.png">
@@ -32,6 +32,7 @@
 <header>
   <h1>🚗 KEV FUSION 2026</h1>
   <p>Auto Diagnostic Pro • Ingénieur expert • 2017-2027 • Pannes • Rappels • TSB • DTC • Entretien</p>
+  <p><span id="role-badge" class="pill pill-tier">👤 Tiers</span></p>
 </header>
 
 <section id="screen-home" class="screen active"><div class="card">
@@ -53,6 +54,7 @@
 <section id="screen-accepted" class="screen"><div class="card">
 <div class="status-icon">✅</div><h2>Accès autorisé</h2>
 <p>Bienvenue <strong id="accepted-name"></strong> !</p>
+<p class="meta" id="tier-sync">🔄 Synchronisation de la base au lancement…</p>
 <button class="btn btn-success" onclick="enterApp()">🚗 Entrer dans l'application</button>
 </div></section>
 
@@ -73,7 +75,7 @@
 <button class="btn btn-secondary" onclick="showScreen('screen-home')">← Retour</button>
 </div></section>
 
-<section id="screen-admin" class="screen"><div class="card">
+<section id="screen-admin" class="screen"><div class="card" data-admin-only>
 <h2>🛠️ Administration</h2>
 <p class="meta">Base du : <span id="admin-version">--</span> • <span id="update-badge" class="pill">—</span></p>
 <div class="tabs">
@@ -98,6 +100,7 @@
 </div>
 
 <div id="tab-data" class="hidden">
+<div class="locknote">🔒 Import et export réservés à l'administrateur.</div>
 <h3>📤 EXPORT JSON COMPLET</h3>
 <button class="btn btn-success" onclick="exportJSON()">📤 Télécharger le fichier JSON</button>
 <button class="btn btn-secondary" onclick="copyJSON()">📋 Copier le JSON</button>
@@ -113,11 +116,11 @@
 <h3>⚙️ Motorisation</h3>
 <select id="mo-model"></select><input id="mo-name" placeholder="Ex: 1.5 Blue dCi 115"><select id="mo-fuel"><option value="essence">Essence</option><option value="diesel">Diesel</option><option value="hybride">Hybride</option><option value="electrique">Électrique</option></select><input id="mo-power" placeholder="Puissance (ex: 115 ch)">
 <button class="btn btn-success" onclick="addMotor()">Ajouter</button>
-<h3>⚠️ Panne / campagne</h3>
+<h3>⚠️ Panne / campagne officielle</h3>
 <select id="is-brand" onchange="fillModelSelect()"></select><select id="is-model"></select>
 <input id="is-title" placeholder="Titre"><textarea id="is-detail" rows="2" placeholder="Détail / symptômes"></textarea>
 <select id="is-source"><option>Rappel Conso</option><option>Safety Gate</option><option>NHTSA</option><option>KBA</option><option>GOV.UK</option><option>Campagne constructeur</option><option>TSB constructeur</option><option>L'Argus / Caradisiac</option></select>
-<input id="is-dtc" placeholder="DTC liés"><input id="is-url" placeholder="URL source">
+<input id="is-dtc" placeholder="DTC liés"><input id="is-url" placeholder="URL source officielle">
 <button class="btn btn-success" onclick="addIssue()">Ajouter</button>
 <h3>🧠 Fiche expert ingénieur</h3>
 <select id="ex-brand"></select><input id="ex-model" placeholder="Modèle (vide = tous)"><input id="ex-motor" placeholder="Motorisation clé">
@@ -135,22 +138,24 @@
 </div>
 
 <div id="tab-update" class="hidden">
-<h3>🔄 Mise à jour de la base</h3>
+<h3>🔄 Mise à jour manuelle + auto-enrichissement</h3>
 <p class="meta" id="update-next">—</p>
+<div id="enrich-stats"></div>
 <div class="updrow">
-  <label class="updlabel">Cycle automatique
+  <label class="updlabel">Cycle de référence
     <select id="cycle-select"><option value="7">7 jours</option><option value="15">15 jours</option><option value="30">30 jours</option><option value="60">60 jours</option></select>
   </label>
-  <label class="switch"><input type="checkbox" id="auto-toggle"><span class="slider"></span><span class="swtxt">MAJ automatique</span></label>
+  <label class="updlabel">Fiches dérivées par palier
+    <select id="quota-select"><option value="300">300</option><option value="600">600</option><option value="1200">1 200</option><option value="2500">2 500</option><option value="5000">5 000</option></select>
+  </label>
 </div>
-<button class="btn btn-admin" data-update-btn onclick="manualUpdate()">🔄 MAJ manuelle complète 2017-2027</button>
-<button class="btn btn-secondary" data-update-btn onclick="runUpdate('auto')">⚡ Forcer la recherche d'actualisation</button>
+<button class="btn btn-admin" data-update-btn onclick="manualUpdate()">🔄 MAJ manuelle + auto-enrichissement massif</button>
 <div class="progress"><div id="update-bar" class="progress-bar"></div></div>
 <p class="meta" id="update-label">En attente</p>
 <div id="update-log" class="logbox"></div>
+<div class="locknote">ℹ️ Chaque mise à jour manuelle admin incrémente un palier d'enrichissement : nouveaux axes techniques croisés avec les motorisations, en plus des modèles, campagnes et TSB. Les tiers ne déclenchent que la synchronisation automatique au lancement.</div>
 <h3>🌐 Recherche d'actualisation multi-sources</h3>
 <div id="veille-box" class="linkwrap"></div>
-<p class="meta">Ces requêtes interrogent les portails officiels (Rappel Conso, Safety Gate, NHTSA, KBA, DVSA), les TSB constructeurs, la presse spécialisée et les retours propriétaires pour l'année en cours.</p>
 </div>
 </div></section>
 
@@ -158,6 +163,7 @@
 <h2>🚗 Diagnostic Expert</h2>
 <p>Bienvenue <strong id="app-user"></strong> • Base du : <span id="app-version">--</span> • <span id="net-status" class="net on">📶 en ligne</span></p>
 <p class="meta" id="brand-count"></p>
+<div id="tier-note" class="locknote hidden">👤 Accès tiers : la base est mise à jour <b>automatiquement au lancement</b> de votre connexion. Import, export et mise à jour manuelle sont réservés à l'administrateur.</div>
 
 <h3>🧠 Recherche par symptôme</h3>
 <input type="text" id="expert-search" placeholder="Ex: courroie, AdBlue, servofrein, P0420…" oninput="expertSearch()">
@@ -203,8 +209,7 @@
 <div id="dtc-results"></div>
 
 <h3>🌐 Recherche d'actualisation</h3>
-<div id="veille-box-app"></div>
-<div class="linkwrap" id="veille-box"></div>
+<div id="veille-app" class="linkwrap"></div>
 
 <h3>🕘 Historique</h3><button class="btn btn-secondary" onclick="toggleHistory()">📋 Voir / masquer</button><div id="hist-box" class="hidden"></div>
 <h3>🖨️ Rapport</h3><button class="btn btn-admin" onclick="printReport()">🖨️ Rapport PDF (diagnostic + entretien)</button>
@@ -232,6 +237,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
 <script src="./firebase-config.js"></script>
 <script src="./data.js"></script>
+<script src="./enrich.js"></script>
 <script src="./maintenance.js"></script>
 <script src="./app.js"></script>
 </body>
