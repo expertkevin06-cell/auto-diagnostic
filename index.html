@@ -3,664 +3,236 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<meta name="theme-color" content="#05070f">
-<meta name="description" content="KEV FUSION 2026 — Plateforme de diagnostic automobile expert : pannes connues, campagnes de rappel, TSB, codes DTC et plans d'entretien. Toutes marques 2017-2027.">
+<meta name="theme-color" content="#0a0e27">
+<meta name="description" content="KEV FUSION 2026 — Diagnostic auto expert : pannes, rappels, TSB, DTC et plans d'entretien. Toutes marques 2017-2027.">
 <title>KEV FUSION 2026 — Auto Diagnostic Pro</title>
 <link rel="manifest" href="./manifest.json">
-<link rel="icon" type="image/png" href="./icon-192.png" fetchpriority="high">
+<link rel="icon" type="image/png" href="./icon-192.png">
 <link rel="apple-touch-icon" href="./icon-192.png">
-<link rel="preconnect" href="https://www.gstatic.com" crossorigin>
-<link rel="preconnect" href="https://images.unsplash.com" crossorigin>
-<link rel="dns-prefetch" href="https://www.rappel.conso.gouv.fr">
-<link rel="dns-prefetch" href="https://ec.europa.eu">
-<link rel="dns-prefetch" href="https://www.nhtsa.gov">
-<link rel="preload" as="image" fetchpriority="low"
-      href="https://images.unsplash.com/photo-1552519507-da3b142c6e3d?auto=format&fit=crop&w=900&q=55">
 <link rel="stylesheet" href="./styles.css">
 </head>
 <body>
-
-<noscript><div class="noscript">⚠️ JavaScript est requis pour utiliser KEV FUSION 2026.</div></noscript>
-
-<!-- ══════════ SCÈNE DE FOND ══════════ -->
-<div class="bg-stage" aria-hidden="true">
-  <div class="aurora a1"></div>
-  <div class="aurora a2"></div>
-  <div class="aurora a3"></div>
-  <div class="tech-grid"></div>
-  <div class="scanline"></div>
-  <div class="grain"></div>
-</div>
+<noscript><p style="padding:20px;color:#ef4444;font-weight:700">⚠️ JavaScript doit être activé.</p></noscript>
 
 <div class="bg3d" aria-hidden="true">
   <div class="bg3d-car"></div>
   <svg class="bg3d-obd" viewBox="0 0 300 170">
-    <defs>
-      <linearGradient id="obdScreen" x1="0" y1="0" x2="1" y2="1">
-        <stop offset="0" stop-color="#0b1220"/><stop offset="1" stop-color="#111c33"/>
-      </linearGradient>
-      <linearGradient id="obdCable" x1="0" y1="0" x2="1" y2="0">
-        <stop offset="0" stop-color="#22d3ee"/><stop offset="0.5" stop-color="#4ade80"/><stop offset="1" stop-color="#f59e0b"/>
-      </linearGradient>
-    </defs>
-    <path d="M8 128 C 70 150, 110 70, 168 78" stroke="url(#obdCable)" stroke-width="5" fill="none" stroke-linecap="round"/>
-    <circle cx="8" cy="128" r="7" fill="#22d3ee"/>
-    <circle cx="8" cy="128" r="12" fill="none" stroke="#22d3ee" stroke-width="1.5" opacity=".45"/>
-    <rect x="168" y="34" width="122" height="88" rx="12" fill="url(#obdScreen)" stroke="#4ade80" stroke-width="2.5"/>
+    <path d="M8 128 C 70 150, 110 70, 168 78" stroke="#4ade80" stroke-width="5" fill="none" stroke-linecap="round"/>
+    <circle cx="8" cy="128" r="7" fill="#4ade80"/>
+    <rect x="168" y="34" width="122" height="88" rx="12" fill="#0f172a" stroke="#4ade80" stroke-width="3"/>
     <rect x="180" y="48" width="72" height="7" rx="3" fill="#4ade80"/>
-    <rect x="180" y="62" width="56" height="7" rx="3" fill="#22d3ee"/>
-    <rect x="180" y="76" width="64" height="7" rx="3" fill="#4ade80" opacity=".7"/>
-    <text x="180" y="107" fill="#f59e0b" font-size="16" font-family="ui-monospace,monospace" font-weight="bold">P0420 ✓</text>
+    <rect x="180" y="62" width="56" height="7" rx="3" fill="#22c55e"/>
+    <rect x="180" y="76" width="64" height="7" rx="3" fill="#4ade80"/>
+    <text x="180" y="106" fill="#4ade80" font-size="16" font-family="monospace" font-weight="bold">P0420 ✓</text>
     <rect x="206" y="122" width="46" height="10" rx="5" fill="#334155"/>
   </svg>
 </div>
 
-<!-- ══════════ BARRE FIXE ══════════ -->
-<header class="topbar" id="topbar">
-  <div class="topbar-in">
-    <a class="brand" href="#top" aria-label="KEV FUSION 2026">
-      <span class="brand-mark">
-        <svg viewBox="0 0 32 32" aria-hidden="true">
-          <path d="M3 20 L8 20 L11 11 L15 25 L19 8 L22 20 L29 20" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
-        </svg>
-      </span>
-      <span class="brand-txt"><b>KEV FUSION</b><i>2026 · Diagnostic Expert</i></span>
-    </a>
-    <div class="topbar-meta">
-      <span id="role-badge" class="pill pill-tier">👤 Tiers</span>
-      <span id="net-status" class="net on">📶 en ligne</span>
-    </div>
-    <div class="topbar-act">
-      <button class="icon-btn" id="sound-btn" onclick="__toggleSound()" title="Son des interactions" aria-label="Activer ou couper le son"><span id="sound-ico">🔊</span></button>
-      <button class="icon-btn" onclick="__toTop()" title="Haut de page" aria-label="Haut de page">↑</button>
-    </div>
-  </div>
-  <div class="topbar-line"></div>
+<div class="container">
+<header>
+  <h1>🚗 KEV FUSION 2026</h1>
+  <p>Auto Diagnostic Pro • Ingénieur expert • 2017-2027 • Pannes • Rappels • TSB • DTC • Entretien</p>
 </header>
 
-<main class="container" id="top">
+<section id="screen-home" class="screen active"><div class="card">
+<h2>👋 Bienvenue</h2>
+<p>Notez votre prénom puis appuyez sur <strong>Demande d'accès</strong> :</p>
+<input type="text" id="input-prenom" placeholder="Votre prénom" maxlength="20" autocomplete="off">
+<button class="btn btn-primary" onclick="requestAccess()">📨 Demande d'accès</button>
+<button class="btn btn-admin" onclick="showAdminLogin()">🔑 Espace Admin</button>
+</div></section>
 
-  <!-- ══════════ ACCUEIL ══════════ -->
-  <section id="screen-home" class="screen active">
-    <div class="hero">
-      <div class="hero-tag"><span class="dot"></span> Base technique 2017 → 2027</div>
-      <h1 class="hero-title">Le diagnostic automobile<br><span class="grad-txt">au niveau ingénieur.</span></h1>
-      <p class="hero-sub">Pannes connues, campagnes de rappel, bulletins techniques, codes DTC corrélés et plans d'entretien détaillés — pour chaque marque, modèle, motorisation et puissance.</p>
-      <div class="hero-stats">
-        <div class="stat"><b id="hs-brands">—</b><i>marques</i></div>
-        <div class="stat"><b id="hs-models">—</b><i>modèles</i></div>
-        <div class="stat"><b id="hs-fiches">—</b><i>fiches techniques</i></div>
-        <div class="stat"><b>52</b><i>axes d'analyse</i></div>
-      </div>
-      <div class="hero-strip">
-        <span>🇫🇷 Rappel Conso</span><span>🇪🇺 Safety Gate</span><span>🇺🇸 NHTSA</span>
-        <span>🇩🇪 KBA</span><span>🇬🇧 DVSA</span><span>🔧 TSB constructeur</span>
-      </div>
-    </div>
+<section id="screen-pending" class="screen"><div class="card">
+<div class="status-icon">⏳</div><h2>Demande transmise</h2>
+<p><strong>Bonjour <span id="pending-name"></span></strong>, votre demande a été envoyée à l'administrateur.</p>
+<p>Vous recevrez une <strong>notification d'autorisation</strong> dès validation.</p>
+<button class="btn btn-secondary" onclick="checkStatus()">🔄 Vérifier mon statut</button>
+<button class="btn btn-secondary" onclick="resetSession()">↩️ Annuler</button>
+</div></section>
 
-    <div class="card card-glow">
-      <div class="card-head">
-        <span class="card-ico">🔑</span>
-        <div><h2>Demander un accès</h2><p class="card-sub">Votre prénom suffit. L'administrateur valide, vous êtes notifié.</p></div>
-      </div>
-      <label class="field">
-        <span class="field-lbl">Prénom du demandeur</span>
-        <input type="text" id="input-prenom" placeholder="Ex : Kevin" maxlength="20" autocomplete="off">
-      </label>
-      <button class="btn btn-primary btn-lg" onclick="requestAccess()"><span>📨</span> Envoyer la demande d'accès</button>
-      <div class="or-sep"><span>ou</span></div>
-      <button class="btn btn-ghost" onclick="showAdminLogin()">🔐 Espace administrateur</button>
-      <p class="meta center">Accès en lecture seule · synchronisation automatique de la base à chaque connexion.</p>
-    </div>
+<section id="screen-accepted" class="screen"><div class="card">
+<div class="status-icon">✅</div><h2>Accès autorisé</h2>
+<p>Bienvenue <strong id="accepted-name"></strong> !</p>
+<button class="btn btn-success" onclick="enterApp()">🚗 Entrer dans l'application</button>
+</div></section>
 
-    <div class="feature-grid">
-      <article class="feature"><span class="f-ico" style="--fc:#4ade80">⚠️</span><h3>Pannes & rappels</h3><p>Campagnes officielles corrélées au modèle et à la motorisation réellement sélectionnés.</p></article>
-      <article class="feature"><span class="f-ico" style="--fc:#22d3ee">📄</span><h3>TSB & bulletins</h3><p>Notes techniques constructeur classées par criticité, avec procédure d'application.</p></article>
-      <article class="feature"><span class="f-ico" style="--fc:#f59e0b">🧰</span><h3>Plan d'entretien</h3><p>Normes d'huile, capacités, intervalles normal et sévère, distribution, freinage, SOH batterie.</p></article>
-      <article class="feature"><span class="f-ico" style="--fc:#a78bfa">🔬</span><h3>Recherche massive</h3><p>52 axes techniques balayés et scorés pour le véhicule exact que vous diagnostiquez.</p></article>
-    </div>
-  </section>
+<section id="screen-refused" class="screen"><div class="card">
+<div class="status-icon">❌</div><h2>Accès refusé</h2>
+<button class="btn btn-primary" onclick="resetSession()">Faire une nouvelle demande</button>
+</div></section>
 
-  <!-- ══════════ ATTENTE ══════════ -->
-  <section id="screen-pending" class="screen">
-    <div class="card card-glow center-card">
-      <div class="pulse-ring warn"><span>⏳</span></div>
-      <h2>Demande transmise</h2>
-      <p class="lead"><strong>Bonjour <span id="pending-name"></span></strong> — votre demande est arrivée chez l'administrateur.</p>
-      <div class="timeline">
-        <div class="tl done"><i>1</i><span>Demande envoyée</span></div>
-        <div class="tl active"><i>2</i><span>Validation administrateur</span></div>
-        <div class="tl"><i>3</i><span>Notification d'accès</span></div>
-      </div>
-      <p class="meta">Vous recevrez une notification système dès validation.</p>
-      <button class="btn btn-secondary" onclick="checkStatus()">🔄 Vérifier mon statut</button>
-      <button class="btn btn-ghost" onclick="resetSession()">↩️ Annuler la demande</button>
-    </div>
-  </section>
+<section id="screen-revoked" class="screen"><div class="card">
+<div class="status-icon">🔒</div><h2>Accès révoqué</h2>
+<button class="btn btn-primary" onclick="resetSession()">Faire une nouvelle demande</button>
+</div></section>
 
-  <!-- ══════════ ACCEPTÉ ══════════ -->
-  <section id="screen-accepted" class="screen">
-    <div class="card card-glow center-card">
-      <div class="pulse-ring ok"><span>✅</span></div>
-      <h2>Accès autorisé</h2>
-      <p class="lead">Bienvenue <strong id="accepted-name"></strong>.</p>
-      <p class="sync-line" id="tier-sync">🔄 Synchronisation de la base au lancement…</p>
-      <button class="btn btn-primary btn-lg" onclick="enterApp()"><span>🚗</span> Ouvrir le poste de diagnostic</button>
-      <div class="locknote">👤 Accès tiers : la base se met à jour automatiquement à chaque connexion. Import, export et mise à jour manuelle sont réservés à l'administrateur.</div>
-    </div>
-  </section>
+<section id="screen-admin-login" class="screen"><div class="card">
+<h2>🔐 Connexion Admin</h2>
+<input type="password" id="admin-pwd" placeholder="Mot de passe admin" autocomplete="new-password" autocorrect="off" autocapitalize="off" spellcheck="false" value="">
+<button class="btn btn-admin" onclick="loginAdmin()">Se connecter</button>
+<button class="btn btn-secondary" onclick="showScreen('screen-home')">← Retour</button>
+</div></section>
 
-  <!-- ══════════ REFUSÉ ══════════ -->
-  <section id="screen-refused" class="screen">
-    <div class="card card-glow center-card">
-      <div class="pulse-ring bad"><span>❌</span></div>
-      <h2>Accès refusé</h2>
-      <p class="lead">L'administrateur n'a pas validé cette demande.</p>
-      <button class="btn btn-primary" onclick="resetSession()">Faire une nouvelle demande</button>
-    </div>
-  </section>
+<section id="screen-admin" class="screen"><div class="card">
+<h2>🛠️ Administration</h2>
+<p class="meta">Base du : <span id="admin-version">--</span> • <span id="update-badge" class="pill">—</span></p>
+<div class="tabs">
+<button class="btn btn-primary tab-on" data-tab="tab-access" onclick="adminTab('tab-access')">👥 Accès</button>
+<button class="btn btn-secondary" data-tab="tab-data" onclick="adminTab('tab-data')">🗄️ Base</button>
+<button class="btn btn-secondary" data-tab="tab-update" onclick="adminTab('tab-update')">🔄 Mise à jour</button>
+<button class="btn btn-success" data-tab="app" onclick="enterApp()">🚗 App</button>
+</div>
 
-  <!-- ══════════ RÉVOQUÉ ══════════ -->
-  <section id="screen-revoked" class="screen">
-    <div class="card card-glow center-card">
-      <div class="pulse-ring bad"><span>🔒</span></div>
-      <h2>Accès révoqué</h2>
-      <p class="lead">Votre accès a été retiré par l'administrateur.</p>
-      <button class="btn btn-primary" onclick="resetSession()">Faire une nouvelle demande</button>
-    </div>
-  </section>
+<div id="tab-access">
+<div class="grid-2"><input type="text" id="new-prenom" placeholder="Prénom"><button class="btn btn-success" onclick="addUser()">Ajouter</button></div>
+<h3>📊 Tableau récapitulatif (temps réel)</h3>
+<div id="users-table-container"><div class="loader">Chargement…</div></div>
+<button class="btn btn-secondary" onclick="attributionAudit(true)">🧬 Auto-vérification attributions</button>
+<div id="attrib-box"></div>
+<button class="btn btn-admin" onclick="engineAudit(true)">🛡️ Audit & correction motorisations</button>
+<div id="engine-box"></div>
+<button class="btn btn-secondary" onclick="selfTest(false)">🩺 Auto-test APK</button>
+<div id="selftest-box"></div>
+<button class="btn btn-success" onclick="shareAPK()">📤 Partager / télécharger l'APK</button>
+<button class="btn btn-danger" onclick="logoutAdmin()">Déconnexion</button>
+</div>
 
-  <!-- ══════════ LOGIN ADMIN ══════════ -->
-  <section id="screen-admin-login" class="screen">
-    <div class="card card-glow center-card narrow">
-      <div class="card-head center-head">
-        <span class="card-ico">🔐</span>
-        <div><h2>Connexion administrateur</h2><p class="card-sub">Mise à jour massive · diffusion · import / export</p></div>
-      </div>
-      <label class="field">
-        <span class="field-lbl">Mot de passe</span>
-        <input type="password" id="admin-pwd" placeholder="••••••••" autocomplete="new-password" autocorrect="off" autocapitalize="off" spellcheck="false" value="">
-      </label>
-      <button class="btn btn-admin btn-lg" onclick="loginAdmin()"><span>🔓</span> Se connecter</button>
-      <button class="btn btn-ghost" onclick="showScreen('screen-home')">← Retour à l'accueil</button>
-    </div>
-  </section>
+<div id="tab-data" class="hidden">
+<h3>📤 EXPORT JSON COMPLET</h3>
+<button class="btn btn-success" onclick="exportJSON()">📤 Télécharger le fichier JSON</button>
+<button class="btn btn-secondary" onclick="copyJSON()">📋 Copier le JSON</button>
+<h3>📥 RESTAURER / FUSIONNER</h3>
+<input type="file" id="restore-file" accept=".json,application/json">
+<button class="btn btn-success" onclick="restoreJSON()">📥 Restaurer / fusionner</button>
+<h3>🏷️ Marque</h3>
+<input id="nb-name" placeholder="Nom"><select id="nb-region"><option value="francaises">Française</option><option value="europeennes">Européenne</option><option value="americaines">Américaine</option><option value="asiatiques">Asiatique</option><option value="chinoises">Chinoise</option></select>
+<button class="btn btn-success" onclick="addBrand()">Ajouter</button>
+<h3>🚘 Modèle</h3>
+<select id="nm-brand"></select><input id="nm-name" placeholder="Modèle"><input id="nm-years" placeholder="Années (ex: 2024-2027)">
+<button class="btn btn-success" onclick="addModel()">Ajouter</button>
+<h3>⚙️ Motorisation</h3>
+<select id="mo-model"></select><input id="mo-name" placeholder="Ex: 1.5 Blue dCi 115"><select id="mo-fuel"><option value="essence">Essence</option><option value="diesel">Diesel</option><option value="hybride">Hybride</option><option value="electrique">Électrique</option></select><input id="mo-power" placeholder="Puissance (ex: 115 ch)">
+<button class="btn btn-success" onclick="addMotor()">Ajouter</button>
+<h3>⚠️ Panne / campagne</h3>
+<select id="is-brand" onchange="fillModelSelect()"></select><select id="is-model"></select>
+<input id="is-title" placeholder="Titre"><textarea id="is-detail" rows="2" placeholder="Détail / symptômes"></textarea>
+<select id="is-source"><option>Rappel Conso</option><option>Safety Gate</option><option>NHTSA</option><option>KBA</option><option>GOV.UK</option><option>Campagne constructeur</option><option>TSB constructeur</option><option>L'Argus / Caradisiac</option></select>
+<input id="is-dtc" placeholder="DTC liés"><input id="is-url" placeholder="URL source">
+<button class="btn btn-success" onclick="addIssue()">Ajouter</button>
+<h3>🧠 Fiche expert ingénieur</h3>
+<select id="ex-brand"></select><input id="ex-model" placeholder="Modèle (vide = tous)"><input id="ex-motor" placeholder="Motorisation clé">
+<input id="ex-type" placeholder="Type (Batterie HV, ADAS, Transmission…)">
+<input id="ex-title" placeholder="Titre"><input id="ex-symptom" placeholder="Symptômes"><textarea id="ex-diag" rows="3" placeholder="Protocole 1) … 2) … 3) …"></textarea>
+<input id="ex-parts" placeholder="Organes / pièces"><input id="ex-dtc" placeholder="DTC"><input id="ex-years" placeholder="Années"><input id="ex-url" placeholder="URL source">
+<select id="ex-source"><option>Campagne constructeur</option><option>Rappel Conso</option><option>Safety Gate</option><option>NHTSA</option><option>TSB constructeur</option><option>L'Argus / Caradisiac</option></select>
+<button class="btn btn-success" onclick="addExpert()">Ajouter la fiche expert</button>
+<h3>🔧 Code DTC</h3>
+<input id="dt-code" placeholder="Code"><input id="dt-desc" placeholder="Description"><input id="dt-cause" placeholder="Cause"><input id="dt-sol" placeholder="Solution">
+<button class="btn btn-success" onclick="addDTC()">Ajouter</button>
+<h3>📥 IMPORT MASSIF (JSON)</h3>
+<textarea id="import-json" rows="4" placeholder='[{"type":"issue","brand":"dacia","model":"Bigster","title":"…","detail":"…","source":"Rappel Conso"}]'></textarea>
+<button class="btn btn-success" onclick="importJSON()">📥 Importer</button>
+</div>
 
-  <!-- ══════════ ADMIN ══════════ -->
-  <section id="screen-admin" class="screen">
-    <div class="card" data-admin-only>
-      <div class="card-head">
-        <span class="card-ico">🛠️</span>
-        <div><h2>Console d'administration</h2><p class="card-sub">Base du <span id="admin-version">—</span> · <span id="update-badge" class="pill">—</span></p></div>
-      </div>
+<div id="tab-update" class="hidden">
+<h3>🔄 Mise à jour de la base</h3>
+<p class="meta" id="update-next">—</p>
+<div class="updrow">
+  <label class="updlabel">Cycle automatique
+    <select id="cycle-select"><option value="7">7 jours</option><option value="15">15 jours</option><option value="30">30 jours</option><option value="60">60 jours</option></select>
+  </label>
+  <label class="switch"><input type="checkbox" id="auto-toggle"><span class="slider"></span><span class="swtxt">MAJ automatique</span></label>
+</div>
+<button class="btn btn-admin" data-update-btn onclick="manualUpdate()">🔄 MAJ manuelle complète 2017-2027</button>
+<button class="btn btn-secondary" data-update-btn onclick="runUpdate('auto')">⚡ Forcer la recherche d'actualisation</button>
+<div class="progress"><div id="update-bar" class="progress-bar"></div></div>
+<p class="meta" id="update-label">En attente</p>
+<div id="update-log" class="logbox"></div>
+<h3>🌐 Recherche d'actualisation multi-sources</h3>
+<div id="veille-box" class="linkwrap"></div>
+<p class="meta">Ces requêtes interrogent les portails officiels (Rappel Conso, Safety Gate, NHTSA, KBA, DVSA), les TSB constructeurs, la presse spécialisée et les retours propriétaires pour l'année en cours.</p>
+</div>
+</div></section>
 
-      <nav class="tabs" role="tablist">
-        <button class="btn btn-primary tab-on" data-tab="tab-access" onclick="adminTab('tab-access')">👥 Accès tiers</button>
-        <button class="btn btn-secondary" data-tab="tab-data" onclick="adminTab('tab-data')">🗄️ Base</button>
-        <button class="btn btn-secondary" data-tab="tab-update" onclick="adminTab('tab-update')">🔄 MAJ & diffusion</button>
-        <button class="btn btn-success" data-tab="app" onclick="enterApp()">🚗 Diagnostic</button>
-      </nav>
+<section id="screen-app" class="screen"><div class="card">
+<h2>🚗 Diagnostic Expert</h2>
+<p>Bienvenue <strong id="app-user"></strong> • Base du : <span id="app-version">--</span> • <span id="net-status" class="net on">📶 en ligne</span></p>
+<p class="meta" id="brand-count"></p>
 
-      <div id="tab-access">
-        <h3 class="sec-title"><i style="--sc:#4ade80"></i>Autoriser un tiers</h3>
-        <div class="grid-2">
-          <input type="text" id="new-prenom" placeholder="Prénom du tiers">
-          <button class="btn btn-success" onclick="addUser()">✓ Autoriser</button>
-        </div>
-        <h3 class="sec-title"><i style="--sc:#22d3ee"></i>Tableau des accès — temps réel</h3>
-        <div class="table-shell"><div id="users-table-container"><div class="loader">Chargement des accès…</div></div></div>
-        <h3 class="sec-title"><i style="--sc:#a78bfa"></i>Contrôles d'intégrité</h3>
-        <button class="btn btn-secondary" onclick="attributionAudit(true)">🧬 Auto-vérification des attributions</button>
-        <div id="attrib-box"></div>
-        <button class="btn btn-admin" onclick="engineAudit(true)">🛡️ Audit & correction des motorisations</button>
-        <div id="engine-box"></div>
-        <button class="btn btn-secondary" onclick="selfTest(false)">🩺 Auto-test complet</button>
-        <div id="selftest-box" class="test-grid"></div>
-        <div class="btn-row">
-          <button class="btn btn-success" onclick="shareAPK()">📤 Partager l'application</button>
-          <button class="btn btn-danger" onclick="logoutAdmin()">Déconnexion</button>
-        </div>
-      </div>
+<h3>🧠 Recherche par symptôme</h3>
+<input type="text" id="expert-search" placeholder="Ex: courroie, AdBlue, servofrein, P0420…" oninput="expertSearch()">
+<p class="chips">
+<button class="chip" onclick="qs('courroie')">Courroie</button>
+<button class="chip" onclick="qs('chaîne')">Chaîne</button>
+<button class="chip" onclick="qs('AdBlue')">AdBlue</button>
+<button class="chip" onclick="qs('FAP')">FAP</button>
+<button class="chip" onclick="qs('EGR')">EGR</button>
+<button class="chip" onclick="qs('injecteur')">Injecteurs</button>
+<button class="chip" onclick="qs('turbo')">Turbo</button>
+<button class="chip" onclick="qs('batterie')">Batterie HV</button>
+<button class="chip" onclick="qs('charge')">Charge</button>
+<button class="chip" onclick="qs('freinage')">Freinage</button>
+<button class="chip" onclick="qs('ADAS')">ADAS</button>
+<button class="chip" onclick="qs('suspension')">Suspension</button>
+<button class="chip" onclick="qs('boîte')">Boîte</button>
+<button class="chip" onclick="qs('surchauffe')">Surchauffe</button>
+<button class="chip" onclick="qs('TSB')">TSB</button>
+<button class="chip" onclick="qs('rappel')">Rappels</button>
+</p>
+<div id="expert-results"></div>
 
-      <div id="tab-data" class="hidden">
-        <div class="locknote">🔒 Import et export de la base : administrateur uniquement.</div>
-        <h3 class="sec-title"><i style="--sc:#4ade80"></i>Export complet</h3>
-        <p class="meta">Marques, modèles, motorisations, pannes, campagnes, fiches expert, protocoles dérivés, DTC et bulletins.</p>
-        <div class="btn-row">
-          <button class="btn btn-success" onclick="exportJSON()">📤 Télécharger le JSON</button>
-          <button class="btn btn-secondary" onclick="copyJSON()">📋 Copier</button>
-        </div>
-        <h3 class="sec-title"><i style="--sc:#22d3ee"></i>Restaurer / fusionner</h3>
-        <label class="file-drop">
-          <input type="file" id="restore-file" accept=".json,application/json">
-          <span class="fd-ico">📥</span>
-          <span class="fd-txt">Choisir un fichier d'export <i>.json</i></span>
-        </label>
-        <button class="btn btn-success" onclick="restoreJSON()">📥 Restaurer / fusionner sans doublon</button>
+<h3>1️⃣ Marque</h3><select id="sel-marque" onchange="loadModels()"></select>
+<h3>2️⃣ Modèle</h3><select id="sel-model" onchange="loadMotors()"></select>
+<p class="meta" id="model-count"></p>
+<h3>3️⃣ Motorisation / Puissance</h3><select id="sel-motor" onchange="correlate()"></select>
+<p class="meta" id="motor-count"></p>
 
-        <div class="form-block">
-          <h3 class="sec-title"><i style="--sc:#f59e0b"></i>Ajouter une marque</h3>
-          <div class="grid-2">
-            <input id="nb-name" placeholder="Nom de la marque">
-            <select id="nb-region">
-              <option value="francaises">🇫🇷 Française</option><option value="europeennes">🇪🇺 Européenne</option>
-              <option value="americaines">🇺🇸 Américaine</option><option value="asiatiques">🌏 Asiatique</option>
-              <option value="chinoises">🇨🇳 Chinoise</option>
-            </select>
-          </div>
-          <button class="btn btn-success" onclick="addBrand()">+ Ajouter la marque</button>
-        </div>
+<h3>⚠️ Pannes connues & campagnes de rappel</h3><div id="issues-box"><p class="muted">Sélectionnez un véhicule…</p></div>
+<h3>📄 Bulletins techniques & TSB</h3><div id="tsb-box"><p class="muted">Sélectionnez un véhicule…</p></div>
+<h3>🧠 Fiches expert corrélées</h3><div id="expert-box"><p class="muted">Sélectionnez un véhicule…</p></div>
+<h3>🔧 Codes défaut DTC corrélés</h3><div id="dtc-box"><p class="muted">—</p></div>
 
-        <div class="form-block">
-          <h3 class="sec-title"><i style="--sc:#f59e0b"></i>Ajouter un modèle</h3>
-          <label class="field"><span class="field-lbl">Marque</span><select id="nm-brand"></select></label>
-          <div class="grid-2">
-            <input id="nm-name" placeholder="Modèle (ex : Clio VI)">
-            <input id="nm-years" placeholder="Années (ex : 2025-2027)">
-          </div>
-          <button class="btn btn-success" onclick="addModel()">+ Ajouter le modèle</button>
-        </div>
+<h3>🧰 Maintenance / plan d'entretien du véhicule</h3>
+<div id="maint-wrap" class="maint-wrap">
+  <canvas id="maint-tools" aria-hidden="true"></canvas>
+  <div id="maint-box"><p class="muted">Sélectionnez une motorisation…</p></div>
+</div>
 
-        <div class="form-block">
-          <h3 class="sec-title"><i style="--sc:#f59e0b"></i>Ajouter une motorisation</h3>
-          <label class="field"><span class="field-lbl">Modèle cible</span><select id="mo-model"></select></label>
-          <input id="mo-name" placeholder="Désignation (ex : 1.5 Blue dCi 115)">
-          <div class="grid-2">
-            <select id="mo-fuel">
-              <option value="essence">⛽ Essence</option><option value="diesel">🛢️ Diesel</option>
-              <option value="hybride">🔋 Hybride</option><option value="electrique">⚡ Électrique</option>
-            </select>
-            <input id="mo-power" placeholder="Puissance (ex : 115 ch)">
-          </div>
-          <button class="btn btn-success" onclick="addMotor()">+ Ajouter la motorisation</button>
-        </div>
+<h3>🔎 Recherche DTC libre</h3>
+<input type="text" id="dtc-search" placeholder="Ex: P0300, turbo…" oninput="searchDTC()">
+<div id="dtc-results"></div>
 
-        <div class="form-block">
-          <h3 class="sec-title"><i style="--sc:#ef4444"></i>Panne / campagne officielle</h3>
-          <div class="grid-2">
-            <label class="field"><span class="field-lbl">Marque</span><select id="is-brand" onchange="fillModelSelect()"></select></label>
-            <label class="field"><span class="field-lbl">Modèle</span><select id="is-model"></select></label>
-          </div>
-          <input id="is-title" placeholder="Titre de la panne ou du rappel">
-          <textarea id="is-detail" rows="3" placeholder="Symptômes, organes concernés, détail de la campagne…"></textarea>
-          <div class="grid-2">
-            <select id="is-source">
-              <option>Rappel Conso</option><option>Safety Gate</option><option>NHTSA</option>
-              <option>KBA</option><option>GOV.UK</option><option>Campagne constructeur</option>
-              <option>TSB constructeur</option><option>L'Argus / Caradisiac</option>
-            </select>
-            <input id="is-dtc" placeholder="DTC liés (ex : P0401, P20EE)">
-          </div>
-          <input id="is-url" placeholder="URL de la source officielle">
-          <button class="btn btn-success" onclick="addIssue()">+ Enregistrer la fiche</button>
-        </div>
+<h3>🌐 Recherche d'actualisation</h3>
+<div id="veille-box-app"></div>
+<div class="linkwrap" id="veille-box"></div>
 
-        <div class="form-block">
-          <h3 class="sec-title"><i style="--sc:#a78bfa"></i>Fiche expert ingénieur</h3>
-          <label class="field"><span class="field-lbl">Marque</span><select id="ex-brand"></select></label>
-          <div class="grid-2">
-            <input id="ex-model" placeholder="Modèle (vide = tous)">
-            <input id="ex-motor" placeholder="Motorisation clé (ex : PureTech)">
-          </div>
-          <input id="ex-type" placeholder="Système (Batterie HV, ADAS, Transmission…)">
-          <input id="ex-title" placeholder="Titre de la fiche">
-          <input id="ex-symptom" placeholder="Symptômes observés">
-          <textarea id="ex-diag" rows="4" placeholder="Protocole : 1) … 2) … 3) … 4) …"></textarea>
-          <div class="grid-2">
-            <input id="ex-parts" placeholder="Organes / pièces">
-            <input id="ex-dtc" placeholder="DTC">
-          </div>
-          <div class="grid-2">
-            <input id="ex-years" placeholder="Années concernées">
-            <input id="ex-url" placeholder="URL source">
-          </div>
-          <select id="ex-source">
-            <option>Campagne constructeur</option><option>Rappel Conso</option><option>Safety Gate</option>
-            <option>NHTSA</option><option>TSB constructeur</option><option>L'Argus / Caradisiac</option>
-          </select>
-          <button class="btn btn-success" onclick="addExpert()">+ Enregistrer la fiche expert</button>
-        </div>
+<h3>🕘 Historique</h3><button class="btn btn-secondary" onclick="toggleHistory()">📋 Voir / masquer</button><div id="hist-box" class="hidden"></div>
+<h3>🖨️ Rapport</h3><button class="btn btn-admin" onclick="printReport()">🖨️ Rapport PDF (diagnostic + entretien)</button>
 
-        <div class="form-block">
-          <h3 class="sec-title"><i style="--sc:#22d3ee"></i>Code DTC</h3>
-          <div class="grid-2">
-            <input id="dt-code" placeholder="Code (ex : P0420)">
-            <input id="dt-desc" placeholder="Description">
-          </div>
-          <div class="grid-2">
-            <input id="dt-cause" placeholder="Cause probable">
-            <input id="dt-sol" placeholder="Solution / réparation">
-          </div>
-          <button class="btn btn-success" onclick="addDTC()">+ Ajouter le DTC</button>
-        </div>
+<h3>🌐 Sources officielles & spécialisées</h3>
+<div class="links-row">
+<a target="_blank" rel="noopener" href="https://www.rappel.conso.gouv.fr/">Rappel Conso 🇫🇷</a>
+<a target="_blank" rel="noopener" href="https://ec.europa.eu/safety-gate-alerts/screen/webReport/searchAdvanced">Safety Gate 🇪🇺</a>
+<a target="_blank" rel="noopener" href="https://www.nhtsa.gov/recalls">NHTSA 🇺🇸</a>
+<a target="_blank" rel="noopener" href="https://www.gov.uk/check-vehicle-recall">GOV.UK 🇬🇧</a>
+<a target="_blank" rel="noopener" href="https://www.kba.de/">KBA 🇩🇪</a>
+<a target="_blank" rel="noopener" href="https://www.largus.fr/">L'Argus 📰</a>
+<a target="_blank" rel="noopener" href="https://www.caradisiac.com/">Caradisiac 📰</a>
+<a target="_blank" rel="noopener" href="https://www.que-choisir.org/">Que Choisir ⚖️</a>
+<a target="_blank" rel="noopener" href="https://www.obd-codes.com/">OBD-Codes 🔧</a>
+</div>
+<button class="btn btn-secondary" onclick="logoutApp()">🚪 Retour</button>
+</div></section>
+</div>
 
-        <div class="form-block">
-          <h3 class="sec-title"><i style="--sc:#4ade80"></i>Import massif JSON</h3>
-          <textarea id="import-json" rows="5" placeholder='[{"type":"issue","brand":"dacia","model":"Bigster","title":"…","detail":"…","source":"Rappel Conso"}]'></textarea>
-          <button class="btn btn-success" onclick="importJSON()">📥 Importer le lot</button>
-        </div>
-      </div>
-
-      <div id="tab-update" class="hidden">
-        <h3 class="sec-title"><i style="--sc:#f59e0b"></i>Mise à jour manuelle massive</h3>
-        <p class="meta" id="update-next">—</p>
-        <div id="enrich-stats"></div>
-        <div class="control-deck">
-          <label class="updlabel">Cycle de référence
-            <select id="cycle-select">
-              <option value="7">7 jours</option><option value="15">15 jours</option>
-              <option value="30">30 jours</option><option value="60">60 jours</option>
-            </select>
-          </label>
-          <label class="updlabel">Palier d'enrichissement — nombre de fiches
-            <select id="quota-select">
-              <option value="300">300</option><option value="600">600</option>
-              <option value="1200">1 200</option><option value="2500">2 500</option>
-              <option value="5000">5 000</option><option value="10000">10 000</option>
-              <option value="15000">15 000</option><option value="20000">20 000</option>
-            </select>
-          </label>
-          <label class="updlabel full">Filtre des axes techniques
-            <select id="axis-select"></select>
-          </label>
-        </div>
-        <button class="btn btn-admin btn-lg" data-update-btn onclick="manualUpdate()"><span>🔄</span> Lancer la MAJ massive + auto-enrichissement</button>
-        <div class="progress"><div id="update-bar" class="progress-bar"></div></div>
-        <p class="meta" id="update-label">En attente</p>
-        <div id="update-log" class="logbox"></div>
-
-        <h3 class="sec-title"><i style="--sc:#4ade80"></i>Diffuser aux tiers</h3>
-        <div class="locknote">📡 Publie le palier courant vers tous les tiers autorisés. Ils recevront la mise à jour <b>automatiquement à leur connexion</b>, avec notification. Les tiers ne peuvent ni importer ni exporter la base.</div>
-        <div id="release-state"></div>
-        <input type="text" id="broadcast-note" placeholder="Note de diffusion (ex : palier 5 — 10 000 fiches, campagnes AdBlue)">
-        <label class="switch">
-          <input type="checkbox" id="broadcast-force" checked>
-          <span class="slider"></span>
-          <span class="swtxt">Resynchronisation forcée chez les tiers</span>
-        </label>
-        <button class="btn btn-success btn-lg" onclick="broadcastRelease()"><span>📡</span> Diffuser la mise à jour</button>
-
-        <div class="locknote">ℹ️ Chaque MAJ manuelle incrémente un palier : nouveaux axes croisés avec les motorisations, plus modèles, campagnes et TSB. « Balayage complet » couvre les 52 axes ; un axe précis cible un système.</div>
-        <h3 class="sec-title"><i style="--sc:#22d3ee"></i>Veille multi-sources</h3>
-        <div id="veille-box" class="linkwrap"></div>
-      </div>
-    </div>
-  </section>
-
-  <!-- ══════════ POSTE DE DIAGNOSTIC ══════════ -->
-  <section id="screen-app" class="screen">
-    <div class="card diag-head">
-      <div class="card-head">
-        <span class="card-ico">🚗</span>
-        <div><h2>Poste de diagnostic</h2><p class="card-sub"><strong id="app-user"></strong> · base du <span id="app-version">—</span></p></div>
-      </div>
-      <p class="meta" id="brand-count"></p>
-      <div id="tier-note" class="locknote hidden">👤 Accès tiers : la base est mise à jour <b>automatiquement au lancement</b> de votre connexion. Import, export et mise à jour manuelle sont réservés à l'administrateur.</div>
-      <nav class="jumpbar" aria-label="Navigation du diagnostic">
-        <a href="#sec-search">🔎 Recherche</a><a href="#sec-vehicle">🚘 Véhicule</a>
-        <a href="#sec-pannes">⚠️ Pannes</a><a href="#sec-tsb">📄 TSB</a>
-        <a href="#sec-expert">🧠 Expert</a><a href="#sec-dtc">🔧 DTC</a>
-        <a href="#sec-mass">🔬 Massive</a><a href="#sec-maint">🧰 Entretien</a>
-      </nav>
-    </div>
-
-    <div class="card" id="sec-search">
-      <h3 class="sec-title"><i style="--sc:#a78bfa"></i>Recherche par symptôme</h3>
-      <div class="search-shell">
-        <span class="search-ico">🔎</span>
-        <input type="text" id="expert-search" placeholder="courroie, AdBlue, servofrein, P0420, claquement…" oninput="expertSearch()">
-      </div>
-      <p class="chips">
-        <button class="chip" onclick="qs('courroie')">Courroie</button>
-        <button class="chip" onclick="qs('chaîne')">Chaîne</button>
-        <button class="chip" onclick="qs('AdBlue')">AdBlue</button>
-        <button class="chip" onclick="qs('FAP')">FAP</button>
-        <button class="chip" onclick="qs('EGR')">EGR</button>
-        <button class="chip" onclick="qs('injecteur')">Injecteurs</button>
-        <button class="chip" onclick="qs('turbo')">Turbo</button>
-        <button class="chip" onclick="qs('batterie')">Batterie HV</button>
-        <button class="chip" onclick="qs('charge')">Charge</button>
-        <button class="chip" onclick="qs('freinage')">Freinage</button>
-        <button class="chip" onclick="qs('ADAS')">ADAS</button>
-        <button class="chip" onclick="qs('suspension')">Suspension</button>
-        <button class="chip" onclick="qs('boîte')">Boîte</button>
-        <button class="chip" onclick="qs('surchauffe')">Surchauffe</button>
-        <button class="chip" onclick="qs('corrosion')">Corrosion</button>
-        <button class="chip" onclick="qs('TSB')">TSB</button>
-        <button class="chip" onclick="qs('rappel')">Rappels</button>
-      </p>
-      <div id="expert-results"></div>
-    </div>
-
-    <div class="card vehicle-card" id="sec-vehicle">
-      <h3 class="sec-title"><i style="--sc:#4ade80"></i>Sélection du véhicule</h3>
-      <div class="veh-recap" id="veh-recap">
-        <span class="vr-item" id="vr-brand">Marque</span><span class="vr-arrow">›</span>
-        <span class="vr-item" id="vr-model">Modèle</span><span class="vr-arrow">›</span>
-        <span class="vr-item" id="vr-motor">Motorisation</span>
-      </div>
-      <div class="stepper">
-        <div class="step" id="step-1">
-          <span class="step-n">1</span>
-          <label class="field"><span class="field-lbl">Marque</span><select id="sel-marque" onchange="loadModels()"></select></label>
-        </div>
-        <div class="step" id="step-2">
-          <span class="step-n">2</span>
-          <label class="field"><span class="field-lbl">Modèle</span><select id="sel-model" onchange="loadMotors()"></select></label>
-          <p class="meta" id="model-count"></p>
-        </div>
-        <div class="step" id="step-3">
-          <span class="step-n">3</span>
-          <label class="field"><span class="field-lbl">Motorisation / puissance</span><select id="sel-motor" onchange="correlate()"></select></label>
-          <p class="meta" id="motor-count"></p>
-        </div>
-      </div>
-    </div>
-
-    <div class="card" id="sec-pannes">
-      <h3 class="sec-title"><i style="--sc:#ef4444"></i>Pannes connues & campagnes de rappel</h3>
-      <div id="issues-box"><p class="muted">Sélectionnez un véhicule pour lancer la corrélation.</p></div>
-    </div>
-
-    <div class="card" id="sec-tsb">
-      <h3 class="sec-title"><i style="--sc:#22d3ee"></i>Bulletins techniques & TSB</h3>
-      <div id="tsb-box"><p class="muted">Sélectionnez un véhicule…</p></div>
-    </div>
-
-    <div class="card" id="sec-expert">
-      <h3 class="sec-title"><i style="--sc:#a78bfa"></i>Fiches expert corrélées</h3>
-      <div id="expert-box"><p class="muted">Sélectionnez un véhicule…</p></div>
-    </div>
-
-    <div class="card" id="sec-dtc">
-      <h3 class="sec-title"><i style="--sc:#f59e0b"></i>Codes défaut DTC corrélés</h3>
-      <div id="dtc-box"><p class="muted">—</p></div>
-      <h3 class="sec-title sub"><i style="--sc:#f59e0b"></i>Recherche DTC libre</h3>
-      <div class="search-shell">
-        <span class="search-ico">🔧</span>
-        <input type="text" id="dtc-search" placeholder="P0300, turbo, sonde lambda…" oninput="searchDTC()">
-      </div>
-      <div id="dtc-results"></div>
-    </div>
-
-    <div class="card mass-card" id="sec-mass">
-      <h3 class="sec-title"><i style="--sc:#22d3ee"></i>Recherche massive corrélée</h3>
-      <div class="control-deck">
-        <label class="updlabel full">Nombre maximum de fiches
-          <select id="mass-select">
-            <option value="500">500</option><option value="1000">1 000</option>
-            <option value="2500">2 500</option><option value="5000">5 000</option>
-            <option value="10000">10 000</option><option value="20000">20 000</option>
-          </select>
-        </label>
-      </div>
-      <button class="btn btn-admin btn-lg" onclick="massSearch()"><span>🔬</span> Lancer la recherche massive corrélée</button>
-      <p class="meta">Balayage des 52 axes techniques applicables à l'énergie, priorités famille motorisation, plus toutes les fiches base — triés par score de corrélation réel. Rendu progressif pour une réactivité maximale.</p>
-      <div id="mass-box"><p class="muted">Sélectionnez marque + modèle + motorisation, puis lancez la recherche.</p></div>
-      <div id="release-info"></div>
-    </div>
-
-    <div class="card" id="sec-maint">
-      <h3 class="sec-title"><i style="--sc:#f59e0b"></i>Maintenance / plan d'entretien du véhicule</h3>
-      <div id="maint-wrap" class="maint-wrap">
-        <canvas id="maint-tools" aria-hidden="true"></canvas>
-        <div id="maint-box"><p class="muted">Sélectionnez une motorisation pour générer le plan d'entretien.</p></div>
-      </div>
-    </div>
-
-    <div class="card">
-      <h3 class="sec-title"><i style="--sc:#22d3ee"></i>Veille & actualisation</h3>
-      <div id="veille-app" class="linkwrap"></div>
-      <h3 class="sec-title sub"><i style="--sc:#a78bfa"></i>Historique des diagnostics</h3>
-      <button class="btn btn-secondary" onclick="toggleHistory()">📋 Afficher / masquer</button>
-      <div id="hist-box" class="hidden"></div>
-      <h3 class="sec-title sub"><i style="--sc:#4ade80"></i>Rapport</h3>
-      <button class="btn btn-admin" onclick="printReport()">🖨️ Générer le rapport PDF (diagnostic + entretien)</button>
-      <h3 class="sec-title sub"><i style="--sc:#22d3ee"></i>Sources officielles & spécialisées</h3>
-      <div class="links-row">
-        <a target="_blank" rel="noopener" href="https://www.rappel.conso.gouv.fr/">Rappel Conso 🇫🇷</a>
-        <a target="_blank" rel="noopener" href="https://ec.europa.eu/safety-gate-alerts/screen/webReport/searchAdvanced">Safety Gate 🇪🇺</a>
-        <a target="_blank" rel="noopener" href="https://www.nhtsa.gov/recalls">NHTSA 🇺🇸</a>
-        <a target="_blank" rel="noopener" href="https://www.gov.uk/check-vehicle-recall">GOV.UK 🇬🇧</a>
-        <a target="_blank" rel="noopener" href="https://www.kba.de/">KBA 🇩🇪</a>
-        <a target="_blank" rel="noopener" href="https://www.largus.fr/">L'Argus 📰</a>
-        <a target="_blank" rel="noopener" href="https://www.caradisiac.com/">Caradisiac 📰</a>
-        <a target="_blank" rel="noopener" href="https://www.que-choisir.org/">Que Choisir ⚖️</a>
-        <a target="_blank" rel="noopener" href="https://www.obd-codes.com/">OBD-Codes 🔧</a>
-      </div>
-      <button class="btn btn-ghost" onclick="logoutApp()">🚪 Quitter le poste</button>
-    </div>
-  </section>
-
-  <footer class="foot"><span>KEV FUSION 2026</span><i>Diagnostic · Rappels · TSB · DTC · Entretien</i></footer>
-</main>
-
-<button id="install-btn" class="install-fab hidden" onclick="installApp()">📲 Installer l'application</button>
-<button class="totop" id="totop" onclick="__toTop()" aria-label="Remonter">↑</button>
+<button id="install-btn" class="install-fab hidden" onclick="installApp()">📲 Installer l'APK</button>
 <div id="print-report"></div>
 
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
 <script src="./firebase-config.js"></script>
 <script src="./data.js"></script>
-<script src="./enrich.js"></script>
 <script src="./maintenance.js"></script>
 <script src="./app.js"></script>
-<script src="./perf.js"></script>
-
-<script>
-/* ══════════ Couche d'expérience : son, récap véhicule, stats, navigation ══════════ */
-(function(){
-  "use strict";
-  var AC=null, soundOn=(localStorage.getItem("kev_sound")!=="0");
-  function ctx(){ if(!AC){ try{ AC=new (window.AudioContext||window.webkitAudioContext)(); }catch(e){ AC=null; } } return AC; }
-  function beep(f,d,t,v){
-    if(!soundOn) return; var a=ctx(); if(!a) return;
-    if(a.state==="suspended"){ a.resume().catch(function(){}); }
-    try{
-      var o=a.createOscillator(), g=a.createGain();
-      o.type=t||"sine"; o.frequency.value=f;
-      g.gain.setValueAtTime(0,a.currentTime);
-      g.gain.linearRampToValueAtTime(v||0.05,a.currentTime+0.012);
-      g.gain.exponentialRampToValueAtTime(0.0001,a.currentTime+(d||0.12));
-      o.connect(g); g.connect(a.destination); o.start(); o.stop(a.currentTime+(d||0.12)+0.02);
-    }catch(e){}
-  }
-  function sfx(k){
-    if(k==="ok"){ beep(660,0.09,"sine",0.05); setTimeout(function(){beep(990,0.11,"sine",0.045);},70); }
-    else if(k==="err"){ beep(200,0.16,"square",0.035); }
-    else if(k==="tick"){ beep(1180,0.035,"triangle",0.028); }
-    else if(k==="sync"){ beep(520,0.07,"sine",0.04); setTimeout(function(){beep(780,0.09,"sine",0.035);},60); setTimeout(function(){beep(1040,0.12,"sine",0.03);},130); }
-  }
-  function paintSound(){
-    var i=document.getElementById("sound-ico"), b=document.getElementById("sound-btn");
-    if(i) i.textContent=soundOn?"🔊":"🔇";
-    if(b){ b.classList.toggle("muted",!soundOn); b.title=soundOn?"Son activé":"Son coupé"; }
-  }
-  window.__toggleSound=function(){ soundOn=!soundOn; localStorage.setItem("kev_sound",soundOn?"1":"0"); paintSound(); if(soundOn) sfx("tick"); };
-  paintSound();
-
-  function hookNotify(){
-    if(typeof window.notify!=="function"||window.notify.__hooked) return;
-    var orig=window.notify;
-    var w=function(m,t){ sfx(t==="error"?"err":"ok"); return orig.apply(this,arguments); };
-    w.__hooked=true; window.notify=w;
-  }
-  hookNotify(); setTimeout(hookNotify,600); setTimeout(hookNotify,2000);
-  document.addEventListener("click",function(e){ var b=e.target.closest(".btn,.chip,.icon-btn,.tabs .btn"); if(b&&!b.disabled) sfx("tick"); },true);
-  document.addEventListener("change",function(e){ if(e.target&&e.target.tagName==="SELECT") sfx("tick"); },true);
-
-  function txt(id){ var e=document.getElementById(id); return e&&e.options&&e.selectedIndex>=0?e.options[e.selectedIndex].text:""; }
-  function paintVehicle(){
-    var b=document.getElementById("sel-marque"), m=document.getElementById("sel-model"), mo=document.getElementById("sel-motor");
-    var bv=b&&b.value?txt("sel-marque"):"", mv=m&&m.value?txt("sel-model"):"", ov=mo&&mo.value!==""&&mo.selectedIndex>0?txt("sel-motor"):"";
-    function set(id,v,f){ var e=document.getElementById(id); if(!e) return; e.textContent=v||f; e.classList.toggle("filled",!!v); }
-    set("vr-brand",bv,"Marque"); set("vr-model",mv,"Modèle"); set("vr-motor",ov,"Motorisation");
-    var s1=document.getElementById("step-1"),s2=document.getElementById("step-2"),s3=document.getElementById("step-3");
-    if(s1) s1.classList.toggle("done",!!bv);
-    if(s2){ s2.classList.toggle("done",!!mv); s2.classList.toggle("ready",!!bv); }
-    if(s3){ s3.classList.toggle("done",!!ov); s3.classList.toggle("ready",!!mv); }
-    if(ov) sfx("sync");
-  }
-  ["sel-marque","sel-model","sel-motor"].forEach(function(id){
-    var e=document.getElementById(id);
-    if(e) e.addEventListener("change",function(){ setTimeout(paintVehicle,120); });
-  });
-  setTimeout(paintVehicle,900); setInterval(paintVehicle,2500);
-
-  function count(k){ try{ return Object.keys(JSON.parse(localStorage.getItem(k)||"{}")).length; }catch(e){ return 0; } }
-  function animNum(e,to){
-    if(!e) return;
-    var from=parseInt((e.textContent||"0").replace(/\D/g,""),10)||0;
-    if(from===to){ e.textContent=to.toLocaleString("fr-FR"); return; }
-    var t0=performance.now(), dur=700;
-    (function step(t){
-      var p=Math.min(1,((t||performance.now())-t0)/dur), q=1-Math.pow(1-p,3);
-      e.textContent=Math.round(from+(to-from)*q).toLocaleString("fr-FR");
-      if(p<1) requestAnimationFrame(step);
-    })(t0);
-  }
-  function paintStats(){
-    var b=count("mir_data/brands"), m=count("mir_data/models"), f=count("mir_data/expert")+count("mir_data/issues");
-    if(b) animNum(document.getElementById("hs-brands"),b);
-    if(m) animNum(document.getElementById("hs-models"),m);
-    if(f) animNum(document.getElementById("hs-fiches"),f);
-  }
-  paintStats(); setTimeout(paintStats,1500); setInterval(paintStats,6000);
-  if(typeof BRANDS!=="undefined"){ var hb=document.getElementById("hs-brands"); if(hb&&hb.textContent==="—") hb.textContent=BRANDS.length.toLocaleString("fr-FR"); }
-  if(typeof MODELS_ALL!=="undefined"){ var hm=document.getElementById("hs-models"); if(hm&&hm.textContent==="—") hm.textContent=MODELS_ALL.length.toLocaleString("fr-FR"); }
-
-  window.__toTop=function(){ window.scrollTo({top:0,behavior:"smooth"}); sfx("tick"); };
-  var tt=document.getElementById("totop");
-  function onScroll(){
-    var y=window.scrollY||document.documentElement.scrollTop;
-    if(tt) tt.classList.toggle("show",y>420);
-    var tb=document.getElementById("topbar");
-    if(tb) tb.classList.toggle("scrolled",y>16);
-  }
-  window.addEventListener("scroll",onScroll,{passive:true}); onScroll();
-
-  document.addEventListener("click",function(e){
-    var a=e.target.closest('a[href^="#"]'); if(!a) return;
-    var id=a.getAttribute("href").slice(1); if(!id) return;
-    var t=document.getElementById(id); if(!t) return;
-    e.preventDefault();
-    var tb=document.getElementById("topbar");
-    var off=(tb?tb.offsetHeight:64)+14;
-    window.scrollTo({top:t.getBoundingClientRect().top+window.scrollY-off,behavior:"smooth"});
-    t.classList.add("flash"); setTimeout(function(){t.classList.remove("flash");},900);
-    sfx("tick");
-  });
-
-  if("IntersectionObserver" in window){
-    var io=new IntersectionObserver(function(es){ es.forEach(function(en){ if(en.isIntersecting){ en.target.classList.add("in"); io.unobserve(en.target); } }); },{threshold:0.06,rootMargin:"0px 0px -40px 0px"});
-    function scan(){ document.querySelectorAll(".screen.active .card,.screen.active .feature").forEach(function(c){ if(!c.classList.contains("in")) io.observe(c); }); }
-    scan(); setInterval(scan,1200);
-  } else { document.querySelectorAll(".card,.feature").forEach(function(c){c.classList.add("in");}); }
-
-  var unlock=function(){ var a=ctx(); if(a&&a.state==="suspended") a.resume().catch(function(){}); document.removeEventListener("pointerdown",unlock); document.removeEventListener("keydown",unlock); };
-  document.addEventListener("pointerdown",unlock); document.addEventListener("keydown",unlock);
-})();
-</script>
 </body>
 </html>
